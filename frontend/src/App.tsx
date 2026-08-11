@@ -7,6 +7,8 @@ import Dashboard from './pages/Dashboard'
 import Documents from './pages/Documents'
 import Deadlines from './pages/Deadlines'
 import Contracts from './pages/Contracts'
+import Shares from './pages/Shares'
+import PublicShare from './pages/PublicShare'
 import BrandLogo from './components/BrandLogo'
 import {
   authApi,
@@ -14,9 +16,19 @@ import {
   deadlinesApi,
   contractsApi,
   notificationsApi,
+  sharesApi,
   getAccessToken,
 } from './services/api'
-import type { Document, Deadline, DocumentType, Contract, RenewalType, User, Notification } from './types'
+import type {
+  Document,
+  Deadline,
+  DocumentType,
+  Contract,
+  RenewalType,
+  User,
+  Notification,
+  ShareLink,
+} from './types'
 
 function App() {
   const [user, setUser] = useState<User | null>(null)
@@ -25,18 +37,21 @@ function App() {
   const [deadlines, setDeadlines] = useState<Deadline[]>([])
   const [contracts, setContracts] = useState<Contract[]>([])
   const [notifications, setNotifications] = useState<Notification[]>([])
+  const [shares, setShares] = useState<ShareLink[]>([])
 
   async function loadData() {
-    const [docs, dls, ctrs, notifs] = await Promise.all([
+    const [docs, dls, ctrs, notifs, shrs] = await Promise.all([
       documentsApi.list(),
       deadlinesApi.list(),
       contractsApi.list(),
       notificationsApi.list(),
+      sharesApi.list(),
     ])
     setDocuments(docs)
     setDeadlines(dls)
     setContracts(ctrs)
     setNotifications(notifs)
+    setShares(shrs)
   }
 
   useEffect(() => {
@@ -67,6 +82,7 @@ function App() {
     setDeadlines([])
     setContracts([])
     setNotifications([])
+    setShares([])
   }
 
   async function addDocument(data: { name: string; type: DocumentType; file: File }) {
@@ -121,6 +137,19 @@ function App() {
     setNotifications((prev) => prev.map((n) => (n.id === id ? updated : n)))
   }
 
+  async function createShare(data: { documentId: string; expiresInHours: 24 | 168 | 720 }) {
+    const share = await sharesApi.create(data)
+    setShares((prev) => [share, ...prev])
+    return share
+  }
+
+  async function revokeShare(id: string) {
+    await sharesApi.revoke(id)
+    setShares((prev) =>
+      prev.map((s) => (s.id === id ? { ...s, revokedAt: new Date().toISOString() } : s)),
+    )
+  }
+
   if (checkingSession) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center gap-3 bg-brand-mint">
@@ -137,6 +166,7 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
+        <Route path="/partage/:token" element={<PublicShare />} />
         <Route
           path="/connexion"
           element={
@@ -172,6 +202,7 @@ function App() {
                 onDelete={deleteDocument}
                 onCreateDeadline={addDeadline}
                 onCreateContract={addContract}
+                onCreateShare={createShare}
               />
             }
           />
@@ -197,6 +228,10 @@ function App() {
                 onDelete={deleteContract}
               />
             }
+          />
+          <Route
+            path="/partages"
+            element={<Shares shares={shares} onRevoke={revokeShare} />}
           />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />

@@ -8,6 +8,8 @@ import type {
   RenewalType,
   Notification,
   DocumentAnalysis,
+  ShareLink,
+  PublicShareInfo,
 } from '../types'
 
 const API_URL = 'http://localhost:3000'
@@ -197,4 +199,32 @@ export const notificationsApi = {
 
   markRead: (id: string) =>
     request<Notification>(`/notifications/${id}/lue`, { method: 'PATCH' }),
+}
+
+export const sharesApi = {
+  list: () => request<ShareLink[]>('/shares'),
+
+  create: (data: { documentId: string; expiresInHours: 24 | 168 | 720 }) =>
+    request<ShareLink>('/shares', { method: 'POST', body: JSON.stringify(data) }),
+
+  revoke: (id: string) => request<void>(`/shares/${id}`, { method: 'DELETE' }),
+}
+
+// Le partage public n'est jamais authentifié : pas de token, pas de retry sur 401.
+export const publicSharesApi = {
+  async getInfo(token: string): Promise<PublicShareInfo> {
+    const res = await fetch(`${API_URL}/public/shares/${token}`)
+    if (!res.ok) {
+      throw new ApiError(res.status, await parseError(res))
+    }
+    return res.json()
+  },
+
+  async getFileBlob(token: string): Promise<Blob> {
+    const res = await fetch(`${API_URL}/public/shares/${token}/file`)
+    if (!res.ok) {
+      throw new ApiError(res.status, await parseError(res))
+    }
+    return res.blob()
+  },
 }

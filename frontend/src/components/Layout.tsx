@@ -9,6 +9,7 @@ const navItems = [
   { to: '/documents', label: 'Documents' },
   { to: '/echeances', label: 'Échéances' },
   { to: '/contrats', label: 'Contrats' },
+  { to: '/partages', label: 'Partages' },
 ]
 
 interface LayoutProps {

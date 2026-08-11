@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react'
 import type { ChangeEvent, FormEvent } from 'react'
-import type { Document, DocumentType, DocumentAnalysis, RenewalType } from '../types'
+import type { Document, DocumentType, DocumentAnalysis, RenewalType, ShareLink } from '../types'
 import { ApiError, documentsApi } from '../services/api'
 import { formatDate } from '../utils/formatDate'
 
@@ -17,6 +17,16 @@ interface DocumentsProps {
     renewalType: RenewalType
     documentId: string
   }) => Promise<void>
+  onCreateShare: (data: {
+    documentId: string
+    expiresInHours: 24 | 168 | 720
+  }) => Promise<ShareLink>
+}
+
+const shareDurationLabels: Record<24 | 168 | 720, string> = {
+  24: '24 heures',
+  168: '7 jours',
+  720: '30 jours',
 }
 
 const typeLabels: Record<DocumentType, string> = {
@@ -43,6 +53,7 @@ export default function Documents({
   onDelete,
   onCreateDeadline,
   onCreateContract,
+  onCreateShare,
 }: DocumentsProps) {
   const [search, setSearch] = useState('')
   const [typeFilter, setTypeFilter] = useState<DocumentType | 'tous'>('tous')
@@ -63,6 +74,13 @@ export default function Documents({
     null,
   )
   const [suggestionMessage, setSuggestionMessage] = useState<string | null>(null)
+
+  const [shareExpandedId, setShareExpandedId] = useState<string | null>(null)
+  const [shareDuration, setShareDuration] = useState<24 | 168 | 720>(168)
+  const [creatingShare, setCreatingShare] = useState(false)
+  const [shareError, setShareError] = useState<string | null>(null)
+  const [createdShareUrl, setCreatedShareUrl] = useState<string | null>(null)
+  const [copied, setCopied] = useState(false)
 
   const filtered = documents.filter((doc) => {
     const matchesSearch = doc.name.toLowerCase().includes(search.toLowerCase())
@@ -112,6 +130,7 @@ export default function Documents({
     try {
       await onDelete(id)
       if (expandedId === id) setExpandedId(null)
+      if (shareExpandedId === id) setShareExpandedId(null)
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Impossible de supprimer le document')
     }
@@ -137,6 +156,7 @@ export default function Documents({
       setExpandedId(null)
       return
     }
+    setShareExpandedId(null)
     setExpandedId(doc.id)
     setAnalysis(null)
     setAnalysisError(null)
@@ -188,6 +208,42 @@ export default function Documents({
       setAnalysisError(err instanceof ApiError ? err.message : 'Impossible de créer le contrat')
     } finally {
       setCreatingSuggestion(null)
+    }
+  }
+
+  function handleToggleShare(doc: Document) {
+    if (shareExpandedId === doc.id) {
+      setShareExpandedId(null)
+      return
+    }
+    setExpandedId(null)
+    setShareExpandedId(doc.id)
+    setShareError(null)
+    setCreatedShareUrl(null)
+    setCopied(false)
+    setShareDuration(168)
+  }
+
+  async function handleCreateShare(doc: Document) {
+    setCreatingShare(true)
+    setShareError(null)
+    try {
+      const share = await onCreateShare({ documentId: doc.id, expiresInHours: shareDuration })
+      setCreatedShareUrl(`${window.location.origin}/partage/${share.token}`)
+    } catch (err) {
+      setShareError(err instanceof ApiError ? err.message : 'Impossible de créer le lien')
+    } finally {
+      setCreatingShare(false)
+    }
+  }
+
+  async function handleCopyShareUrl() {
+    if (!createdShareUrl) return
+    try {
+      await navigator.clipboard.writeText(createdShareUrl)
+      setCopied(true)
+    } catch {
+      setShareError('Impossible de copier le lien automatiquement, copie-le manuellement.')
     }
   }
 
@@ -326,6 +382,12 @@ export default function Documents({
                       {expandedId === doc.id ? 'Fermer' : 'Analyser'}
                     </button>
                     <button
+                      onClick={() => handleToggleShare(doc)}
+                      className="text-sm text-brand-muted hover:text-brand-green"
+                    >
+                      {shareExpandedId === doc.id ? 'Fermer' : 'Partager'}
+                    </button>
+                    <button
                       onClick={() => handleView(doc)}
                       disabled={openingId === doc.id}
                       className="text-sm text-brand-muted hover:text-brand-green disabled:opacity-60"
@@ -438,6 +500,66 @@ export default function Documents({
                             {suggestionMessage}
                           </p>
                         )}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {shareExpandedId === doc.id && (
+                  <div className="mt-3 rounded-lg border border-brand-border bg-brand-mint/40 p-4">
+                    {shareError && (
+                      <p className="mb-2 text-sm text-brand-danger">{shareError}</p>
+                    )}
+                    {!createdShareUrl ? (
+                      <div className="space-y-3">
+                        <div>
+                          <label className="mb-1 block text-sm font-medium text-brand-deep">
+                            Durée de validité du lien
+                          </label>
+                          <div className="flex gap-2">
+                            {([24, 168, 720] as const).map((hours) => (
+                              <button
+                                key={hours}
+                                onClick={() => setShareDuration(hours)}
+                                className={`rounded-md px-3 py-1.5 text-xs font-medium ${
+                                  shareDuration === hours
+                                    ? 'brand-gradient text-white'
+                                    : 'border border-brand-border bg-white text-brand-deep hover:bg-brand-mint'
+                                }`}
+                              >
+                                {shareDurationLabels[hours]}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => handleCreateShare(doc)}
+                          disabled={creatingShare}
+                          className="brand-gradient rounded-md px-3 py-2 text-sm font-semibold text-white disabled:opacity-60"
+                        >
+                          {creatingShare ? 'Création...' : 'Créer le lien de partage'}
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        <p className="text-xs text-brand-muted">
+                          Lien valide {shareDurationLabels[shareDuration]}, révocable à tout
+                          moment depuis la page Partages.
+                        </p>
+                        <div className="flex items-center gap-2">
+                          <input
+                            readOnly
+                            value={createdShareUrl}
+                            onFocus={(e) => e.target.select()}
+                            className="flex-1 rounded-md border border-brand-border bg-white px-3 py-2 text-xs text-brand-ink"
+                          />
+                          <button
+                            onClick={handleCopyShareUrl}
+                            className="rounded-md border border-brand-border bg-white px-3 py-2 text-xs font-medium text-brand-deep hover:bg-brand-mint"
+                          >
+                            {copied ? 'Copié !' : 'Copier'}
+                          </button>
+                        </div>
                       </div>
                     )}
                   </div>

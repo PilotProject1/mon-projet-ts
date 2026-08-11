@@ -9,6 +9,7 @@ import { UsersModule } from './users/users.module';
 import { AuthModule } from './auth/auth.module';
 import { ContractsModule } from './contracts/contracts.module';
 import { NotificationsModule } from './notifications/notifications.module';
+import { SharesModule } from './shares/shares.module';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { NotificationsModule } from './notifications/notifications.module';
     DeadlinesModule,
     ContractsModule,
     NotificationsModule,
+    SharesModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -53,6 +53,7 @@ model User {
   deadlines     Deadline[]
   contracts     Contract[]
   notifications Notification[]
+  shareLinks    ShareLink[]
 }
 
 model Document {
@@ -68,8 +69,9 @@ model Document {
   userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  deadlines Deadline[]
-  contracts Contract[]
+  deadlines  Deadline[]
+  contracts  Contract[]
+  shareLinks ShareLink[]
 }
 
 model Deadline {
@@ -101,6 +103,30 @@ model Contract {
 
   documentId String
   document   Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+}
+
+model ShareLink {
+  id         String    @id @default(cuid())
+  token      String    @unique
+  expiresAt  DateTime
+  revokedAt  DateTime?
+  createdAt  DateTime  @default(now())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  documentId String
+  document   Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  accesses ShareLinkAccess[]
+}
+
+model ShareLinkAccess {
+  id         String   @id @default(cuid())
+  accessedAt DateTime @default(now())
+
+  shareLinkId String
+  shareLink   ShareLink @relation(fields: [shareLinkId], references: [id], onDelete: Cascade)
 }
 
 model Notification {

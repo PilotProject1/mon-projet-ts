@@ -55,6 +55,24 @@ export interface DocumentAnalysis {
   suggestedAmount: number | null
 }
 
+export interface ShareLink {
+  id: string
+  token: string
+  documentId: string
+  documentName: string
+  createdAt: string
+  expiresAt: string
+  revokedAt: string | null
+  accessCount: number
+}
+
+export interface PublicShareInfo {
+  documentName: string
+  documentType: DocumentType
+  mimeType: string
+  expiresAt: string
+}
+
 export interface Notification {
   id: string
   userId: string
