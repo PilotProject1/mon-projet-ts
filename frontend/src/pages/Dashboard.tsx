@@ -16,43 +16,43 @@ export default function Dashboard({ documents, deadlines }: DashboardProps) {
 
   return (
     <div>
-      <h1 className="mb-6 text-2xl font-semibold text-gray-900">Tableau de bord</h1>
+      <h1 className="mb-8 text-[28px] font-bold text-brand-deep">Tableau de bord</h1>
 
-      <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <div className="rounded-lg border border-gray-200 bg-white p-4">
-          <p className="text-sm text-gray-500">Documents</p>
-          <p className="text-2xl font-semibold text-gray-900">{documents.length}</p>
+      <div className="mb-7 grid grid-cols-1 gap-5 sm:grid-cols-3">
+        <div className="brand-card-shadow rounded-[18px] border border-brand-border bg-white p-6">
+          <p className="mb-2.5 text-sm font-medium text-brand-muted">Documents</p>
+          <p className="text-[34px] font-bold text-brand-deep">{documents.length}</p>
         </div>
-        <div className="rounded-lg border border-gray-200 bg-white p-4">
-          <p className="text-sm text-gray-500">Échéances à faire</p>
-          <p className="text-2xl font-semibold text-gray-900">
+        <div className="brand-card-shadow rounded-[18px] border border-brand-border bg-white p-6">
+          <p className="mb-2.5 text-sm font-medium text-brand-muted">Échéances à faire</p>
+          <p className="text-[34px] font-bold text-brand-deep">
             {deadlines.filter((d) => d.status === 'a_faire').length}
           </p>
         </div>
-        <div className="rounded-lg border border-gray-200 bg-white p-4">
-          <p className="text-sm text-gray-500">Échéances terminées</p>
-          <p className="text-2xl font-semibold text-gray-900">
+        <div className="brand-card-shadow rounded-[18px] border border-brand-border bg-white p-6">
+          <p className="mb-2.5 text-sm font-medium text-brand-muted">Échéances terminées</p>
+          <p className="text-[34px] font-bold text-brand-green">
             {deadlines.filter((d) => d.status === 'terminee').length}
           </p>
         </div>
       </div>
 
-      <div className="rounded-lg border border-gray-200 bg-white">
-        <div className="flex items-center justify-between border-b border-gray-200 px-4 py-3">
-          <h2 className="text-sm font-semibold text-gray-900">Prochaines échéances</h2>
-          <Link to="/echeances" className="text-sm text-purple-600 hover:underline">
+      <div className="brand-card-shadow rounded-[18px] border border-brand-border bg-white">
+        <div className="flex items-center justify-between border-b border-brand-border px-5 py-4">
+          <h2 className="text-[17px] font-semibold text-brand-ink">Prochaines échéances</h2>
+          <Link to="/echeances" className="text-sm font-semibold text-brand-green hover:underline">
             Voir tout
           </Link>
         </div>
         {upcoming.length === 0 ? (
-          <p className="px-4 py-6 text-sm text-gray-500">Aucune échéance à venir.</p>
+          <p className="px-5 py-6 text-sm text-brand-muted">Aucune échéance à venir.</p>
         ) : (
-          <ul className="divide-y divide-gray-100">
+          <ul className="divide-y divide-brand-border">
             {upcoming.map((d) => (
-              <li key={d.id} className="flex items-center justify-between px-4 py-3">
+              <li key={d.id} className="flex items-center justify-between px-5 py-3.5">
                 <div>
-                  <p className="text-sm font-medium text-gray-900">{d.title}</p>
-                  <p className="text-xs text-gray-500">Échéance : {formatDate(d.dueDate)}</p>
+                  <p className="text-sm font-medium text-brand-ink">{d.title}</p>
+                  <p className="text-xs text-brand-muted">Échéance : {formatDate(d.dueDate)}</p>
                 </div>
                 <PriorityBadge priority={d.priority} />
               </li>

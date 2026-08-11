@@ -1,1 +1,66 @@
 @import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
+
+@theme {
+  --font-sans: 'Poppins', ui-sans-serif, system-ui, sans-serif;
+
+  --color-brand-deep: #0b3d3a;
+  --color-brand-mid: #155e52;
+  --color-brand-green: #2e9e63;
+  --color-brand-green-light: #5fdb92;
+  --color-brand-mint: #eaf6ef;
+  --color-brand-ink: #12211e;
+  --color-brand-muted: #5c7a72;
+  --color-brand-border: #dcede4;
+  --color-brand-danger: #c0554b;
+}
+
+:root {
+  /* alias bruts, utilisés dans les valeurs CSS (dégradés, halos) qui ne passent pas par les classes utilitaires */
+  --petrol-deep: #0b3d3a;
+  --petrol-mid: #155e52;
+  --green: #2e9e63;
+  --green-light: #5fdb92;
+  --mint-bg: #eaf6ef;
+  --ink: #12211e;
+  --muted: #5c7a72;
+  --border: #dcede4;
+}
+
+body {
+  font-family: 'Poppins', Arial, sans-serif;
+  background: var(--mint-bg);
+  color: var(--ink);
+}
+
+.brand-gradient {
+  background: linear-gradient(120deg, var(--petrol-deep), var(--green));
+}
+
+.brand-btn-shadow {
+  box-shadow: 0 12px 24px -8px rgba(46, 158, 99, 0.45);
+}
+.brand-btn-shadow:hover {
+  box-shadow: 0 16px 28px -8px rgba(46, 158, 99, 0.55);
+}
+
+.brand-card-shadow {
+  box-shadow: 0 8px 24px -14px rgba(11, 61, 58, 0.12);
+}
+
+/* Halos de fond ambiants (charte SYNeco) */
+.brand-blob {
+  position: absolute;
+  border-radius: 9999px;
+  pointer-events: none;
+  animation: brand-drift 22s ease-in-out infinite;
+}
+@keyframes brand-drift {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+  50% {
+    transform: translate(30px, -20px) scale(1.06);
+  }
+}

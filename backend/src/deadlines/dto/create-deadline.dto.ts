@@ -1,5 +1,4 @@
-import { IsDateString, IsEnum, IsNotEmpty, IsOptional, IsString } from 'class-validator';
-import { DeadlinePriority } from '@prisma/client';
+import { IsDateString, IsNotEmpty, IsOptional, IsString } from 'class-validator';
 
 export class CreateDeadlineDto {
   @IsString()
@@ -8,9 +7,6 @@ export class CreateDeadlineDto {
 
   @IsDateString()
   dueDate: string;
-
-  @IsEnum(DeadlinePriority)
-  priority: DeadlinePriority;
 
   @IsString()
   @IsOptional()

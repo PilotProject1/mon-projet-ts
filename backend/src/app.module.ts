@@ -7,6 +7,8 @@ import { DocumentsModule } from './documents/documents.module';
 import { DeadlinesModule } from './deadlines/deadlines.module';
 import { UsersModule } from './users/users.module';
 import { AuthModule } from './auth/auth.module';
+import { ContractsModule } from './contracts/contracts.module';
+import { NotificationsModule } from './notifications/notifications.module';
 
 @Module({
   imports: [
@@ -16,6 +18,8 @@ import { AuthModule } from './auth/auth.module';
     AuthModule,
     DocumentsModule,
     DeadlinesModule,
+    ContractsModule,
+    NotificationsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

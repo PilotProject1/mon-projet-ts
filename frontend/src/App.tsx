@@ -6,19 +6,36 @@ import Register from './pages/Register'
 import Dashboard from './pages/Dashboard'
 import Documents from './pages/Documents'
 import Deadlines from './pages/Deadlines'
-import { authApi, documentsApi, deadlinesApi, getAccessToken } from './services/api'
-import type { Document, Deadline, DocumentType, DeadlinePriority, User } from './types'
+import Contracts from './pages/Contracts'
+import {
+  authApi,
+  documentsApi,
+  deadlinesApi,
+  contractsApi,
+  notificationsApi,
+  getAccessToken,
+} from './services/api'
+import type { Document, Deadline, DocumentType, Contract, RenewalType, User, Notification } from './types'
 
 function App() {
   const [user, setUser] = useState<User | null>(null)
   const [checkingSession, setCheckingSession] = useState(true)
   const [documents, setDocuments] = useState<Document[]>([])
   const [deadlines, setDeadlines] = useState<Deadline[]>([])
+  const [contracts, setContracts] = useState<Contract[]>([])
+  const [notifications, setNotifications] = useState<Notification[]>([])
 
   async function loadData() {
-    const [docs, dls] = await Promise.all([documentsApi.list(), deadlinesApi.list()])
+    const [docs, dls, ctrs, notifs] = await Promise.all([
+      documentsApi.list(),
+      deadlinesApi.list(),
+      contractsApi.list(),
+      notificationsApi.list(),
+    ])
     setDocuments(docs)
     setDeadlines(dls)
+    setContracts(ctrs)
+    setNotifications(notifs)
   }
 
   useEffect(() => {
@@ -47,6 +64,8 @@ function App() {
     setUser(null)
     setDocuments([])
     setDeadlines([])
+    setContracts([])
+    setNotifications([])
   }
 
   async function addDocument(data: { name: string; type: DocumentType; file: File }) {
@@ -59,12 +78,7 @@ function App() {
     setDocuments((prev) => prev.filter((d) => d.id !== id))
   }
 
-  async function addDeadline(data: {
-    title: string
-    dueDate: string
-    priority: DeadlinePriority
-    documentId?: string
-  }) {
+  async function addDeadline(data: { title: string; dueDate: string; documentId?: string }) {
     const deadline = await deadlinesApi.create(data)
     setDeadlines((prev) => [deadline, ...prev])
   }
@@ -77,6 +91,33 @@ function App() {
       current.status === 'terminee' ? 'a_faire' : 'terminee',
     )
     setDeadlines((prev) => prev.map((d) => (d.id === id ? updated : d)))
+  }
+
+  async function sendReminder(id: string) {
+    const notification = await deadlinesApi.remind(id)
+    setNotifications((prev) => [notification, ...prev])
+  }
+
+  async function addContract(data: {
+    provider: string
+    startDate: string
+    endDate: string
+    amount: number
+    renewalType: RenewalType
+    documentId: string
+  }) {
+    const contract = await contractsApi.create(data)
+    setContracts((prev) => [contract, ...prev])
+  }
+
+  async function deleteContract(id: string) {
+    await contractsApi.remove(id)
+    setContracts((prev) => prev.filter((c) => c.id !== id))
+  }
+
+  async function markNotificationRead(id: string) {
+    const updated = await notificationsApi.markRead(id)
+    setNotifications((prev) => prev.map((n) => (n.id === id ? updated : n)))
   }
 
   if (checkingSession) {
@@ -107,7 +148,11 @@ function App() {
         <Route
           element={
             isAuthenticated ? (
-              <Layout onLogout={handleLogout} />
+              <Layout
+                onLogout={handleLogout}
+                notifications={notifications}
+                onMarkRead={markNotificationRead}
+              />
             ) : (
               <Navigate to="/connexion" replace />
             )
@@ -128,6 +173,18 @@ function App() {
                 documents={documents}
                 onAdd={addDeadline}
                 onToggleStatus={toggleDeadlineStatus}
+                onRemind={sendReminder}
+              />
+            }
+          />
+          <Route
+            path="/contrats"
+            element={
+              <Contracts
+                contracts={contracts}
+                documents={documents}
+                onAdd={addContract}
+                onDelete={deleteContract}
               />
             }
           />

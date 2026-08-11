@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>SYNeco — Connexion</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
+
+  :root{
+    --petrol-deep:#0B3D3A;
+    --petrol-mid:#155E52;
+    --green:#2E9E63;
+    --green-light:#5FDB92;
+    --mint-bg:#EAF6EF;
+    --card:#FFFFFF;
+    --ink:#12211E;
+    --muted:#5C7A72;
+    --border:#DCEDE4;
+  }
+
+  *{box-sizing:border-box;margin:0;padding:0;}
+
+  body{
+    font-family:'Poppins',Arial,sans-serif;
+    min-height:100vh;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    background:var(--mint-bg);
+    position:relative;
+    overflow:hidden;
+    color:var(--ink);
+  }
+
+  /* fond ambiant : dégradés organiques qui remplacent le moiré violet d'origine */
+  .blob{
+    position:absolute;
+    border-radius:50%;
+    filter:blur(70px);
+    opacity:.55;
+    animation:drift 22s ease-in-out infinite;
+  }
+  .blob.b1{
+    width:620px;height:620px;
+    background:radial-gradient(circle at 30% 30%, var(--green-light), transparent 70%);
+    top:-180px; left:-160px;
+    animation-delay:0s;
+  }
+  .blob.b2{
+    width:520px;height:520px;
+    background:radial-gradient(circle at 60% 40%, var(--petrol-mid), transparent 70%);
+    bottom:-200px; right:-140px;
+    animation-delay:-8s;
+  }
+  .blob.b3{
+    width:420px;height:420px;
+    background:radial-gradient(circle at 50% 50%, var(--green), transparent 70%);
+    bottom:10%; left:8%;
+    opacity:.35;
+    animation-delay:-14s;
+  }
+  @keyframes drift{
+    0%,100%{transform:translate(0,0) scale(1);}
+    50%{transform:translate(30px,-20px) scale(1.06);}
+  }
+
+  /* filigrane feuille-sync en fond, à droite */
+  .watermark{
+    position:absolute;
+    right:6%;
+    top:50%;
+    transform:translateY(-50%);
+    width:420px;
+    height:420px;
+    opacity:.06;
+    pointer-events:none;
+  }
+
+  .card{
+    position:relative;
+    z-index:2;
+    width:100%;
+    max-width:440px;
+    background:var(--card);
+    border-radius:28px;
+    padding:44px 40px 36px;
+    box-shadow:0 30px 70px -20px rgba(11,61,58,0.28), 0 2px 8px rgba(11,61,58,0.06);
+    border:1px solid rgba(255,255,255,0.6);
+  }
+
+  .brand{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    margin-bottom:28px;
+  }
+  .brand svg{width:46px;height:46px;flex:none;}
+  .brand-name{
+    font-size:24px;
+    font-weight:700;
+    color:var(--petrol-deep);
+    letter-spacing:0.2px;
+  }
+  .brand-name span{color:var(--green);font-weight:600;}
+
+  h1{
+    font-size:22px;
+    font-weight:600;
+    color:var(--ink);
+    margin-bottom:4px;
+  }
+  .subtitle{
+    font-size:14.5px;
+    color:var(--muted);
+    margin-bottom:30px;
+  }
+
+  label{
+    display:block;
+    font-size:13.5px;
+    font-weight:600;
+    color:var(--petrol-deep);
+    margin-bottom:8px;
+  }
+  .field{margin-bottom:20px;}
+  input{
+    width:100%;
+    padding:13px 15px;
+    border-radius:12px;
+    border:1.5px solid var(--border);
+    background:#FBFDFC;
+    font-family:'Poppins',Arial,sans-serif;
+    font-size:15px;
+    color:var(--ink);
+    outline:none;
+    transition:border-color .15s ease, box-shadow .15s ease;
+  }
+  input::placeholder{color:#9BB3AC;}
+  input:focus{
+    border-color:var(--green);
+    box-shadow:0 0 0 4px rgba(46,158,99,0.12);
+  }
+
+  .btn{
+    width:100%;
+    margin-top:8px;
+    padding:14px;
+    border:none;
+    border-radius:12px;
+    background:linear-gradient(120deg, var(--petrol-deep), var(--green));
+    color:#fff;
+    font-family:'Poppins',Arial,sans-serif;
+    font-size:15.5px;
+    font-weight:600;
+    letter-spacing:0.2px;
+    cursor:pointer;
+    box-shadow:0 12px 24px -8px rgba(46,158,99,0.45);
+    transition:transform .15s ease, box-shadow .15s ease;
+  }
+  .btn:hover{transform:translateY(-1px);box-shadow:0 16px 28px -8px rgba(46,158,99,0.55);}
+
+  .footer{
+    text-align:center;
+    margin-top:22px;
+    font-size:14px;
+    color:var(--muted);
+  }
+  .footer a{color:var(--green);font-weight:600;text-decoration:none;}
+  .footer a:hover{text-decoration:underline;}
+</style>
+</head>
+<body>
+
+  <div class="blob b1"></div>
+  <div class="blob b2"></div>
+  <div class="blob b3"></div>
+
+  <svg class="watermark" viewBox="0 0 200 200">
+    <g transform="translate(100,100)" fill="none" stroke="#0B3D3A" stroke-width="11" stroke-linecap="round">
+      <path d="M -54 10 A 62 62 0 0 1 46 -46"/>
+      <polygon points="46,-46 60,-30 30,-24" fill="#0B3D3A" stroke="none"/>
+      <path d="M 54 -10 A 62 62 0 0 1 -46 46"/>
+      <polygon points="-46,46 -60,30 -30,24" fill="#0B3D3A" stroke="none"/>
+      <line x1="-30" y1="30" x2="30" y2="-30" stroke-width="7" opacity="0.85"/>
+    </g>
+  </svg>
+
+  <div class="card">
+    <div class="brand">
+      <svg viewBox="0 0 200 200">
+        <defs>
+          <linearGradient id="badgeGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#0B3D3A"/>
+            <stop offset="100%" stop-color="#155E52"/>
+          </linearGradient>
+          <linearGradient id="leafGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#EAF6EF"/>
+            <stop offset="100%" stop-color="#8FD9B3"/>
+          </linearGradient>
+        </defs>
+        <rect width="200" height="200" rx="46" fill="url(#badgeGrad)"/>
+        <g transform="translate(100,100)" fill="none" stroke="url(#leafGrad)" stroke-width="11" stroke-linecap="round">
+          <path d="M -54 10 A 62 62 0 0 1 46 -46"/>
+          <polygon points="46,-46 60,-30 30,-24" fill="#EAF6EF" stroke="none"/>
+          <path d="M 54 -10 A 62 62 0 0 1 -46 46"/>
+          <polygon points="-46,46 -60,30 -30,24" fill="#EAF6EF" stroke="none"/>
+          <line x1="-30" y1="30" x2="30" y2="-30" stroke-width="7" opacity="0.85"/>
+        </g>
+      </svg>
+      <div class="brand-name">SYN<span>eco</span></div>
+    </div>
+
+    <h1>Connectez-vous à votre espace</h1>
+    <div class="subtitle">Vos documents, synchronisés. Zéro papier.</div>
+
+    <div class="field">
+      <label for="email">Email</label>
+      <input id="email" type="email" placeholder="vous@exemple.com">
+    </div>
+
+    <div class="field">
+      <label for="password">Mot de passe</label>
+      <input id="password" type="password" placeholder="••••••••">
+    </div>
+
+    <button class="btn">Se connecter</button>
+
+    <div class="footer">Pas encore de compte ? <a href="#">Créer un compte</a></div>
+  </div>
+
+</body>
+</html>

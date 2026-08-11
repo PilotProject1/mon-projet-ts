@@ -1,4 +1,13 @@
-import type { Document, DocumentType, Deadline, DeadlinePriority, DeadlineStatus, User } from '../types'
+import type {
+  Document,
+  DocumentType,
+  Deadline,
+  DeadlineStatus,
+  User,
+  Contract,
+  RenewalType,
+  Notification,
+} from '../types'
 
 const API_URL = 'http://localhost:3000'
 
@@ -153,15 +162,35 @@ export const documentsApi = {
 export const deadlinesApi = {
   list: () => request<Deadline[]>('/deadlines'),
 
-  create: (data: {
-    title: string
-    dueDate: string
-    priority: DeadlinePriority
-    documentId?: string
-  }) => request<Deadline>('/deadlines', { method: 'POST', body: JSON.stringify(data) }),
+  create: (data: { title: string; dueDate: string; documentId?: string }) =>
+    request<Deadline>('/deadlines', { method: 'POST', body: JSON.stringify(data) }),
 
   updateStatus: (id: string, status: DeadlineStatus) =>
     request<Deadline>(`/deadlines/${id}`, { method: 'PATCH', body: JSON.stringify({ status }) }),
 
   remove: (id: string) => request<void>(`/deadlines/${id}`, { method: 'DELETE' }),
+
+  remind: (id: string) => request<Notification>(`/deadlines/${id}/remind`, { method: 'POST' }),
+}
+
+export const contractsApi = {
+  list: () => request<Contract[]>('/contracts'),
+
+  create: (data: {
+    provider: string
+    startDate: string
+    endDate: string
+    amount: number
+    renewalType: RenewalType
+    documentId: string
+  }) => request<Contract>('/contracts', { method: 'POST', body: JSON.stringify(data) }),
+
+  remove: (id: string) => request<void>(`/contracts/${id}`, { method: 'DELETE' }),
+}
+
+export const notificationsApi = {
+  list: () => request<Notification[]>('/notifications'),
+
+  markRead: (id: string) =>
+    request<Notification>(`/notifications/${id}/lue`, { method: 'PATCH' }),
 }

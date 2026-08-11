@@ -3,6 +3,8 @@ import type { FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { authApi, ApiError } from '../services/api'
 import type { User } from '../types'
+import BrandLogo from '../components/BrandLogo'
+import AmbientBackground from '../components/AmbientBackground'
 
 interface RegisterProps {
   onLogin: (user: User) => void
@@ -32,18 +34,24 @@ export default function Register({ onLogin }: RegisterProps) {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-50 px-6">
-      <div className="w-full max-w-sm">
-        <h1 className="mb-1 text-2xl font-semibold text-gray-900">PILOT</h1>
-        <p className="mb-6 text-sm text-gray-500">Créez votre compte</p>
+    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-brand-mint px-6">
+      <AmbientBackground variant="auth" />
+
+      <div className="relative z-10 w-full max-w-[440px] rounded-[28px] border border-white/60 bg-white px-10 pb-9 pt-11 shadow-[0_30px_70px_-20px_rgba(11,61,58,0.28),0_2px_8px_rgba(11,61,58,0.06)]">
+        <div className="mb-7">
+          <BrandLogo iconSize={46} wordmarkClassName="text-2xl" />
+        </div>
+
+        <h1 className="mb-1 text-xl font-semibold text-brand-ink">Créez votre compte</h1>
+        <p className="mb-7 text-sm text-brand-muted">Vos documents, synchronisés. Zéro papier.</p>
 
         {error && (
           <div className="mb-4 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-5">
           <div>
-            <label htmlFor="name" className="mb-1 block text-sm font-medium text-gray-700">
+            <label htmlFor="name" className="mb-2 block text-[13.5px] font-semibold text-brand-deep">
               Nom
             </label>
             <input
@@ -52,12 +60,12 @@ export default function Register({ onLogin }: RegisterProps) {
               required
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-purple-500 focus:outline-none"
+              className="w-full rounded-xl border border-brand-border bg-[#FBFDFC] px-4 py-3 text-sm text-brand-ink outline-none transition focus:border-brand-green focus:ring-4 focus:ring-brand-green/10"
               placeholder="Votre nom"
             />
           </div>
           <div>
-            <label htmlFor="email" className="mb-1 block text-sm font-medium text-gray-700">
+            <label htmlFor="email" className="mb-2 block text-[13.5px] font-semibold text-brand-deep">
               Email
             </label>
             <input
@@ -66,12 +74,15 @@ export default function Register({ onLogin }: RegisterProps) {
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-purple-500 focus:outline-none"
+              className="w-full rounded-xl border border-brand-border bg-[#FBFDFC] px-4 py-3 text-sm text-brand-ink outline-none transition focus:border-brand-green focus:ring-4 focus:ring-brand-green/10"
               placeholder="vous@exemple.com"
             />
           </div>
           <div>
-            <label htmlFor="password" className="mb-1 block text-sm font-medium text-gray-700">
+            <label
+              htmlFor="password"
+              className="mb-2 block text-[13.5px] font-semibold text-brand-deep"
+            >
               Mot de passe
             </label>
             <input
@@ -81,22 +92,22 @@ export default function Register({ onLogin }: RegisterProps) {
               minLength={8}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-purple-500 focus:outline-none"
+              className="w-full rounded-xl border border-brand-border bg-[#FBFDFC] px-4 py-3 text-sm text-brand-ink outline-none transition focus:border-brand-green focus:ring-4 focus:ring-brand-green/10"
               placeholder="8 caractères minimum"
             />
           </div>
           <button
             type="submit"
             disabled={loading}
-            className="w-full rounded-md bg-purple-600 px-3 py-2 text-sm font-medium text-white hover:bg-purple-700 disabled:opacity-60"
+            className="brand-gradient brand-btn-shadow w-full rounded-xl py-3.5 text-[15.5px] font-semibold text-white transition hover:-translate-y-0.5 disabled:opacity-60"
           >
             {loading ? 'Création...' : 'Créer mon compte'}
           </button>
         </form>
 
-        <p className="mt-4 text-center text-sm text-gray-500">
+        <p className="mt-6 text-center text-sm text-brand-muted">
           Déjà un compte ?{' '}
-          <Link to="/connexion" className="font-medium text-purple-600 hover:underline">
+          <Link to="/connexion" className="font-semibold text-brand-green hover:underline">
             Se connecter
           </Link>
         </p>

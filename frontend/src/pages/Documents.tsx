@@ -110,10 +110,10 @@ export default function Documents({ documents, onAdd, onDelete }: DocumentsProps
   return (
     <div>
       <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-2xl font-semibold text-gray-900">Documents</h1>
+        <h1 className="text-[28px] font-bold text-brand-deep">Documents</h1>
         <button
           onClick={() => setShowForm((v) => !v)}
-          className="rounded-md bg-purple-600 px-3 py-2 text-sm font-medium text-white hover:bg-purple-700"
+          className="brand-gradient rounded-md px-3 py-2 text-sm font-semibold text-white"
         >
           {showForm ? 'Annuler' : '+ Ajouter un document'}
         </button>
@@ -126,10 +126,10 @@ export default function Documents({ documents, onAdd, onDelete }: DocumentsProps
       {showForm && (
         <form
           onSubmit={handleSubmit}
-          className="mb-6 space-y-3 rounded-lg border border-gray-200 bg-white p-4"
+          className="mb-6 space-y-3 rounded-lg border border-brand-border bg-white p-4"
         >
           <div>
-            <label htmlFor="doc-name" className="mb-1 block text-sm font-medium text-gray-700">
+            <label htmlFor="doc-name" className="mb-1 block text-sm font-medium text-brand-deep">
               Nom du document
             </label>
             <input
@@ -138,19 +138,19 @@ export default function Documents({ documents, onAdd, onDelete }: DocumentsProps
               required
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-purple-500 focus:outline-none"
+              className="w-full rounded-md border border-brand-border px-3 py-2 text-sm focus:border-brand-green focus:outline-none"
               placeholder="Ex : Facture électricité août"
             />
           </div>
           <div>
-            <label htmlFor="doc-type" className="mb-1 block text-sm font-medium text-gray-700">
+            <label htmlFor="doc-type" className="mb-1 block text-sm font-medium text-brand-deep">
               Type
             </label>
             <select
               id="doc-type"
               value={type}
               onChange={(e) => setType(e.target.value as DocumentType)}
-              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-purple-500 focus:outline-none"
+              className="w-full rounded-md border border-brand-border px-3 py-2 text-sm focus:border-brand-green focus:outline-none"
             >
               {Object.entries(typeLabels).map(([value, label]) => (
                 <option key={value} value={value}>
@@ -160,7 +160,7 @@ export default function Documents({ documents, onAdd, onDelete }: DocumentsProps
             </select>
           </div>
           <div>
-            <label htmlFor="doc-file" className="mb-1 block text-sm font-medium text-gray-700">
+            <label htmlFor="doc-file" className="mb-1 block text-sm font-medium text-brand-deep">
               Fichier (PDF, JPG, PNG ou WEBP, 10 Mo max)
             </label>
             <input
@@ -170,10 +170,10 @@ export default function Documents({ documents, onAdd, onDelete }: DocumentsProps
               required
               accept={ALLOWED_MIME_TYPES.join(',')}
               onChange={handleFileChange}
-              className="w-full text-sm text-gray-700 file:mr-3 file:rounded-md file:border-0 file:bg-purple-50 file:px-3 file:py-2 file:text-sm file:font-medium file:text-purple-700 hover:file:bg-purple-100"
+              className="w-full text-sm text-brand-ink file:mr-3 file:rounded-md file:border-0 file:bg-brand-mint file:px-3 file:py-2 file:text-sm file:font-medium file:text-brand-deep hover:file:bg-brand-border"
             />
             {file && (
-              <p className="mt-1 text-xs text-gray-400">
+              <p className="mt-1 text-xs text-brand-muted">
                 {file.name} · {formatSize(file.size)}
               </p>
             )}
@@ -181,7 +181,7 @@ export default function Documents({ documents, onAdd, onDelete }: DocumentsProps
           <button
             type="submit"
             disabled={submitting || !file}
-            className="rounded-md bg-purple-600 px-3 py-2 text-sm font-medium text-white hover:bg-purple-700 disabled:opacity-60"
+            className="brand-gradient rounded-md px-3 py-2 text-sm font-semibold text-white disabled:opacity-60"
           >
             {submitting ? 'Envoi...' : 'Enregistrer'}
           </button>
@@ -194,12 +194,12 @@ export default function Documents({ documents, onAdd, onDelete }: DocumentsProps
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Rechercher un document..."
-          className="flex-1 rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-purple-500 focus:outline-none"
+          className="flex-1 rounded-md border border-brand-border px-3 py-2 text-sm focus:border-brand-green focus:outline-none"
         />
         <select
           value={typeFilter}
           onChange={(e) => setTypeFilter(e.target.value as DocumentType | 'tous')}
-          className="rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-purple-500 focus:outline-none"
+          className="rounded-md border border-brand-border px-3 py-2 text-sm focus:border-brand-green focus:outline-none"
         >
           <option value="tous">Tous les types</option>
           {Object.entries(typeLabels).map(([value, label]) => (
@@ -210,16 +210,16 @@ export default function Documents({ documents, onAdd, onDelete }: DocumentsProps
         </select>
       </div>
 
-      <div className="rounded-lg border border-gray-200 bg-white">
+      <div className="rounded-lg border border-brand-border bg-white">
         {filtered.length === 0 ? (
-          <p className="px-4 py-6 text-sm text-gray-500">Aucun document trouvé.</p>
+          <p className="px-4 py-6 text-sm text-brand-muted">Aucun document trouvé.</p>
         ) : (
-          <ul className="divide-y divide-gray-100">
+          <ul className="divide-y divide-brand-border">
             {filtered.map((doc) => (
               <li key={doc.id} className="flex items-center justify-between px-4 py-3">
                 <div>
-                  <p className="text-sm font-medium text-gray-900">{doc.name}</p>
-                  <p className="text-xs text-gray-500">
+                  <p className="text-sm font-medium text-brand-ink">{doc.name}</p>
+                  <p className="text-xs text-brand-muted">
                     {typeLabels[doc.type]} · {formatSize(doc.sizeBytes)} · Ajouté le{' '}
                     {formatDate(doc.createdAt)}
                   </p>
@@ -237,13 +237,13 @@ export default function Documents({ documents, onAdd, onDelete }: DocumentsProps
                   <button
                     onClick={() => handleView(doc)}
                     disabled={openingId === doc.id}
-                    className="text-sm text-gray-400 hover:text-purple-600 disabled:opacity-60"
+                    className="text-sm text-brand-muted hover:text-brand-green disabled:opacity-60"
                   >
                     {openingId === doc.id ? 'Ouverture...' : 'Voir'}
                   </button>
                   <button
                     onClick={() => handleDelete(doc.id)}
-                    className="text-sm text-gray-400 hover:text-red-600"
+                    className="text-sm text-brand-muted hover:text-brand-danger"
                   >
                     Supprimer
                   </button>

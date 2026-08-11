@@ -31,3 +31,28 @@ export interface User {
   name: string
   role: 'user' | 'admin'
 }
+
+export type RenewalType = 'tacite' | 'manuel' | 'aucun'
+
+export interface Contract {
+  id: string
+  userId: string
+  documentId: string
+  provider: string
+  startDate: string
+  endDate: string
+  amount: number
+  renewalType: RenewalType
+  createdAt: string
+}
+
+export interface Notification {
+  id: string
+  userId: string
+  deadlineId: string
+  channel: string
+  status: 'envoyee' | 'echouee'
+  message: string
+  sentAt: string
+  readAt: string | null
+}

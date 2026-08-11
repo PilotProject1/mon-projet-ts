@@ -33,7 +33,7 @@ export class DeadlinesController {
 
   @Get(':id')
   findOne(@Param('id') id: string, @CurrentUser() user: CurrentUserPayload) {
-    return this.deadlinesService.findOne(id, user.userId);
+    return this.deadlinesService.findOneWithPriority(id, user.userId);
   }
 
   @Patch(':id')
@@ -49,5 +49,10 @@ export class DeadlinesController {
   @HttpCode(HttpStatus.NO_CONTENT)
   remove(@Param('id') id: string, @CurrentUser() user: CurrentUserPayload) {
     return this.deadlinesService.remove(id, user.userId);
+  }
+
+  @Post(':id/remind')
+  remind(@Param('id') id: string, @CurrentUser() user: CurrentUserPayload) {
+    return this.deadlinesService.remind(id, user.userId);
   }
 }
