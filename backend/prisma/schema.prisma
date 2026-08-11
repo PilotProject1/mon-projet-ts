@@ -1,0 +1,71 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum DocumentType {
+  contrat
+  facture
+  assurance
+  garantie
+  courrier
+  autre
+}
+
+enum DocumentStatus {
+  traite
+  en_attente
+}
+
+enum DeadlinePriority {
+  basse
+  moyenne
+  haute
+}
+
+enum DeadlineStatus {
+  a_faire
+  terminee
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  name         String
+  createdAt    DateTime @default(now())
+
+  documents Document[]
+  deadlines Deadline[]
+}
+
+model Document {
+  id        String         @id @default(cuid())
+  name      String
+  type      DocumentType
+  fileUrl   String
+  status    DocumentStatus @default(en_attente)
+  createdAt DateTime       @default(now())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  deadlines Deadline[]
+}
+
+model Deadline {
+  id       String           @id @default(cuid())
+  title    String
+  dueDate  DateTime
+  priority DeadlinePriority @default(moyenne)
+  status   DeadlineStatus   @default(a_faire)
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  documentId String?
+  document   Document? @relation(fields: [documentId], references: [id], onDelete: SetNull)
+}
