@@ -7,6 +7,7 @@ import type {
   Contract,
   RenewalType,
   Notification,
+  DocumentAnalysis,
 } from '../types'
 
 const API_URL = 'http://localhost:3000'
@@ -146,6 +147,9 @@ export const documentsApi = {
   },
 
   remove: (id: string) => request<void>(`/documents/${id}`, { method: 'DELETE' }),
+
+  analyze: (id: string) =>
+    request<DocumentAnalysis>(`/documents/${id}/analyze`, { method: 'POST' }),
 
   async getFileBlob(id: string, retry = true): Promise<Blob> {
     const res = await rawRequest(`/documents/${id}/file`)

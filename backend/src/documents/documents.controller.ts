@@ -75,6 +75,11 @@ export class DocumentsController {
     return new StreamableFile(this.documentsService.getFileStream(document.fileKey));
   }
 
+  @Post(':id/analyze')
+  analyze(@Param('id') id: string, @CurrentUser() user: CurrentUserPayload) {
+    return this.documentsService.analyze(id, user.userId);
+  }
+
   @Patch(':id')
   update(
     @Param('id') id: string,

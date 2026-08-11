@@ -46,6 +46,15 @@ export interface Contract {
   createdAt: string
 }
 
+export interface DocumentAnalysis {
+  warning: string | null
+  rawTextPreview: string
+  suggestedType: DocumentType | null
+  suggestedProvider: string | null
+  suggestedDates: string[]
+  suggestedAmount: number | null
+}
+
 export interface Notification {
   id: string
   userId: string

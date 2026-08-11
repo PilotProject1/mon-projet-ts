@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { randomUUID } from 'crypto';
 import { createReadStream } from 'fs';
-import { mkdir, rm, writeFile } from 'fs/promises';
+import { mkdir, readFile, rm, writeFile } from 'fs/promises';
 import { extname, join } from 'path';
 import { StorageService, StoredFile } from './storage.service';
 
@@ -25,5 +25,9 @@ export class LocalStorageService extends StorageService {
 
   createReadStream(key: string) {
     return createReadStream(join(UPLOAD_ROOT, key));
+  }
+
+  async getBuffer(key: string): Promise<Buffer> {
+    return readFile(join(UPLOAD_ROOT, key));
   }
 }

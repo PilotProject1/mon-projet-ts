@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react'
 import type { ChangeEvent, FormEvent } from 'react'
-import type { Document, DocumentType } from '../types'
+import type { Document, DocumentType, DocumentAnalysis, RenewalType } from '../types'
 import { ApiError, documentsApi } from '../services/api'
 import { formatDate } from '../utils/formatDate'
 
@@ -8,6 +8,15 @@ interface DocumentsProps {
   documents: Document[]
   onAdd: (data: { name: string; type: DocumentType; file: File }) => Promise<void>
   onDelete: (id: string) => Promise<void>
+  onCreateDeadline: (data: { title: string; dueDate: string; documentId?: string }) => Promise<void>
+  onCreateContract: (data: {
+    provider: string
+    startDate: string
+    endDate: string
+    amount: number
+    renewalType: RenewalType
+    documentId: string
+  }) => Promise<void>
 }
 
 const typeLabels: Record<DocumentType, string> = {
@@ -28,7 +37,13 @@ function formatSize(bytes: number) {
   return `${(bytes / (1024 * 1024)).toFixed(1)} Mo`
 }
 
-export default function Documents({ documents, onAdd, onDelete }: DocumentsProps) {
+export default function Documents({
+  documents,
+  onAdd,
+  onDelete,
+  onCreateDeadline,
+  onCreateContract,
+}: DocumentsProps) {
   const [search, setSearch] = useState('')
   const [typeFilter, setTypeFilter] = useState<DocumentType | 'tous'>('tous')
   const [showForm, setShowForm] = useState(false)
@@ -39,6 +54,15 @@ export default function Documents({ documents, onAdd, onDelete }: DocumentsProps
   const [submitting, setSubmitting] = useState(false)
   const [openingId, setOpeningId] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const [expandedId, setExpandedId] = useState<string | null>(null)
+  const [analyzing, setAnalyzing] = useState(false)
+  const [analysis, setAnalysis] = useState<DocumentAnalysis | null>(null)
+  const [analysisError, setAnalysisError] = useState<string | null>(null)
+  const [creatingSuggestion, setCreatingSuggestion] = useState<'deadline' | 'contract' | null>(
+    null,
+  )
+  const [suggestionMessage, setSuggestionMessage] = useState<string | null>(null)
 
   const filtered = documents.filter((doc) => {
     const matchesSearch = doc.name.toLowerCase().includes(search.toLowerCase())
@@ -87,6 +111,7 @@ export default function Documents({ documents, onAdd, onDelete }: DocumentsProps
     setError(null)
     try {
       await onDelete(id)
+      if (expandedId === id) setExpandedId(null)
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Impossible de supprimer le document')
     }
@@ -104,6 +129,65 @@ export default function Documents({ documents, onAdd, onDelete }: DocumentsProps
       setError(err instanceof ApiError ? err.message : "Impossible d'ouvrir le document")
     } finally {
       setOpeningId(null)
+    }
+  }
+
+  async function handleAnalyze(doc: Document) {
+    if (expandedId === doc.id) {
+      setExpandedId(null)
+      return
+    }
+    setExpandedId(doc.id)
+    setAnalysis(null)
+    setAnalysisError(null)
+    setSuggestionMessage(null)
+    setAnalyzing(true)
+    try {
+      const result = await documentsApi.analyze(doc.id)
+      setAnalysis(result)
+    } catch (err) {
+      setAnalysisError(err instanceof ApiError ? err.message : "Impossible d'analyser ce document")
+    } finally {
+      setAnalyzing(false)
+    }
+  }
+
+  async function handleCreateDeadlineFromSuggestion(doc: Document) {
+    if (!analysis || analysis.suggestedDates.length === 0) return
+    setCreatingSuggestion('deadline')
+    setSuggestionMessage(null)
+    try {
+      await onCreateDeadline({
+        title: `Échéance : ${doc.name}`,
+        dueDate: analysis.suggestedDates[0],
+        documentId: doc.id,
+      })
+      setSuggestionMessage('Échéance créée à partir de la suggestion.')
+    } catch (err) {
+      setAnalysisError(err instanceof ApiError ? err.message : "Impossible de créer l'échéance")
+    } finally {
+      setCreatingSuggestion(null)
+    }
+  }
+
+  async function handleCreateContractFromSuggestion(doc: Document) {
+    if (!analysis || !analysis.suggestedProvider || analysis.suggestedDates.length === 0 || analysis.suggestedAmount === null) return
+    setCreatingSuggestion('contract')
+    setSuggestionMessage(null)
+    try {
+      await onCreateContract({
+        provider: analysis.suggestedProvider,
+        startDate: analysis.suggestedDates[0],
+        endDate: analysis.suggestedDates[1] ?? analysis.suggestedDates[0],
+        amount: analysis.suggestedAmount,
+        renewalType: 'aucun',
+        documentId: doc.id,
+      })
+      setSuggestionMessage('Contrat créé à partir de la suggestion.')
+    } catch (err) {
+      setAnalysisError(err instanceof ApiError ? err.message : 'Impossible de créer le contrat')
+    } finally {
+      setCreatingSuggestion(null)
     }
   }
 
@@ -216,38 +300,148 @@ export default function Documents({ documents, onAdd, onDelete }: DocumentsProps
         ) : (
           <ul className="divide-y divide-brand-border">
             {filtered.map((doc) => (
-              <li key={doc.id} className="flex items-center justify-between px-4 py-3">
-                <div>
-                  <p className="text-sm font-medium text-brand-ink">{doc.name}</p>
-                  <p className="text-xs text-brand-muted">
-                    {typeLabels[doc.type]} · {formatSize(doc.sizeBytes)} · Ajouté le{' '}
-                    {formatDate(doc.createdAt)}
-                  </p>
+              <li key={doc.id} className="px-4 py-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-brand-ink">{doc.name}</p>
+                    <p className="text-xs text-brand-muted">
+                      {typeLabels[doc.type]} · {formatSize(doc.sizeBytes)} · Ajouté le{' '}
+                      {formatDate(doc.createdAt)}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span
+                      className={`rounded-full px-2 py-0.5 text-xs font-medium ${
+                        doc.status === 'traite'
+                          ? 'bg-green-100 text-green-700'
+                          : 'bg-amber-100 text-amber-700'
+                      }`}
+                    >
+                      {doc.status === 'traite' ? 'Traité' : 'En attente'}
+                    </span>
+                    <button
+                      onClick={() => handleAnalyze(doc)}
+                      className="text-sm text-brand-muted hover:text-brand-green"
+                    >
+                      {expandedId === doc.id ? 'Fermer' : 'Analyser'}
+                    </button>
+                    <button
+                      onClick={() => handleView(doc)}
+                      disabled={openingId === doc.id}
+                      className="text-sm text-brand-muted hover:text-brand-green disabled:opacity-60"
+                    >
+                      {openingId === doc.id ? 'Ouverture...' : 'Voir'}
+                    </button>
+                    <button
+                      onClick={() => handleDelete(doc.id)}
+                      className="text-sm text-brand-muted hover:text-brand-danger"
+                    >
+                      Supprimer
+                    </button>
+                  </div>
                 </div>
-                <div className="flex items-center gap-3">
-                  <span
-                    className={`rounded-full px-2 py-0.5 text-xs font-medium ${
-                      doc.status === 'traite'
-                        ? 'bg-green-100 text-green-700'
-                        : 'bg-amber-100 text-amber-700'
-                    }`}
-                  >
-                    {doc.status === 'traite' ? 'Traité' : 'En attente'}
-                  </span>
-                  <button
-                    onClick={() => handleView(doc)}
-                    disabled={openingId === doc.id}
-                    className="text-sm text-brand-muted hover:text-brand-green disabled:opacity-60"
-                  >
-                    {openingId === doc.id ? 'Ouverture...' : 'Voir'}
-                  </button>
-                  <button
-                    onClick={() => handleDelete(doc.id)}
-                    className="text-sm text-brand-muted hover:text-brand-danger"
-                  >
-                    Supprimer
-                  </button>
-                </div>
+
+                {expandedId === doc.id && (
+                  <div className="mt-3 rounded-lg border border-brand-border bg-brand-mint/40 p-4">
+                    {analyzing && (
+                      <p className="text-sm text-brand-muted">
+                        Analyse en cours (OCR + extraction)... ça peut prendre jusqu'à une minute
+                        la première fois.
+                      </p>
+                    )}
+                    {analysisError && (
+                      <p className="text-sm text-brand-danger">{analysisError}</p>
+                    )}
+                    {analysis && (
+                      <div className="space-y-3">
+                        {analysis.warning && (
+                          <p className="rounded-md bg-amber-50 px-3 py-2 text-xs text-amber-800">
+                            {analysis.warning}
+                          </p>
+                        )}
+                        <div className="grid grid-cols-2 gap-3 text-sm sm:grid-cols-4">
+                          <div>
+                            <p className="text-xs font-medium text-brand-muted">Type suggéré</p>
+                            <p className="text-brand-ink">
+                              {analysis.suggestedType ? typeLabels[analysis.suggestedType] : '—'}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-xs font-medium text-brand-muted">Organisme</p>
+                            <p className="text-brand-ink">{analysis.suggestedProvider ?? '—'}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs font-medium text-brand-muted">Dates trouvées</p>
+                            <p className="text-brand-ink">
+                              {analysis.suggestedDates.length > 0
+                                ? analysis.suggestedDates.join(', ')
+                                : '—'}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-xs font-medium text-brand-muted">Montant</p>
+                            <p className="text-brand-ink">
+                              {analysis.suggestedAmount !== null
+                                ? `${analysis.suggestedAmount.toFixed(2)} €`
+                                : '—'}
+                            </p>
+                          </div>
+                        </div>
+
+                        {analysis.rawTextPreview && (
+                          <details className="text-xs text-brand-muted">
+                            <summary className="cursor-pointer select-none">
+                              Voir le texte extrait
+                            </summary>
+                            <pre className="mt-2 max-h-32 overflow-y-auto whitespace-pre-wrap rounded-md bg-white p-2 font-mono text-[11px] text-brand-ink">
+                              {analysis.rawTextPreview}
+                            </pre>
+                          </details>
+                        )}
+
+                        <p className="text-xs text-brand-muted">
+                          Ces suggestions ne sont pas enregistrées automatiquement — vérifie-les
+                          avant de créer une échéance ou un contrat.
+                        </p>
+
+                        <div className="flex flex-wrap gap-2">
+                          <button
+                            onClick={() => handleCreateDeadlineFromSuggestion(doc)}
+                            disabled={
+                              analysis.suggestedDates.length === 0 ||
+                              creatingSuggestion === 'deadline'
+                            }
+                            className="rounded-md border border-brand-border bg-white px-3 py-1.5 text-xs font-medium text-brand-deep hover:bg-brand-mint disabled:opacity-50"
+                          >
+                            {creatingSuggestion === 'deadline'
+                              ? 'Création...'
+                              : 'Créer une échéance avec cette date'}
+                          </button>
+                          <button
+                            onClick={() => handleCreateContractFromSuggestion(doc)}
+                            disabled={
+                              !analysis.suggestedProvider ||
+                              analysis.suggestedDates.length === 0 ||
+                              analysis.suggestedAmount === null ||
+                              creatingSuggestion === 'contract'
+                            }
+                            className="rounded-md border border-brand-border bg-white px-3 py-1.5 text-xs font-medium text-brand-deep hover:bg-brand-mint disabled:opacity-50"
+                          >
+                            {creatingSuggestion === 'contract'
+                              ? 'Création...'
+                              : 'Créer un contrat avec ces informations'}
+                          </button>
+                        </div>
+
+                        {suggestionMessage && (
+                          <p className="text-xs font-medium text-brand-green">
+                            {suggestionMessage}
+                          </p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
               </li>
             ))}
           </ul>

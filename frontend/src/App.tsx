@@ -7,6 +7,7 @@ import Dashboard from './pages/Dashboard'
 import Documents from './pages/Documents'
 import Deadlines from './pages/Deadlines'
 import Contracts from './pages/Contracts'
+import BrandLogo from './components/BrandLogo'
 import {
   authApi,
   documentsApi,
@@ -122,8 +123,11 @@ function App() {
 
   if (checkingSession) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-50 text-sm text-gray-400">
-        Chargement...
+      <div className="flex min-h-screen flex-col items-center justify-center gap-3 bg-brand-mint">
+        <div className="animate-pulse">
+          <BrandLogo iconSize={40} wordmarkClassName="text-xl" />
+        </div>
+        <p className="text-sm text-brand-muted">Chargement...</p>
       </div>
     )
   }
@@ -162,7 +166,13 @@ function App() {
           <Route
             path="/documents"
             element={
-              <Documents documents={documents} onAdd={addDocument} onDelete={deleteDocument} />
+              <Documents
+                documents={documents}
+                onAdd={addDocument}
+                onDelete={deleteDocument}
+                onCreateDeadline={addDeadline}
+                onCreateContract={addContract}
+              />
             }
           />
           <Route

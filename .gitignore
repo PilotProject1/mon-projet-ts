@@ -31,3 +31,6 @@ backend/prisma/migrations/dev.db
 
 # Fichiers uploadés par les utilisateurs (stockage local de dev)
 backend/uploads/
+
+# Donnees linguistiques Tesseract (telechargees automatiquement au premier OCR)
+backend/*.traineddata
