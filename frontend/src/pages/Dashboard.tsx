@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 import type { Document, Deadline } from '../types'
 import PriorityBadge from '../components/PriorityBadge'
+import { formatDate } from '../utils/formatDate'
 
 interface DashboardProps {
   documents: Document[]
@@ -51,7 +52,7 @@ export default function Dashboard({ documents, deadlines }: DashboardProps) {
               <li key={d.id} className="flex items-center justify-between px-4 py-3">
                 <div>
                   <p className="text-sm font-medium text-gray-900">{d.title}</p>
-                  <p className="text-xs text-gray-500">Échéance : {d.dueDate}</p>
+                  <p className="text-xs text-gray-500">Échéance : {formatDate(d.dueDate)}</p>
                 </div>
                 <PriorityBadge priority={d.priority} />
               </li>

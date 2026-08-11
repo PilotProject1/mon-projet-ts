@@ -2,12 +2,19 @@ import { useState } from 'react'
 import type { FormEvent } from 'react'
 import type { Deadline, DeadlinePriority, Document } from '../types'
 import PriorityBadge from '../components/PriorityBadge'
+import { ApiError } from '../services/api'
+import { formatDate } from '../utils/formatDate'
 
 interface DeadlinesProps {
   deadlines: Deadline[]
   documents: Document[]
-  onAdd: (deadline: Deadline) => void
-  onToggleStatus: (id: string) => void
+  onAdd: (data: {
+    title: string
+    dueDate: string
+    priority: DeadlinePriority
+    documentId?: string
+  }) => Promise<void>
+  onToggleStatus: (id: string) => Promise<void>
 }
 
 export default function Deadlines({ deadlines, documents, onAdd, onToggleStatus }: DeadlinesProps) {
@@ -17,28 +24,44 @@ export default function Deadlines({ deadlines, documents, onAdd, onToggleStatus 
   const [dueDate, setDueDate] = useState('')
   const [priority, setPriority] = useState<DeadlinePriority>('moyenne')
   const [documentId, setDocumentId] = useState('')
+  const [error, setError] = useState<string | null>(null)
+  const [submitting, setSubmitting] = useState(false)
 
   const filtered = deadlines
     .filter((d) => statusFilter === 'toutes' || d.status === statusFilter)
     .sort((a, b) => a.dueDate.localeCompare(b.dueDate))
 
-  function handleSubmit(e: FormEvent) {
+  async function handleSubmit(e: FormEvent) {
     e.preventDefault()
     if (!title.trim() || !dueDate) return
-    onAdd({
-      id: `dl-${Date.now()}`,
-      userId: 'user-1',
-      documentId: documentId || null,
-      title: title.trim(),
-      dueDate,
-      priority,
-      status: 'a_faire',
-    })
-    setTitle('')
-    setDueDate('')
-    setPriority('moyenne')
-    setDocumentId('')
-    setShowForm(false)
+    setError(null)
+    setSubmitting(true)
+    try {
+      await onAdd({
+        title: title.trim(),
+        dueDate,
+        priority,
+        ...(documentId ? { documentId } : {}),
+      })
+      setTitle('')
+      setDueDate('')
+      setPriority('moyenne')
+      setDocumentId('')
+      setShowForm(false)
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Impossible de créer l'échéance")
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  async function handleToggle(id: string) {
+    setError(null)
+    try {
+      await onToggleStatus(id)
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Impossible de mettre à jour l'échéance")
+    }
   }
 
   function handleReminder(title: string) {
@@ -56,6 +79,10 @@ export default function Deadlines({ deadlines, documents, onAdd, onToggleStatus 
           {showForm ? 'Annuler' : '+ Nouvelle échéance'}
         </button>
       </div>
+
+      {error && (
+        <div className="mb-4 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>
+      )}
 
       {showForm && (
         <form
@@ -125,9 +152,10 @@ export default function Deadlines({ deadlines, documents, onAdd, onToggleStatus 
           <div className="sm:col-span-2">
             <button
               type="submit"
-              className="rounded-md bg-purple-600 px-3 py-2 text-sm font-medium text-white hover:bg-purple-700"
+              disabled={submitting}
+              className="rounded-md bg-purple-600 px-3 py-2 text-sm font-medium text-white hover:bg-purple-700 disabled:opacity-60"
             >
-              Créer l'échéance
+              {submitting ? 'Création...' : "Créer l'échéance"}
             </button>
           </div>
         </form>
@@ -167,7 +195,7 @@ export default function Deadlines({ deadlines, documents, onAdd, onToggleStatus 
                       {d.title}
                     </p>
                     <p className="text-xs text-gray-500">
-                      Échéance : {d.dueDate}
+                      Échéance : {formatDate(d.dueDate)}
                       {linkedDoc ? ` · ${linkedDoc.name}` : ''}
                     </p>
                   </div>
@@ -180,7 +208,7 @@ export default function Deadlines({ deadlines, documents, onAdd, onToggleStatus 
                       Rappel
                     </button>
                     <button
-                      onClick={() => onToggleStatus(d.id)}
+                      onClick={() => handleToggle(d.id)}
                       className="text-sm font-medium text-purple-600 hover:underline"
                     >
                       {d.status === 'terminee' ? 'Réouvrir' : 'Terminer'}

@@ -31,11 +31,17 @@ enum DeadlineStatus {
   terminee
 }
 
+enum Role {
+  user
+  admin
+}
+
 model User {
   id           String   @id @default(cuid())
   email        String   @unique
   passwordHash String
   name         String
+  role         Role     @default(user)
   createdAt    DateTime @default(now())
 
   documents Document[]

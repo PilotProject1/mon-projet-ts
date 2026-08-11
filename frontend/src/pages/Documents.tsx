@@ -1,11 +1,13 @@
 import { useState } from 'react'
 import type { FormEvent } from 'react'
 import type { Document, DocumentType } from '../types'
+import { ApiError } from '../services/api'
+import { formatDate } from '../utils/formatDate'
 
 interface DocumentsProps {
   documents: Document[]
-  onAdd: (doc: Document) => void
-  onDelete: (id: string) => void
+  onAdd: (data: { name: string; type: DocumentType; fileUrl: string }) => Promise<void>
+  onDelete: (id: string) => Promise<void>
 }
 
 const typeLabels: Record<DocumentType, string> = {
@@ -23,6 +25,8 @@ export default function Documents({ documents, onAdd, onDelete }: DocumentsProps
   const [showForm, setShowForm] = useState(false)
   const [name, setName] = useState('')
   const [type, setType] = useState<DocumentType>('autre')
+  const [error, setError] = useState<string | null>(null)
+  const [submitting, setSubmitting] = useState(false)
 
   const filtered = documents.filter((doc) => {
     const matchesSearch = doc.name.toLowerCase().includes(search.toLowerCase())
@@ -30,21 +34,30 @@ export default function Documents({ documents, onAdd, onDelete }: DocumentsProps
     return matchesSearch && matchesType
   })
 
-  function handleSubmit(e: FormEvent) {
+  async function handleSubmit(e: FormEvent) {
     e.preventDefault()
     if (!name.trim()) return
-    onAdd({
-      id: `doc-${Date.now()}`,
-      userId: 'user-1',
-      name: name.trim(),
-      type,
-      fileUrl: '#',
-      status: 'en_attente',
-      createdAt: new Date().toISOString().slice(0, 10),
-    })
-    setName('')
-    setType('autre')
-    setShowForm(false)
+    setError(null)
+    setSubmitting(true)
+    try {
+      await onAdd({ name: name.trim(), type, fileUrl: '#' })
+      setName('')
+      setType('autre')
+      setShowForm(false)
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Impossible d'ajouter le document")
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  async function handleDelete(id: string) {
+    setError(null)
+    try {
+      await onDelete(id)
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Impossible de supprimer le document')
+    }
   }
 
   return (
@@ -58,6 +71,10 @@ export default function Documents({ documents, onAdd, onDelete }: DocumentsProps
           {showForm ? 'Annuler' : '+ Ajouter un document'}
         </button>
       </div>
+
+      {error && (
+        <div className="mb-4 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>
+      )}
 
       {showForm && (
         <form
@@ -100,9 +117,10 @@ export default function Documents({ documents, onAdd, onDelete }: DocumentsProps
           </p>
           <button
             type="submit"
-            className="rounded-md bg-purple-600 px-3 py-2 text-sm font-medium text-white hover:bg-purple-700"
+            disabled={submitting}
+            className="rounded-md bg-purple-600 px-3 py-2 text-sm font-medium text-white hover:bg-purple-700 disabled:opacity-60"
           >
-            Enregistrer
+            {submitting ? 'Enregistrement...' : 'Enregistrer'}
           </button>
         </form>
       )}
@@ -139,7 +157,7 @@ export default function Documents({ documents, onAdd, onDelete }: DocumentsProps
                 <div>
                   <p className="text-sm font-medium text-gray-900">{doc.name}</p>
                   <p className="text-xs text-gray-500">
-                    {typeLabels[doc.type]} · Ajouté le {doc.createdAt}
+                    {typeLabels[doc.type]} · Ajouté le {formatDate(doc.createdAt)}
                   </p>
                 </div>
                 <div className="flex items-center gap-3">
@@ -153,7 +171,7 @@ export default function Documents({ documents, onAdd, onDelete }: DocumentsProps
                     {doc.status === 'traite' ? 'Traité' : 'En attente'}
                   </span>
                   <button
-                    onClick={() => onDelete(doc.id)}
+                    onClick={() => handleDelete(doc.id)}
                     className="text-sm text-gray-400 hover:text-red-600"
                   >
                     Supprimer

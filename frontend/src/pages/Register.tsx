@@ -1,21 +1,34 @@
 import { useState } from 'react'
 import type { FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { authApi, ApiError } from '../services/api'
+import type { User } from '../types'
 
 interface RegisterProps {
-  onLogin: () => void
+  onLogin: (user: User) => void
 }
 
 export default function Register({ onLogin }: RegisterProps) {
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [error, setError] = useState<string | null>(null)
+  const [loading, setLoading] = useState(false)
   const navigate = useNavigate()
 
-  function handleSubmit(e: FormEvent) {
+  async function handleSubmit(e: FormEvent) {
     e.preventDefault()
-    onLogin()
-    navigate('/')
+    setError(null)
+    setLoading(true)
+    try {
+      const user = await authApi.register(email, password, name)
+      onLogin(user)
+      navigate('/')
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Impossible de créer le compte')
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -23,6 +36,10 @@ export default function Register({ onLogin }: RegisterProps) {
       <div className="w-full max-w-sm">
         <h1 className="mb-1 text-2xl font-semibold text-gray-900">PILOT</h1>
         <p className="mb-6 text-sm text-gray-500">Créez votre compte</p>
+
+        {error && (
+          <div className="mb-4 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
@@ -61,17 +78,19 @@ export default function Register({ onLogin }: RegisterProps) {
               id="password"
               type="password"
               required
+              minLength={8}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-purple-500 focus:outline-none"
-              placeholder="••••••••"
+              placeholder="8 caractères minimum"
             />
           </div>
           <button
             type="submit"
-            className="w-full rounded-md bg-purple-600 px-3 py-2 text-sm font-medium text-white hover:bg-purple-700"
+            disabled={loading}
+            className="w-full rounded-md bg-purple-600 px-3 py-2 text-sm font-medium text-white hover:bg-purple-700 disabled:opacity-60"
           >
-            Créer mon compte
+            {loading ? 'Création...' : 'Créer mon compte'}
           </button>
         </form>
 
