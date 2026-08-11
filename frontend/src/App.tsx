@@ -49,7 +49,7 @@ function App() {
     setDeadlines([])
   }
 
-  async function addDocument(data: { name: string; type: DocumentType; fileUrl: string }) {
+  async function addDocument(data: { name: string; type: DocumentType; file: File }) {
     const doc = await documentsApi.create(data)
     setDocuments((prev) => [doc, ...prev])
   }

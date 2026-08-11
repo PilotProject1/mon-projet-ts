@@ -28,3 +28,6 @@ Thumbs.db
 
 # Prisma
 backend/prisma/migrations/dev.db
+
+# Fichiers uploadés par les utilisateurs (stockage local de dev)
+backend/uploads/

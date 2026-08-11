@@ -1,14 +1,27 @@
 import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { StorageService } from '../storage/storage.service';
 import { CreateDocumentDto } from './dto/create-document.dto';
 import { UpdateDocumentDto } from './dto/update-document.dto';
 
 @Injectable()
 export class DocumentsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly storage: StorageService,
+  ) {}
 
-  create(dto: CreateDocumentDto, userId: string) {
-    return this.prisma.document.create({ data: { ...dto, userId } });
+  async create(dto: CreateDocumentDto, userId: string, file: Express.Multer.File) {
+    const stored = await this.storage.save(file, userId);
+    return this.prisma.document.create({
+      data: {
+        ...dto,
+        userId,
+        fileKey: stored.key,
+        mimeType: stored.mimeType,
+        sizeBytes: stored.sizeBytes,
+      },
+    });
   }
 
   findAll(userId: string) {
@@ -34,8 +47,13 @@ export class DocumentsService {
     return this.prisma.document.update({ where: { id }, data: dto });
   }
 
+  getFileStream(fileKey: string) {
+    return this.storage.createReadStream(fileKey);
+  }
+
   async remove(id: string, userId: string) {
-    await this.findOne(id, userId);
+    const document = await this.findOne(id, userId);
     await this.prisma.document.delete({ where: { id } });
+    await this.storage.delete(document.fileKey);
   }
 }

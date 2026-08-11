@@ -1,12 +1,12 @@
-import { useState } from 'react'
-import type { FormEvent } from 'react'
+import { useRef, useState } from 'react'
+import type { ChangeEvent, FormEvent } from 'react'
 import type { Document, DocumentType } from '../types'
-import { ApiError } from '../services/api'
+import { ApiError, documentsApi } from '../services/api'
 import { formatDate } from '../utils/formatDate'
 
 interface DocumentsProps {
   documents: Document[]
-  onAdd: (data: { name: string; type: DocumentType; fileUrl: string }) => Promise<void>
+  onAdd: (data: { name: string; type: DocumentType; file: File }) => Promise<void>
   onDelete: (id: string) => Promise<void>
 }
 
@@ -19,14 +19,26 @@ const typeLabels: Record<DocumentType, string> = {
   autre: 'Autre',
 }
 
+const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024
+const ALLOWED_MIME_TYPES = ['application/pdf', 'image/jpeg', 'image/png', 'image/webp']
+
+function formatSize(bytes: number) {
+  if (bytes < 1024) return `${bytes} o`
+  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} Ko`
+  return `${(bytes / (1024 * 1024)).toFixed(1)} Mo`
+}
+
 export default function Documents({ documents, onAdd, onDelete }: DocumentsProps) {
   const [search, setSearch] = useState('')
   const [typeFilter, setTypeFilter] = useState<DocumentType | 'tous'>('tous')
   const [showForm, setShowForm] = useState(false)
   const [name, setName] = useState('')
   const [type, setType] = useState<DocumentType>('autre')
+  const [file, setFile] = useState<File | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
+  const [openingId, setOpeningId] = useState<string | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const filtered = documents.filter((doc) => {
     const matchesSearch = doc.name.toLowerCase().includes(search.toLowerCase())
@@ -34,15 +46,35 @@ export default function Documents({ documents, onAdd, onDelete }: DocumentsProps
     return matchesSearch && matchesType
   })
 
+  function handleFileChange(e: ChangeEvent<HTMLInputElement>) {
+    const selected = e.target.files?.[0] ?? null
+    setError(null)
+    if (selected && !ALLOWED_MIME_TYPES.includes(selected.type)) {
+      setError('Type de fichier non autorisé (PDF, JPG, PNG ou WEBP uniquement)')
+      setFile(null)
+      e.target.value = ''
+      return
+    }
+    if (selected && selected.size > MAX_FILE_SIZE_BYTES) {
+      setError('Fichier trop volumineux (10 Mo maximum)')
+      setFile(null)
+      e.target.value = ''
+      return
+    }
+    setFile(selected)
+  }
+
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
-    if (!name.trim()) return
+    if (!name.trim() || !file) return
     setError(null)
     setSubmitting(true)
     try {
-      await onAdd({ name: name.trim(), type, fileUrl: '#' })
+      await onAdd({ name: name.trim(), type, file })
       setName('')
       setType('autre')
+      setFile(null)
+      if (fileInputRef.current) fileInputRef.current.value = ''
       setShowForm(false)
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Impossible d'ajouter le document")
@@ -57,6 +89,21 @@ export default function Documents({ documents, onAdd, onDelete }: DocumentsProps
       await onDelete(id)
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Impossible de supprimer le document')
+    }
+  }
+
+  async function handleView(doc: Document) {
+    setError(null)
+    setOpeningId(doc.id)
+    try {
+      const blob = await documentsApi.getFileBlob(doc.id)
+      const url = URL.createObjectURL(blob)
+      window.open(url, '_blank', 'noopener,noreferrer')
+      setTimeout(() => URL.revokeObjectURL(url), 60_000)
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Impossible d'ouvrir le document")
+    } finally {
+      setOpeningId(null)
     }
   }
 
@@ -112,15 +159,31 @@ export default function Documents({ documents, onAdd, onDelete }: DocumentsProps
               ))}
             </select>
           </div>
-          <p className="text-xs text-gray-400">
-            Le dépôt réel de fichier (PDF/image) sera ajouté en Phase 6.
-          </p>
+          <div>
+            <label htmlFor="doc-file" className="mb-1 block text-sm font-medium text-gray-700">
+              Fichier (PDF, JPG, PNG ou WEBP, 10 Mo max)
+            </label>
+            <input
+              id="doc-file"
+              ref={fileInputRef}
+              type="file"
+              required
+              accept={ALLOWED_MIME_TYPES.join(',')}
+              onChange={handleFileChange}
+              className="w-full text-sm text-gray-700 file:mr-3 file:rounded-md file:border-0 file:bg-purple-50 file:px-3 file:py-2 file:text-sm file:font-medium file:text-purple-700 hover:file:bg-purple-100"
+            />
+            {file && (
+              <p className="mt-1 text-xs text-gray-400">
+                {file.name} · {formatSize(file.size)}
+              </p>
+            )}
+          </div>
           <button
             type="submit"
-            disabled={submitting}
+            disabled={submitting || !file}
             className="rounded-md bg-purple-600 px-3 py-2 text-sm font-medium text-white hover:bg-purple-700 disabled:opacity-60"
           >
-            {submitting ? 'Enregistrement...' : 'Enregistrer'}
+            {submitting ? 'Envoi...' : 'Enregistrer'}
           </button>
         </form>
       )}
@@ -157,7 +220,8 @@ export default function Documents({ documents, onAdd, onDelete }: DocumentsProps
                 <div>
                   <p className="text-sm font-medium text-gray-900">{doc.name}</p>
                   <p className="text-xs text-gray-500">
-                    {typeLabels[doc.type]} · Ajouté le {formatDate(doc.createdAt)}
+                    {typeLabels[doc.type]} · {formatSize(doc.sizeBytes)} · Ajouté le{' '}
+                    {formatDate(doc.createdAt)}
                   </p>
                 </div>
                 <div className="flex items-center gap-3">
@@ -170,6 +234,13 @@ export default function Documents({ documents, onAdd, onDelete }: DocumentsProps
                   >
                     {doc.status === 'traite' ? 'Traité' : 'En attente'}
                   </span>
+                  <button
+                    onClick={() => handleView(doc)}
+                    disabled={openingId === doc.id}
+                    className="text-sm text-gray-400 hover:text-purple-600 disabled:opacity-60"
+                  >
+                    {openingId === doc.id ? 'Ouverture...' : 'Voir'}
+                  </button>
                   <button
                     onClick={() => handleDelete(doc.id)}
                     className="text-sm text-gray-400 hover:text-red-600"

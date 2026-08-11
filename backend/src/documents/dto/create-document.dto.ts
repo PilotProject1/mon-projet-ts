@@ -8,8 +8,4 @@ export class CreateDocumentDto {
 
   @IsEnum(DocumentType)
   type: DocumentType;
-
-  @IsString()
-  @IsNotEmpty()
-  fileUrl: string;
 }

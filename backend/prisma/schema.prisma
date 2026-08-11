@@ -52,7 +52,9 @@ model Document {
   id        String         @id @default(cuid())
   name      String
   type      DocumentType
-  fileUrl   String
+  fileKey   String
+  mimeType  String
+  sizeBytes Int
   status    DocumentStatus @default(en_attente)
   createdAt DateTime       @default(now())
 

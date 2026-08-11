@@ -39,10 +39,11 @@ interface AuthResponse {
 
 async function rawRequest(path: string, options: RequestInit = {}) {
   const token = getAccessToken()
+  const isFormData = options.body instanceof FormData
   const res = await fetch(`${API_URL}${path}`, {
     ...options,
     headers: {
-      'Content-Type': 'application/json',
+      ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...options.headers,
     },
@@ -127,10 +128,26 @@ export const authApi = {
 export const documentsApi = {
   list: () => request<Document[]>('/documents'),
 
-  create: (data: { name: string; type: DocumentType; fileUrl: string }) =>
-    request<Document>('/documents', { method: 'POST', body: JSON.stringify(data) }),
+  create: (data: { name: string; type: DocumentType; file: File }) => {
+    const formData = new FormData()
+    formData.append('name', data.name)
+    formData.append('type', data.type)
+    formData.append('file', data.file)
+    return request<Document>('/documents', { method: 'POST', body: formData })
+  },
 
   remove: (id: string) => request<void>(`/documents/${id}`, { method: 'DELETE' }),
+
+  async getFileBlob(id: string, retry = true): Promise<Blob> {
+    const res = await rawRequest(`/documents/${id}/file`)
+    if (res.status === 401 && retry && (await tryRefresh())) {
+      return documentsApi.getFileBlob(id, false)
+    }
+    if (!res.ok) {
+      throw new ApiError(res.status, await parseError(res))
+    }
+    return res.blob()
+  },
 }
 
 export const deadlinesApi = {

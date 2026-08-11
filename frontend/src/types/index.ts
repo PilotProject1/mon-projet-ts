@@ -5,7 +5,9 @@ export interface Document {
   userId: string
   name: string
   type: DocumentType
-  fileUrl: string
+  fileKey: string
+  mimeType: string
+  sizeBytes: number
   status: 'traite' | 'en_attente'
   createdAt: string
 }
