@@ -12,6 +12,7 @@ import PublicShare from './pages/PublicShare'
 import CompanyPage from './pages/Company'
 import Clients from './pages/Clients'
 import Invoices from './pages/Invoices'
+import Search from './pages/Search'
 import BrandLogo from './components/BrandLogo'
 import {
   authApi,
@@ -262,6 +263,7 @@ function App() {
           }
         >
           <Route path="/" element={<Dashboard documents={documents} deadlines={deadlines} />} />
+          <Route path="/recherche" element={<Search />} />
           <Route
             path="/documents"
             element={

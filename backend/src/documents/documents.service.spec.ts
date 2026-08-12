@@ -8,6 +8,8 @@ describe('DocumentsService', () => {
   let storage: any;
   let ocr: any;
   let extraction: any;
+  let ai: any;
+  let aiExtraction: any;
 
   const ownerId = 'user-1';
   const otherId = 'user-2';
@@ -36,8 +38,17 @@ describe('DocumentsService', () => {
     };
     ocr = { extractText: jest.fn() };
     extraction = { extract: jest.fn() };
+    ai = { available: false };
+    aiExtraction = { extract: jest.fn() };
 
-    service = new DocumentsService(prisma, storage, ocr, extraction);
+    service = new DocumentsService(
+      prisma,
+      storage,
+      ocr,
+      extraction,
+      ai,
+      aiExtraction,
+    );
   });
 
   describe('findOne (ownership)', () => {
@@ -129,6 +140,44 @@ describe('DocumentsService', () => {
       expect(result.rawTextPreview).toHaveLength(500);
       expect(result.suggestedAmount).toBe(42);
       expect(result.suggestedProvider).toBe('EDF');
+      expect(aiExtraction.extract).not.toHaveBeenCalled();
+    });
+
+    it('uses the AI extractor instead of the heuristic one when configured', async () => {
+      prisma.document.findUnique.mockResolvedValue(document);
+      storage.getBuffer.mockResolvedValue(Buffer.from('file-bytes'));
+      ocr.extractText.mockResolvedValue({ text: 'Facture EDF', warning: null });
+      ai.available = true;
+      aiExtraction.extract.mockResolvedValue({
+        suggestedType: 'facture',
+        suggestedProvider: 'EDF',
+        suggestedDates: [],
+        suggestedAmount: 99,
+      });
+
+      const result = await service.analyze(document.id, ownerId);
+
+      expect(aiExtraction.extract).toHaveBeenCalledWith('Facture EDF');
+      expect(extraction.extract).not.toHaveBeenCalled();
+      expect(result.suggestedAmount).toBe(99);
+    });
+
+    it('falls back to the heuristic extractor when the AI call fails', async () => {
+      prisma.document.findUnique.mockResolvedValue(document);
+      storage.getBuffer.mockResolvedValue(Buffer.from('file-bytes'));
+      ocr.extractText.mockResolvedValue({ text: 'Facture EDF', warning: null });
+      ai.available = true;
+      aiExtraction.extract.mockRejectedValue(new Error('timeout'));
+      extraction.extract.mockReturnValue({
+        suggestedType: 'facture',
+        suggestedProvider: 'EDF',
+        suggestedDates: [],
+        suggestedAmount: 10,
+      });
+
+      const result = await service.analyze(document.id, ownerId);
+
+      expect(result.suggestedAmount).toBe(10);
     });
   });
 
