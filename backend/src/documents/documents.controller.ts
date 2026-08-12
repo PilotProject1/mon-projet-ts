@@ -22,8 +22,14 @@ import { DocumentsService } from './documents.service';
 import { CreateDocumentDto } from './dto/create-document.dto';
 import { UpdateDocumentDto } from './dto/update-document.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { CurrentUser, type CurrentUserPayload } from '../auth/decorators/current-user.decorator';
-import { ALLOWED_MIME_TYPES, MAX_FILE_SIZE_BYTES } from './file-upload.constants';
+import {
+  CurrentUser,
+  type CurrentUserPayload,
+} from '../auth/decorators/current-user.decorator';
+import {
+  ALLOWED_MIME_TYPES,
+  MAX_FILE_SIZE_BYTES,
+} from './file-upload.constants';
 
 @UseGuards(JwtAuthGuard)
 @Controller('documents')
@@ -46,7 +52,9 @@ export class DocumentsController {
       throw new BadRequestException('Fichier requis');
     }
     if (!ALLOWED_MIME_TYPES.includes(file.mimetype)) {
-      throw new BadRequestException('Type de fichier non autorisé (PDF, JPG, PNG ou WEBP uniquement)');
+      throw new BadRequestException(
+        'Type de fichier non autorisé (PDF, JPG, PNG ou WEBP uniquement)',
+      );
     }
     return this.documentsService.create(dto, user.userId, file);
   }
@@ -72,7 +80,9 @@ export class DocumentsController {
       'Content-Type': document.mimeType,
       'Content-Disposition': `inline; filename="${encodeURIComponent(document.name)}"`,
     });
-    return new StreamableFile(this.documentsService.getFileStream(document.fileKey));
+    return new StreamableFile(
+      this.documentsService.getFileStream(document.fileKey),
+    );
   }
 
   @Post(':id/analyze')

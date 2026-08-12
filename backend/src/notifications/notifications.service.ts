@@ -1,4 +1,8 @@
-import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
@@ -19,12 +23,16 @@ export class NotificationsService {
   }
 
   async markRead(id: string, userId: string) {
-    const notification = await this.prisma.notification.findUnique({ where: { id } });
+    const notification = await this.prisma.notification.findUnique({
+      where: { id },
+    });
     if (!notification) {
       throw new NotFoundException(`Notification ${id} introuvable`);
     }
     if (notification.userId !== userId) {
-      throw new ForbiddenException("Vous n'avez pas accès à cette notification");
+      throw new ForbiddenException(
+        "Vous n'avez pas accès à cette notification",
+      );
     }
     return this.prisma.notification.update({
       where: { id },

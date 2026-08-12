@@ -1,4 +1,8 @@
-import { ConflictException, Injectable, UnauthorizedException } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
 import { UsersService } from '../users/users.service';
@@ -32,7 +36,12 @@ export class AuthService {
     return { accessToken, refreshToken };
   }
 
-  private toPublicUser(user: { id: string; email: string; name: string; role: string }) {
+  private toPublicUser(user: {
+    id: string;
+    email: string;
+    name: string;
+    role: string;
+  }) {
     return { id: user.id, email: user.email, name: user.name, role: user.role };
   }
 
@@ -59,7 +68,10 @@ export class AuthService {
       throw new UnauthorizedException('Identifiants invalides');
     }
 
-    const passwordMatches = await bcrypt.compare(dto.password, user.passwordHash);
+    const passwordMatches = await bcrypt.compare(
+      dto.password,
+      user.passwordHash,
+    );
     if (!passwordMatches) {
       throw new UnauthorizedException('Identifiants invalides');
     }
@@ -75,7 +87,9 @@ export class AuthService {
         secret: process.env.JWT_REFRESH_SECRET,
       });
     } catch {
-      throw new UnauthorizedException('Token de rafraîchissement invalide ou expiré');
+      throw new UnauthorizedException(
+        'Token de rafraîchissement invalide ou expiré',
+      );
     }
 
     const user = await this.usersService.findById(payload.sub);

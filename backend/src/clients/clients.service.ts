@@ -1,4 +1,8 @@
-import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CompanyService } from '../company/company.service';
 import { CreateClientDto } from './dto/create-client.dto';
@@ -18,7 +22,10 @@ export class ClientsService {
 
   async findAll(userId: string) {
     const companyId = await this.companyService.requireCompanyId(userId);
-    return this.prisma.client.findMany({ where: { companyId }, orderBy: { name: 'asc' } });
+    return this.prisma.client.findMany({
+      where: { companyId },
+      orderBy: { name: 'asc' },
+    });
   }
 
   async findOne(id: string, userId: string) {

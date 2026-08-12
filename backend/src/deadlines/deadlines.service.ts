@@ -1,4 +1,8 @@
-import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { Deadline } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
@@ -7,7 +11,10 @@ import { UpdateDeadlineDto } from './dto/update-deadline.dto';
 import { computeDeadlinePriority } from './deadline-priority.util';
 
 function withPriority(deadline: Deadline) {
-  return { ...deadline, priority: computeDeadlinePriority(deadline.dueDate, deadline.status) };
+  return {
+    ...deadline,
+    priority: computeDeadlinePriority(deadline.dueDate, deadline.status),
+  };
 }
 
 @Injectable()
@@ -18,9 +25,11 @@ export class DeadlinesService {
   ) {}
 
   private async assertOwnsDocument(documentId: string, userId: string) {
-    const document = await this.prisma.document.findUnique({ where: { id: documentId } });
+    const document = await this.prisma.document.findUnique({
+      where: { id: documentId },
+    });
     if (!document || document.userId !== userId) {
-      throw new ForbiddenException("Ce document ne vous appartient pas");
+      throw new ForbiddenException('Ce document ne vous appartient pas');
     }
   }
 

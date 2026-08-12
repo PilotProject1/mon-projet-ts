@@ -1,4 +1,10 @@
-import { Controller, Get, HttpCode, HttpStatus, ServiceUnavailableException } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  HttpCode,
+  HttpStatus,
+  ServiceUnavailableException,
+} from '@nestjs/common';
 import { AppService } from './app.service';
 import { PrismaService } from './prisma/prisma.service';
 
@@ -22,6 +28,10 @@ export class AppController {
     } catch {
       throw new ServiceUnavailableException('Base de données inaccessible');
     }
-    return { status: 'ok', database: 'ok', timestamp: new Date().toISOString() };
+    return {
+      status: 'ok',
+      database: 'ok',
+      timestamp: new Date().toISOString(),
+    };
   }
 }

@@ -14,7 +14,10 @@ import { InvoicesService } from './invoices.service';
 import { CreateInvoiceDto } from './dto/create-invoice.dto';
 import { UpdateInvoiceDto } from './dto/update-invoice.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { CurrentUser, type CurrentUserPayload } from '../auth/decorators/current-user.decorator';
+import {
+  CurrentUser,
+  type CurrentUserPayload,
+} from '../auth/decorators/current-user.decorator';
 
 @UseGuards(JwtAuthGuard)
 @Controller('invoices')
@@ -22,7 +25,10 @@ export class InvoicesController {
   constructor(private readonly invoicesService: InvoicesService) {}
 
   @Post()
-  create(@Body() dto: CreateInvoiceDto, @CurrentUser() user: CurrentUserPayload) {
+  create(
+    @Body() dto: CreateInvoiceDto,
+    @CurrentUser() user: CurrentUserPayload,
+  ) {
     return this.invoicesService.create(dto, user.userId);
   }
 

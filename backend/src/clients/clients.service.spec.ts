@@ -20,25 +20,29 @@ describe('ClientsService', () => {
         delete: jest.fn(),
       },
     };
-    companyService = { requireCompanyId: jest.fn().mockResolvedValue(companyId) };
+    companyService = {
+      requireCompanyId: jest.fn().mockResolvedValue(companyId),
+    };
 
     service = new ClientsService(prisma, companyService);
   });
 
   describe('create', () => {
     it("propagates the 'no company' error instead of creating an orphan client", async () => {
-      companyService.requireCompanyId.mockRejectedValue(new NotFoundException());
-
-      await expect(service.create({ name: 'x', email: 'x@x.com' } as any, userId)).rejects.toThrow(
-        NotFoundException,
+      companyService.requireCompanyId.mockRejectedValue(
+        new NotFoundException(),
       );
+
+      await expect(
+        service.create({ name: 'x', email: 'x@x.com' } as any, userId),
+      ).rejects.toThrow(NotFoundException);
       expect(prisma.client.create).not.toHaveBeenCalled();
     });
 
     it('scopes the new client to the requesting company', async () => {
       prisma.client.create.mockResolvedValue(client);
 
-      await service.create({ name: 'Client SARL', email: 'x@x.com' } as any, userId);
+      await service.create({ name: 'Client SARL', email: 'x@x.com' }, userId);
 
       expect(prisma.client.create).toHaveBeenCalledWith({
         data: { name: 'Client SARL', email: 'x@x.com', companyId },
@@ -50,13 +54,20 @@ describe('ClientsService', () => {
     it('throws NotFoundException for a missing client', async () => {
       prisma.client.findUnique.mockResolvedValue(null);
 
-      await expect(service.findOne('missing', userId)).rejects.toThrow(NotFoundException);
+      await expect(service.findOne('missing', userId)).rejects.toThrow(
+        NotFoundException,
+      );
     });
 
     it('throws ForbiddenException for a client belonging to another company', async () => {
-      prisma.client.findUnique.mockResolvedValue({ ...client, companyId: 'company-2' });
+      prisma.client.findUnique.mockResolvedValue({
+        ...client,
+        companyId: 'company-2',
+      });
 
-      await expect(service.findOne(client.id, userId)).rejects.toThrow(ForbiddenException);
+      await expect(service.findOne(client.id, userId)).rejects.toThrow(
+        ForbiddenException,
+      );
     });
 
     it('returns the client for its own company', async () => {
@@ -68,9 +79,14 @@ describe('ClientsService', () => {
 
   describe('remove', () => {
     it('blocks deletion of a client from another company', async () => {
-      prisma.client.findUnique.mockResolvedValue({ ...client, companyId: 'company-2' });
+      prisma.client.findUnique.mockResolvedValue({
+        ...client,
+        companyId: 'company-2',
+      });
 
-      await expect(service.remove(client.id, userId)).rejects.toThrow(ForbiddenException);
+      await expect(service.remove(client.id, userId)).rejects.toThrow(
+        ForbiddenException,
+      );
       expect(prisma.client.delete).not.toHaveBeenCalled();
     });
   });

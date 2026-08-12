@@ -56,7 +56,9 @@ describe('AuthService', () => {
 
       const createArg = usersService.create.mock.calls[0][0];
       expect(createArg.passwordHash).not.toBe('correct-password');
-      expect(await bcrypt.compare('correct-password', createArg.passwordHash)).toBe(true);
+      expect(
+        await bcrypt.compare('correct-password', createArg.passwordHash),
+      ).toBe(true);
       expect(result.user).toEqual({
         id: user.id,
         email: user.email,
@@ -105,14 +107,21 @@ describe('AuthService', () => {
         throw new Error('expired');
       });
 
-      await expect(authService.refresh('bad-token')).rejects.toThrow(UnauthorizedException);
+      await expect(authService.refresh('bad-token')).rejects.toThrow(
+        UnauthorizedException,
+      );
     });
 
     it('rejects a refresh token for a user that no longer exists', async () => {
-      jwtService.verify.mockReturnValue({ sub: 'ghost-id', email: 'ghost@syneco.app' });
+      jwtService.verify.mockReturnValue({
+        sub: 'ghost-id',
+        email: 'ghost@syneco.app',
+      });
       usersService.findById.mockResolvedValue(null);
 
-      await expect(authService.refresh('some-token')).rejects.toThrow(UnauthorizedException);
+      await expect(authService.refresh('some-token')).rejects.toThrow(
+        UnauthorizedException,
+      );
     });
 
     it('issues new tokens for a valid refresh token', async () => {
@@ -130,7 +139,9 @@ describe('AuthService', () => {
     it('throws if the user no longer exists', async () => {
       usersService.findById.mockResolvedValue(null);
 
-      await expect(authService.me('ghost-id')).rejects.toThrow(UnauthorizedException);
+      await expect(authService.me('ghost-id')).rejects.toThrow(
+        UnauthorizedException,
+      );
     });
 
     it('returns the public shape of the current user', async () => {

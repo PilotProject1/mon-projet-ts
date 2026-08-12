@@ -14,7 +14,10 @@ import { DeadlinesService } from './deadlines.service';
 import { CreateDeadlineDto } from './dto/create-deadline.dto';
 import { UpdateDeadlineDto } from './dto/update-deadline.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { CurrentUser, type CurrentUserPayload } from '../auth/decorators/current-user.decorator';
+import {
+  CurrentUser,
+  type CurrentUserPayload,
+} from '../auth/decorators/current-user.decorator';
 
 @UseGuards(JwtAuthGuard)
 @Controller('deadlines')
@@ -22,7 +25,10 @@ export class DeadlinesController {
   constructor(private readonly deadlinesService: DeadlinesService) {}
 
   @Post()
-  create(@Body() dto: CreateDeadlineDto, @CurrentUser() user: CurrentUserPayload) {
+  create(
+    @Body() dto: CreateDeadlineDto,
+    @CurrentUser() user: CurrentUserPayload,
+  ) {
     return this.deadlinesService.create(dto, user.userId);
   }
 

@@ -38,7 +38,9 @@ describe('AppController', () => {
     it('throws ServiceUnavailableException when the database is unreachable', async () => {
       prisma.$queryRaw.mockRejectedValue(new Error('connection refused'));
 
-      await expect(appController.health()).rejects.toThrow(ServiceUnavailableException);
+      await expect(appController.health()).rejects.toThrow(
+        ServiceUnavailableException,
+      );
     });
   });
 });

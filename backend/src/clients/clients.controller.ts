@@ -14,7 +14,10 @@ import { ClientsService } from './clients.service';
 import { CreateClientDto } from './dto/create-client.dto';
 import { UpdateClientDto } from './dto/update-client.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { CurrentUser, type CurrentUserPayload } from '../auth/decorators/current-user.decorator';
+import {
+  CurrentUser,
+  type CurrentUserPayload,
+} from '../auth/decorators/current-user.decorator';
 
 @UseGuards(JwtAuthGuard)
 @Controller('clients')
@@ -22,7 +25,10 @@ export class ClientsController {
   constructor(private readonly clientsService: ClientsService) {}
 
   @Post()
-  create(@Body() dto: CreateClientDto, @CurrentUser() user: CurrentUserPayload) {
+  create(
+    @Body() dto: CreateClientDto,
+    @CurrentUser() user: CurrentUserPayload,
+  ) {
     return this.clientsService.create(dto, user.userId);
   }
 

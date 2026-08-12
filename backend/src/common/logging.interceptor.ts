@@ -22,12 +22,16 @@ export class LoggingInterceptor implements NestInterceptor {
       tap({
         next: () => {
           const ms = Date.now() - start;
-          this.logger.log(`${method} ${originalUrl} ${response.statusCode} ${ms}ms`);
+          this.logger.log(
+            `${method} ${originalUrl} ${response.statusCode} ${ms}ms`,
+          );
         },
-        error: (err) => {
+        error: (err: { status?: number; message?: string }) => {
           const ms = Date.now() - start;
           const status = err?.status ?? 500;
-          this.logger.warn(`${method} ${originalUrl} ${status} ${ms}ms - ${err?.message}`);
+          this.logger.warn(
+            `${method} ${originalUrl} ${status} ${ms}ms - ${err?.message}`,
+          );
         },
       }),
     );

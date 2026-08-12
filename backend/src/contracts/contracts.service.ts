@@ -1,4 +1,8 @@
-import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateContractDto } from './dto/create-contract.dto';
 import { UpdateContractDto } from './dto/update-contract.dto';
@@ -8,7 +12,9 @@ export class ContractsService {
   constructor(private readonly prisma: PrismaService) {}
 
   private async assertOwnsDocument(documentId: string, userId: string) {
-    const document = await this.prisma.document.findUnique({ where: { id: documentId } });
+    const document = await this.prisma.document.findUnique({
+      where: { id: documentId },
+    });
     if (!document || document.userId !== userId) {
       throw new ForbiddenException('Ce document ne vous appartient pas');
     }

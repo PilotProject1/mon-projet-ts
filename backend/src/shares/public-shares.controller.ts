@@ -18,12 +18,17 @@ export class PublicSharesController {
   }
 
   @Get(':token/file')
-  async getFile(@Param('token') token: string, @Res({ passthrough: true }) res: Response) {
+  async getFile(
+    @Param('token') token: string,
+    @Res({ passthrough: true }) res: Response,
+  ) {
     const link = await this.sharesService.resolvePublicShare(token);
     res.set({
       'Content-Type': link.document.mimeType,
       'Content-Disposition': `inline; filename="${encodeURIComponent(link.document.name)}"`,
     });
-    return new StreamableFile(this.sharesService.getFileStream(link.document.fileKey));
+    return new StreamableFile(
+      this.sharesService.getFileStream(link.document.fileKey),
+    );
   }
 }

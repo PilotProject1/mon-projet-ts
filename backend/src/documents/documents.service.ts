@@ -1,4 +1,8 @@
-import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { StorageService } from '../storage/storage.service';
 import { OcrService } from '../analysis/ocr.service';
@@ -15,7 +19,11 @@ export class DocumentsService {
     private readonly extraction: ExtractionService,
   ) {}
 
-  async create(dto: CreateDocumentDto, userId: string, file: Express.Multer.File) {
+  async create(
+    dto: CreateDocumentDto,
+    userId: string,
+    file: Express.Multer.File,
+  ) {
     const stored = await this.storage.save(file, userId);
     return this.prisma.document.create({
       data: {
@@ -58,7 +66,10 @@ export class DocumentsService {
   async analyze(id: string, userId: string) {
     const document = await this.findOne(id, userId);
     const buffer = await this.storage.getBuffer(document.fileKey);
-    const { text, warning } = await this.ocr.extractText(buffer, document.mimeType);
+    const { text, warning } = await this.ocr.extractText(
+      buffer,
+      document.mimeType,
+    );
     const fields = this.extraction.extract(text);
 
     return {

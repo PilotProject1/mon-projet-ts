@@ -34,10 +34,16 @@ describe('DeadlinesService', () => {
 
   describe('create', () => {
     it('rejects linking a deadline to a document owned by someone else', async () => {
-      prisma.document.findUnique.mockResolvedValue({ id: 'doc-1', userId: otherId });
+      prisma.document.findUnique.mockResolvedValue({
+        id: 'doc-1',
+        userId: otherId,
+      });
 
       await expect(
-        service.create({ title: 'x', dueDate: '2026-01-01', documentId: 'doc-1' } as any, ownerId),
+        service.create(
+          { title: 'x', dueDate: '2026-01-01', documentId: 'doc-1' } as any,
+          ownerId,
+        ),
       ).rejects.toThrow(ForbiddenException);
       expect(prisma.deadline.create).not.toHaveBeenCalled();
     });
@@ -46,7 +52,10 @@ describe('DeadlinesService', () => {
       prisma.deadline.create.mockResolvedValue(deadline);
 
       const result = await service.create(
-        { title: deadline.title, dueDate: deadline.dueDate.toISOString() } as any,
+        {
+          title: deadline.title,
+          dueDate: deadline.dueDate.toISOString(),
+        },
         ownerId,
       );
 
@@ -59,13 +68,17 @@ describe('DeadlinesService', () => {
     it('throws NotFoundException for a missing deadline', async () => {
       prisma.deadline.findUnique.mockResolvedValue(null);
 
-      await expect(service.findOne('missing', ownerId)).rejects.toThrow(NotFoundException);
+      await expect(service.findOne('missing', ownerId)).rejects.toThrow(
+        NotFoundException,
+      );
     });
 
     it('throws ForbiddenException for a deadline owned by another user', async () => {
       prisma.deadline.findUnique.mockResolvedValue(deadline);
 
-      await expect(service.findOne(deadline.id, otherId)).rejects.toThrow(ForbiddenException);
+      await expect(service.findOne(deadline.id, otherId)).rejects.toThrow(
+        ForbiddenException,
+      );
     });
   });
 
@@ -73,7 +86,9 @@ describe('DeadlinesService', () => {
     it('rejects reminders for a deadline owned by someone else', async () => {
       prisma.deadline.findUnique.mockResolvedValue(deadline);
 
-      await expect(service.remind(deadline.id, otherId)).rejects.toThrow(ForbiddenException);
+      await expect(service.remind(deadline.id, otherId)).rejects.toThrow(
+        ForbiddenException,
+      );
       expect(notifications.create).not.toHaveBeenCalled();
     });
 
@@ -95,7 +110,9 @@ describe('DeadlinesService', () => {
     it('blocks deletion from a non-owner', async () => {
       prisma.deadline.findUnique.mockResolvedValue(deadline);
 
-      await expect(service.remove(deadline.id, otherId)).rejects.toThrow(ForbiddenException);
+      await expect(service.remove(deadline.id, otherId)).rejects.toThrow(
+        ForbiddenException,
+      );
       expect(prisma.deadline.delete).not.toHaveBeenCalled();
     });
   });

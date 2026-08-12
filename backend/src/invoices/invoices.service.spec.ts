@@ -33,17 +33,25 @@ describe('InvoicesService', () => {
         delete: jest.fn(),
       },
     };
-    companyService = { requireCompanyId: jest.fn().mockResolvedValue(companyId) };
+    companyService = {
+      requireCompanyId: jest.fn().mockResolvedValue(companyId),
+    };
 
     service = new InvoicesService(prisma, companyService);
   });
 
   describe('create', () => {
     it('rejects a client belonging to another company', async () => {
-      prisma.client.findUnique.mockResolvedValue({ ...client, companyId: 'company-2' });
+      prisma.client.findUnique.mockResolvedValue({
+        ...client,
+        companyId: 'company-2',
+      });
 
       await expect(
-        service.create({ clientId: client.id, total: 100, dueDate: '2026-09-01' } as any, userId),
+        service.create(
+          { clientId: client.id, total: 100, dueDate: '2026-09-01' } as any,
+          userId,
+        ),
       ).rejects.toThrow(ForbiddenException);
       expect(prisma.invoice.create).not.toHaveBeenCalled();
     });
@@ -51,10 +59,13 @@ describe('InvoicesService', () => {
     it('auto-numbers invoices sequentially per company', async () => {
       prisma.client.findUnique.mockResolvedValue(client);
       prisma.invoice.count.mockResolvedValue(3);
-      prisma.invoice.create.mockResolvedValue({ ...invoice, number: 'FA-0004' });
+      prisma.invoice.create.mockResolvedValue({
+        ...invoice,
+        number: 'FA-0004',
+      });
 
       await service.create(
-        { clientId: client.id, total: 100, dueDate: '2026-09-01' } as any,
+        { clientId: client.id, total: 100, dueDate: '2026-09-01' },
         userId,
       );
 
@@ -69,7 +80,7 @@ describe('InvoicesService', () => {
       prisma.invoice.create.mockResolvedValue(invoice);
 
       const result = await service.create(
-        { clientId: client.id, total: 850, dueDate: '2026-09-01' } as any,
+        { clientId: client.id, total: 850, dueDate: '2026-09-01' },
         userId,
       );
 
@@ -82,19 +93,29 @@ describe('InvoicesService', () => {
     it('throws NotFoundException for a missing invoice', async () => {
       prisma.invoice.findUnique.mockResolvedValue(null);
 
-      await expect(service.findOne('missing', userId)).rejects.toThrow(NotFoundException);
+      await expect(service.findOne('missing', userId)).rejects.toThrow(
+        NotFoundException,
+      );
     });
 
     it('throws ForbiddenException for an invoice belonging to another company', async () => {
-      prisma.invoice.findUnique.mockResolvedValue({ ...invoice, companyId: 'company-2' });
+      prisma.invoice.findUnique.mockResolvedValue({
+        ...invoice,
+        companyId: 'company-2',
+      });
 
-      await expect(service.findOne(invoice.id, userId)).rejects.toThrow(ForbiddenException);
+      await expect(service.findOne(invoice.id, userId)).rejects.toThrow(
+        ForbiddenException,
+      );
     });
   });
 
   describe('update', () => {
     it('blocks status updates on an invoice from another company', async () => {
-      prisma.invoice.findUnique.mockResolvedValue({ ...invoice, companyId: 'company-2' });
+      prisma.invoice.findUnique.mockResolvedValue({
+        ...invoice,
+        companyId: 'company-2',
+      });
 
       await expect(
         service.update(invoice.id, { status: 'payee' } as any, userId),
@@ -105,9 +126,14 @@ describe('InvoicesService', () => {
 
   describe('remove', () => {
     it('blocks deletion of an invoice from another company', async () => {
-      prisma.invoice.findUnique.mockResolvedValue({ ...invoice, companyId: 'company-2' });
+      prisma.invoice.findUnique.mockResolvedValue({
+        ...invoice,
+        companyId: 'company-2',
+      });
 
-      await expect(service.remove(invoice.id, userId)).rejects.toThrow(ForbiddenException);
+      await expect(service.remove(invoice.id, userId)).rejects.toThrow(
+        ForbiddenException,
+      );
       expect(prisma.invoice.delete).not.toHaveBeenCalled();
     });
   });
