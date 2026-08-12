@@ -2,9 +2,17 @@ import 'dotenv/config';
 import helmet from 'helmet';
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
+import type { NestExpressApplication } from '@nestjs/platform-express';
 import { AppModule } from './app.module';
 
-const REQUIRED_ENV_VARS = ['DATABASE_URL', 'JWT_ACCESS_SECRET', 'JWT_REFRESH_SECRET'];
+const IS_PRODUCTION = process.env.NODE_ENV === 'production';
+
+const REQUIRED_ENV_VARS = [
+  'DATABASE_URL',
+  'JWT_ACCESS_SECRET',
+  'JWT_REFRESH_SECRET',
+  ...(IS_PRODUCTION ? ['FRONTEND_ORIGIN'] : []),
+];
 
 function assertRequiredEnvVars() {
   const missing = REQUIRED_ENV_VARS.filter((key) => !process.env[key]);
@@ -16,7 +24,13 @@ function assertRequiredEnvVars() {
 async function bootstrap() {
   assertRequiredEnvVars();
 
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
+
+  // Derriere un reverse proxy (Render, Railway, Fly...), necessaire pour que
+  // l'adresse IP du client (rate-limiting) et le protocole (https) soient corrects.
+  if (IS_PRODUCTION) {
+    app.set('trust proxy', 1);
+  }
 
   app.use(helmet());
 
