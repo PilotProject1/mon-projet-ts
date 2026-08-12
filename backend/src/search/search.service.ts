@@ -1,4 +1,8 @@
-import { Injectable } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  ServiceUnavailableException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { AiService } from '../ai/ai.service';
 
@@ -59,6 +63,8 @@ const SYSTEM_PROMPT =
 
 @Injectable()
 export class SearchService {
+  private readonly logger = new Logger(SearchService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly ai: AiService,
@@ -120,27 +126,43 @@ export class SearchService {
 
     const catalog = { documents, deadlines, contracts, invoices };
 
-    const response = await this.ai.sdk.messages.create({
-      model: this.ai.model,
-      max_tokens: 2048,
-      system: SYSTEM_PROMPT,
-      messages: [
-        {
-          role: 'user',
-          content: `Catalogue :\n${JSON.stringify(catalog)}\n\nQuestion : ${query}`,
-        },
-      ],
-      output_config: { format: { type: 'json_schema', schema: SEARCH_SCHEMA } },
-    });
-
-    const block = response.content.find((b) => b.type === 'text');
-    if (!block || block.type !== 'text') {
-      throw new Error('Réponse IA invalide (pas de bloc texte)');
-    }
-    const parsed = JSON.parse(block.text) as {
+    let parsed: {
       summary: string;
       results: { kind: SearchKind; id: string; reason: string }[];
     };
+    try {
+      const response = await this.ai.sdk.messages.create({
+        model: this.ai.model,
+        max_tokens: 2048,
+        system: SYSTEM_PROMPT,
+        messages: [
+          {
+            role: 'user',
+            content: `Catalogue :\n${JSON.stringify(catalog)}\n\nQuestion : ${query}`,
+          },
+        ],
+        output_config: {
+          format: { type: 'json_schema', schema: SEARCH_SCHEMA },
+        },
+      });
+
+      const block = response.content.find((b) => b.type === 'text');
+      if (!block || block.type !== 'text') {
+        throw new Error('Réponse IA invalide (pas de bloc texte)');
+      }
+      parsed = JSON.parse(block.text) as {
+        summary: string;
+        results: { kind: SearchKind; id: string; reason: string }[];
+      };
+    } catch (err) {
+      if (err instanceof ServiceUnavailableException) throw err;
+      this.logger.warn(
+        `Appel IA échoué : ${err instanceof Error ? err.message : String(err)}`,
+      );
+      throw new ServiceUnavailableException(
+        "L'assistant IA est momentanément indisponible, réessaie plus tard",
+      );
+    }
 
     // On ne fait jamais confiance aux ids renvoyés par l'IA : seuls les
     // éléments réellement possédés par l'utilisateur sont renvoyés.
