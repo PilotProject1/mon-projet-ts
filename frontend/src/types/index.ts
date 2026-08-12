@@ -83,3 +83,33 @@ export interface Notification {
   sentAt: string
   readAt: string | null
 }
+
+export interface Company {
+  id: string
+  ownerId: string
+  name: string
+  legalInfo: string | null
+  createdAt: string
+}
+
+export interface Client {
+  id: string
+  companyId: string
+  name: string
+  email: string
+  phone: string | null
+}
+
+export type InvoiceStatus = 'brouillon' | 'envoyee' | 'payee' | 'en_retard'
+
+export interface Invoice {
+  id: string
+  companyId: string
+  clientId: string
+  clientName: string
+  number: string
+  total: number
+  dueDate: string
+  status: InvoiceStatus
+  createdAt: string
+}

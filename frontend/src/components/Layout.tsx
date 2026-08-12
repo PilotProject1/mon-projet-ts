@@ -10,6 +10,9 @@ const navItems = [
   { to: '/echeances', label: 'Échéances' },
   { to: '/contrats', label: 'Contrats' },
   { to: '/partages', label: 'Partages' },
+  { to: '/entreprise', label: 'Entreprise' },
+  { to: '/clients', label: 'Clients' },
+  { to: '/factures', label: 'Factures' },
 ]
 
 interface LayoutProps {
@@ -28,14 +31,14 @@ export default function Layout({ onLogout, notifications, onMarkRead }: LayoutPr
       <header className="relative z-10 border-b border-brand-border bg-white">
         <div className="mx-auto flex max-w-5xl items-center justify-between px-6 py-4">
           <BrandLogo />
-          <nav className="flex items-center gap-1">
+          <nav className="flex flex-wrap items-center justify-end gap-0.5">
             {navItems.map((item) => (
               <NavLink
                 key={item.to}
                 to={item.to}
                 end={item.end}
                 className={({ isActive }) =>
-                  `rounded-md px-3 py-2 text-sm font-medium ${
+                  `rounded-md px-2.5 py-2 text-sm font-medium whitespace-nowrap ${
                     isActive
                       ? 'brand-gradient text-white'
                       : 'text-brand-muted hover:bg-brand-mint hover:text-brand-deep'
@@ -55,7 +58,7 @@ export default function Layout({ onLogout, notifications, onMarkRead }: LayoutPr
           </nav>
         </div>
       </header>
-      <main className="relative z-10 mx-auto max-w-5xl px-6 py-8">
+      <main className="relative z-10 mx-auto max-w-6xl px-6 py-8">
         <Outlet />
       </main>
     </div>

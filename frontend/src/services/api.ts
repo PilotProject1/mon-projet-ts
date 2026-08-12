@@ -10,6 +10,10 @@ import type {
   DocumentAnalysis,
   ShareLink,
   PublicShareInfo,
+  Company,
+  Client,
+  Invoice,
+  InvoiceStatus,
 } from '../types'
 
 const API_URL = 'http://localhost:3000'
@@ -227,4 +231,35 @@ export const publicSharesApi = {
     }
     return res.blob()
   },
+}
+
+export const companyApi = {
+  get: () => request<Company>('/company'),
+
+  create: (data: { name: string; legalInfo?: string }) =>
+    request<Company>('/company', { method: 'POST', body: JSON.stringify(data) }),
+
+  update: (data: { name?: string; legalInfo?: string }) =>
+    request<Company>('/company', { method: 'PATCH', body: JSON.stringify(data) }),
+}
+
+export const clientsApi = {
+  list: () => request<Client[]>('/clients'),
+
+  create: (data: { name: string; email: string; phone?: string }) =>
+    request<Client>('/clients', { method: 'POST', body: JSON.stringify(data) }),
+
+  remove: (id: string) => request<void>(`/clients/${id}`, { method: 'DELETE' }),
+}
+
+export const invoicesApi = {
+  list: () => request<Invoice[]>('/invoices'),
+
+  create: (data: { clientId: string; total: number; dueDate: string }) =>
+    request<Invoice>('/invoices', { method: 'POST', body: JSON.stringify(data) }),
+
+  updateStatus: (id: string, status: InvoiceStatus) =>
+    request<Invoice>(`/invoices/${id}`, { method: 'PATCH', body: JSON.stringify({ status }) }),
+
+  remove: (id: string) => request<void>(`/invoices/${id}`, { method: 'DELETE' }),
 }
