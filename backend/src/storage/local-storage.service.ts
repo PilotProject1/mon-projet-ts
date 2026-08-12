@@ -5,7 +5,7 @@ import { mkdir, readFile, rm, writeFile } from 'fs/promises';
 import { extname, join } from 'path';
 import { StorageService, StoredFile } from './storage.service';
 
-const UPLOAD_ROOT = join(process.cwd(), 'uploads');
+const UPLOAD_ROOT = join(process.cwd(), process.env.UPLOAD_DIR ?? 'uploads');
 
 @Injectable()
 export class LocalStorageService extends StorageService {

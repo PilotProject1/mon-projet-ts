@@ -1,5 +1,7 @@
 import { Module } from '@nestjs/common';
+import { APP_GUARD, APP_INTERCEPTOR, APP_FILTER } from '@nestjs/core';
 import { ConfigModule } from '@nestjs/config';
+import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { PrismaModule } from './prisma/prisma.module';
@@ -13,10 +15,19 @@ import { SharesModule } from './shares/shares.module';
 import { CompanyModule } from './company/company.module';
 import { ClientsModule } from './clients/clients.module';
 import { InvoicesModule } from './invoices/invoices.module';
+import { LoggingInterceptor } from './common/logging.interceptor';
+import { AllExceptionsFilter } from './common/all-exceptions.filter';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
+    ThrottlerModule.forRoot([
+      {
+        name: 'default',
+        ttl: 60_000,
+        limit: process.env.NODE_ENV === 'test' ? 10_000 : 100,
+      },
+    ]),
     PrismaModule,
     UsersModule,
     AuthModule,
@@ -30,6 +41,11 @@ import { InvoicesModule } from './invoices/invoices.module';
     InvoicesModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [
+    AppService,
+    { provide: APP_GUARD, useClass: ThrottlerGuard },
+    { provide: APP_INTERCEPTOR, useClass: LoggingInterceptor },
+    { provide: APP_FILTER, useClass: AllExceptionsFilter },
+  ],
 })
 export class AppModule {}

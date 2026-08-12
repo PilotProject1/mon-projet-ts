@@ -9,6 +9,7 @@ build/
 .env
 .env.local
 .env.*.local
+.env.test
 
 # Logs
 *.log
@@ -31,6 +32,10 @@ backend/prisma/migrations/dev.db
 
 # Fichiers uploadés par les utilisateurs (stockage local de dev)
 backend/uploads/
+backend/uploads-test/
+
+# Sauvegardes locales (base de données + fichiers)
+backend/backups/
 
 # Donnees linguistiques Tesseract (telechargees automatiquement au premier OCR)
 backend/*.traineddata
