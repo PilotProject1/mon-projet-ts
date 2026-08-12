@@ -1,22 +1,32 @@
 import {
   ForbiddenException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { StorageService } from '../storage/storage.service';
 import { OcrService } from '../analysis/ocr.service';
-import { ExtractionService } from '../analysis/extraction.service';
+import {
+  ExtractionService,
+  type ExtractedFields,
+} from '../analysis/extraction.service';
+import { AiService } from '../ai/ai.service';
+import { AiExtractionService } from '../ai/ai-extraction.service';
 import { CreateDocumentDto } from './dto/create-document.dto';
 import { UpdateDocumentDto } from './dto/update-document.dto';
 
 @Injectable()
 export class DocumentsService {
+  private readonly logger = new Logger(DocumentsService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly storage: StorageService,
     private readonly ocr: OcrService,
     private readonly extraction: ExtractionService,
+    private readonly ai: AiService,
+    private readonly aiExtraction: AiExtractionService,
   ) {}
 
   async create(
@@ -70,7 +80,18 @@ export class DocumentsService {
       buffer,
       document.mimeType,
     );
-    const fields = this.extraction.extract(text);
+
+    let fields: ExtractedFields | null = null;
+    if (this.ai.available && text.trim().length > 0) {
+      try {
+        fields = await this.aiExtraction.extract(text);
+      } catch (err) {
+        this.logger.warn(
+          `Extraction IA indisponible, repli sur le moteur heuristique : ${err instanceof Error ? err.message : String(err)}`,
+        );
+      }
+    }
+    fields ??= this.extraction.extract(text);
 
     return {
       warning,

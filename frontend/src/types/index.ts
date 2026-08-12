@@ -113,3 +113,16 @@ export interface Invoice {
   status: InvoiceStatus
   createdAt: string
 }
+
+export type SearchKind = 'document' | 'deadline' | 'contract' | 'invoice'
+
+export interface SearchHit {
+  kind: SearchKind
+  reason: string
+  item: Record<string, unknown>
+}
+
+export interface SearchAnswer {
+  summary: string
+  results: SearchHit[]
+}

@@ -6,6 +6,7 @@ import type { Notification } from '../types'
 
 const navItems = [
   { to: '/', label: 'Dashboard', end: true },
+  { to: '/recherche', label: 'Recherche' },
   { to: '/documents', label: 'Documents' },
   { to: '/echeances', label: 'Échéances' },
   { to: '/contrats', label: 'Contrats' },
