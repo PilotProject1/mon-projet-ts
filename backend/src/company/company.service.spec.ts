@@ -23,7 +23,9 @@ describe('CompanyService', () => {
     it('throws NotFoundException when the user has no company yet', async () => {
       prisma.company.findUnique.mockResolvedValue(null);
 
-      await expect(service.findMine(ownerId)).rejects.toThrow(NotFoundException);
+      await expect(service.findMine(ownerId)).rejects.toThrow(
+        NotFoundException,
+      );
     });
 
     it('returns the company owned by the user', async () => {
@@ -37,9 +39,9 @@ describe('CompanyService', () => {
     it('rejects creating a second company for the same user', async () => {
       prisma.company.findUnique.mockResolvedValue(company);
 
-      await expect(service.create({ name: 'x' } as any, ownerId)).rejects.toThrow(
-        ConflictException,
-      );
+      await expect(
+        service.create({ name: 'x' } as any, ownerId),
+      ).rejects.toThrow(ConflictException);
       expect(prisma.company.create).not.toHaveBeenCalled();
     });
 
@@ -47,7 +49,7 @@ describe('CompanyService', () => {
       prisma.company.findUnique.mockResolvedValue(null);
       prisma.company.create.mockResolvedValue(company);
 
-      await service.create({ name: 'Studio Design' } as any, ownerId);
+      await service.create({ name: 'Studio Design' }, ownerId);
 
       expect(prisma.company.create).toHaveBeenCalledWith({
         data: { name: 'Studio Design', ownerId },
@@ -59,7 +61,9 @@ describe('CompanyService', () => {
     it('throws NotFoundException when there is no company', async () => {
       prisma.company.findUnique.mockResolvedValue(null);
 
-      await expect(service.requireCompanyId(ownerId)).rejects.toThrow(NotFoundException);
+      await expect(service.requireCompanyId(ownerId)).rejects.toThrow(
+        NotFoundException,
+      );
     });
 
     it('returns the company id', async () => {

@@ -1,4 +1,8 @@
-import { ForbiddenException, GoneException, NotFoundException } from '@nestjs/common';
+import {
+  ForbiddenException,
+  GoneException,
+  NotFoundException,
+} from '@nestjs/common';
 import { SharesService } from './shares.service';
 
 describe('SharesService', () => {
@@ -38,20 +42,29 @@ describe('SharesService', () => {
 
   describe('create', () => {
     it('rejects creating a share for a document owned by someone else', async () => {
-      prisma.document.findUnique.mockResolvedValue({ id: 'doc-1', userId: otherId });
+      prisma.document.findUnique.mockResolvedValue({
+        id: 'doc-1',
+        userId: otherId,
+      });
 
       await expect(
-        service.create({ documentId: 'doc-1', expiresInHours: 24 } as any, ownerId),
+        service.create(
+          { documentId: 'doc-1', expiresInHours: 24 } as any,
+          ownerId,
+        ),
       ).rejects.toThrow(ForbiddenException);
       expect(prisma.shareLink.create).not.toHaveBeenCalled();
     });
 
     it('generates a random token and returns the public shape', async () => {
-      prisma.document.findUnique.mockResolvedValue({ id: 'doc-1', userId: ownerId });
+      prisma.document.findUnique.mockResolvedValue({
+        id: 'doc-1',
+        userId: ownerId,
+      });
       prisma.shareLink.create.mockResolvedValue(shareLink);
 
       const result = await service.create(
-        { documentId: 'doc-1', expiresInHours: 24 } as any,
+        { documentId: 'doc-1', expiresInHours: 24 },
         ownerId,
       );
 
@@ -74,13 +87,17 @@ describe('SharesService', () => {
     it('throws NotFoundException for an unknown link', async () => {
       prisma.shareLink.findUnique.mockResolvedValue(null);
 
-      await expect(service.revoke('missing', ownerId)).rejects.toThrow(NotFoundException);
+      await expect(service.revoke('missing', ownerId)).rejects.toThrow(
+        NotFoundException,
+      );
     });
 
     it('rejects revoking a link owned by someone else', async () => {
       prisma.shareLink.findUnique.mockResolvedValue(shareLink);
 
-      await expect(service.revoke(shareLink.id, otherId)).rejects.toThrow(ForbiddenException);
+      await expect(service.revoke(shareLink.id, otherId)).rejects.toThrow(
+        ForbiddenException,
+      );
       expect(prisma.shareLink.update).not.toHaveBeenCalled();
     });
   });
@@ -96,9 +113,14 @@ describe('SharesService', () => {
     });
 
     it('throws GoneException for a revoked link', async () => {
-      prisma.shareLink.findUnique.mockResolvedValue({ ...shareLink, revokedAt: new Date() });
+      prisma.shareLink.findUnique.mockResolvedValue({
+        ...shareLink,
+        revokedAt: new Date(),
+      });
 
-      await expect(service.resolvePublicShare(shareLink.token)).rejects.toThrow(GoneException);
+      await expect(service.resolvePublicShare(shareLink.token)).rejects.toThrow(
+        GoneException,
+      );
       expect(prisma.shareLinkAccess.create).not.toHaveBeenCalled();
     });
 
@@ -108,7 +130,9 @@ describe('SharesService', () => {
         expiresAt: new Date(Date.now() - 1000),
       });
 
-      await expect(service.resolvePublicShare(shareLink.token)).rejects.toThrow(GoneException);
+      await expect(service.resolvePublicShare(shareLink.token)).rejects.toThrow(
+        GoneException,
+      );
       expect(prisma.shareLinkAccess.create).not.toHaveBeenCalled();
     });
 

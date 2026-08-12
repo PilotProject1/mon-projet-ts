@@ -1,11 +1,22 @@
-import { Body, Controller, Get, HttpCode, HttpStatus, Post, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Post,
+  UseGuards,
+} from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { RefreshDto } from './dto/refresh.dto';
 import { JwtAuthGuard } from './jwt-auth.guard';
-import { CurrentUser, type CurrentUserPayload } from './decorators/current-user.decorator';
+import {
+  CurrentUser,
+  type CurrentUserPayload,
+} from './decorators/current-user.decorator';
 
 @Controller('auth')
 export class AuthController {

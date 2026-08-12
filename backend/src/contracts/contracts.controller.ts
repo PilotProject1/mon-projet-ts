@@ -14,7 +14,10 @@ import { ContractsService } from './contracts.service';
 import { CreateContractDto } from './dto/create-contract.dto';
 import { UpdateContractDto } from './dto/update-contract.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { CurrentUser, type CurrentUserPayload } from '../auth/decorators/current-user.decorator';
+import {
+  CurrentUser,
+  type CurrentUserPayload,
+} from '../auth/decorators/current-user.decorator';
 
 @UseGuards(JwtAuthGuard)
 @Controller('contracts')
@@ -22,7 +25,10 @@ export class ContractsController {
   constructor(private readonly contractsService: ContractsService) {}
 
   @Post()
-  create(@Body() dto: CreateContractDto, @CurrentUser() user: CurrentUserPayload) {
+  create(
+    @Body() dto: CreateContractDto,
+    @CurrentUser() user: CurrentUserPayload,
+  ) {
     return this.contractsService.create(dto, user.userId);
   }
 

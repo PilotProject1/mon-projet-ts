@@ -1,4 +1,8 @@
-import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CompanyService } from '../company/company.service';
 import { CreateInvoiceDto } from './dto/create-invoice.dto';
@@ -33,10 +37,17 @@ export class InvoicesService {
     };
   }
 
-  private async assertClientBelongsToCompany(clientId: string, companyId: string) {
-    const client = await this.prisma.client.findUnique({ where: { id: clientId } });
+  private async assertClientBelongsToCompany(
+    clientId: string,
+    companyId: string,
+  ) {
+    const client = await this.prisma.client.findUnique({
+      where: { id: clientId },
+    });
     if (!client || client.companyId !== companyId) {
-      throw new ForbiddenException("Ce client ne fait pas partie de votre entreprise");
+      throw new ForbiddenException(
+        'Ce client ne fait pas partie de votre entreprise',
+      );
     }
   }
 

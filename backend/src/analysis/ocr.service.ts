@@ -21,7 +21,10 @@ export class OcrService {
     if (IMAGE_MIME_TYPES.includes(mimeType)) {
       return this.extractFromImage(buffer);
     }
-    return { text: '', warning: 'Type de fichier non pris en charge pour l’analyse' };
+    return {
+      text: '',
+      warning: 'Type de fichier non pris en charge pour l’analyse',
+    };
   }
 
   private async extractFromPdf(buffer: Buffer): Promise<OcrResult> {
@@ -32,7 +35,10 @@ export class OcrService {
       text = result.text ?? '';
     } catch (error) {
       this.logger.error('Lecture du PDF échouée', error);
-      return { text: '', warning: 'Ce PDF n’a pas pu être lu (fichier corrompu ou invalide).' };
+      return {
+        text: '',
+        warning: 'Ce PDF n’a pas pu être lu (fichier corrompu ou invalide).',
+      };
     }
 
     if (text.trim().length < MIN_MEANINGFUL_TEXT_LENGTH) {
@@ -52,7 +58,10 @@ export class OcrService {
         data: { text },
       } = await worker.recognize(buffer);
       if (text.trim().length < MIN_MEANINGFUL_TEXT_LENGTH) {
-        return { text, warning: 'Peu ou pas de texte détecté dans cette image.' };
+        return {
+          text,
+          warning: 'Peu ou pas de texte détecté dans cette image.',
+        };
       }
       return { text, warning: null };
     } catch (error) {

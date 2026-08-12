@@ -34,15 +34,39 @@ const KNOWN_PROVIDERS = [
 ];
 
 const TYPE_KEYWORDS: Record<DocumentType, string[]> = {
-  facture: ['facture', 'montant à payer', 'total ttc', 'total à payer', 'échéance de paiement'],
-  contrat: ['contrat', 'conditions générales', 'souscription', 'engagement', 'durée du contrat'],
-  assurance: ['assurance', 'sinistre', 'assuré', 'garantie', 'prime annuelle', 'police n'],
-  garantie: ['garantie constructeur', 'sav', 'service après-vente', 'période de garantie'],
+  facture: [
+    'facture',
+    'montant à payer',
+    'total ttc',
+    'total à payer',
+    'échéance de paiement',
+  ],
+  contrat: [
+    'contrat',
+    'conditions générales',
+    'souscription',
+    'engagement',
+    'durée du contrat',
+  ],
+  assurance: [
+    'assurance',
+    'sinistre',
+    'assuré',
+    'garantie',
+    'prime annuelle',
+    'police n',
+  ],
+  garantie: [
+    'garantie constructeur',
+    'sav',
+    'service après-vente',
+    'période de garantie',
+  ],
   courrier: ['objet :', 'madame, monsieur', 'cordialement', 'veuillez agréer'],
   autre: [],
 };
 
-const DATE_REGEX = /\b(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{2,4})\b/g;
+const DATE_REGEX = /\b(\d{1,2})[/\-.](\d{1,2})[/\-.](\d{2,4})\b/g;
 const AMOUNT_REGEX =
   /(\d{1,3}(?:[ .]\d{3})*(?:,\d{2})?)\s?(?:€|EUR)\b|(?:€|EUR)\s?(\d{1,3}(?:[ .]\d{3})*(?:,\d{2})?)/gi;
 
@@ -75,7 +99,9 @@ export class ExtractionService {
   private extractAmount(text: string): number | null {
     let max: number | null = null;
     for (const match of text.matchAll(AMOUNT_REGEX)) {
-      const raw = (match[1] ?? match[2] ?? '').replace(/[ .]/g, '').replace(',', '.');
+      const raw = (match[1] ?? match[2] ?? '')
+        .replace(/[ .]/g, '')
+        .replace(',', '.');
       const value = Number(raw);
       if (!Number.isNaN(value) && (max === null || value > max)) {
         max = value;
@@ -100,8 +126,14 @@ export class ExtractionService {
     const lower = text.toLowerCase();
     let bestType: DocumentType | null = null;
     let bestScore = 0;
-    for (const [type, keywords] of Object.entries(TYPE_KEYWORDS) as [DocumentType, string[]][]) {
-      const score = keywords.reduce((acc, kw) => acc + (lower.includes(kw) ? 1 : 0), 0);
+    for (const [type, keywords] of Object.entries(TYPE_KEYWORDS) as [
+      DocumentType,
+      string[],
+    ][]) {
+      const score = keywords.reduce(
+        (acc, kw) => acc + (lower.includes(kw) ? 1 : 0),
+        0,
+      );
       if (score > bestScore) {
         bestScore = score;
         bestType = type;

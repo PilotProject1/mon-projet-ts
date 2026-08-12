@@ -7,7 +7,10 @@ import { S3StorageService } from './s3-storage.service';
   providers: [
     {
       provide: StorageService,
-      useClass: process.env.STORAGE_DRIVER === 's3' ? S3StorageService : LocalStorageService,
+      useClass:
+        process.env.STORAGE_DRIVER === 's3'
+          ? S3StorageService
+          : LocalStorageService,
     },
   ],
   exports: [StorageService],

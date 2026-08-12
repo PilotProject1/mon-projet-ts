@@ -17,7 +17,9 @@ export class SharesService {
   ) {}
 
   private async assertOwnsDocument(documentId: string, userId: string) {
-    const document = await this.prisma.document.findUnique({ where: { id: documentId } });
+    const document = await this.prisma.document.findUnique({
+      where: { id: documentId },
+    });
     if (!document || document.userId !== userId) {
       throw new ForbiddenException('Ce document ne vous appartient pas');
     }
@@ -48,7 +50,9 @@ export class SharesService {
   async create(dto: CreateShareDto, userId: string) {
     await this.assertOwnsDocument(dto.documentId, userId);
     const token = randomBytes(24).toString('hex');
-    const expiresAt = new Date(Date.now() + dto.expiresInHours * 60 * 60 * 1000);
+    const expiresAt = new Date(
+      Date.now() + dto.expiresInHours * 60 * 60 * 1000,
+    );
     const link = await this.prisma.shareLink.create({
       data: { token, expiresAt, userId, documentId: dto.documentId },
       include: {
@@ -79,7 +83,10 @@ export class SharesService {
     if (link.userId !== userId) {
       throw new ForbiddenException("Vous n'avez pas accès à ce lien");
     }
-    await this.prisma.shareLink.update({ where: { id }, data: { revokedAt: new Date() } });
+    await this.prisma.shareLink.update({
+      where: { id },
+      data: { revokedAt: new Date() },
+    });
   }
 
   async resolvePublicShare(token: string) {
@@ -96,7 +103,9 @@ export class SharesService {
     if (link.expiresAt.getTime() < Date.now()) {
       throw new GoneException('Ce lien de partage a expiré');
     }
-    await this.prisma.shareLinkAccess.create({ data: { shareLinkId: link.id } });
+    await this.prisma.shareLinkAccess.create({
+      data: { shareLinkId: link.id },
+    });
     return link;
   }
 

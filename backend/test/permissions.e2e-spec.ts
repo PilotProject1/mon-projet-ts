@@ -8,19 +8,30 @@ async function registerUser(app: INestApplication, label: string) {
     .post('/auth/register')
     .send({ email, password: 'super-secret-123', name: label })
     .expect(201);
-  return { accessToken: res.body.accessToken as string, userId: res.body.user.id as string };
+  return {
+    accessToken: res.body.accessToken as string,
+    userId: res.body.user.id as string,
+  };
 }
 
 function authed(app: INestApplication, token: string) {
   return {
     get: (url: string) =>
-      request(app.getHttpServer()).get(url).set('Authorization', `Bearer ${token}`),
+      request(app.getHttpServer())
+        .get(url)
+        .set('Authorization', `Bearer ${token}`),
     post: (url: string) =>
-      request(app.getHttpServer()).post(url).set('Authorization', `Bearer ${token}`),
+      request(app.getHttpServer())
+        .post(url)
+        .set('Authorization', `Bearer ${token}`),
     patch: (url: string) =>
-      request(app.getHttpServer()).patch(url).set('Authorization', `Bearer ${token}`),
+      request(app.getHttpServer())
+        .patch(url)
+        .set('Authorization', `Bearer ${token}`),
     delete: (url: string) =>
-      request(app.getHttpServer()).delete(url).set('Authorization', `Bearer ${token}`),
+      request(app.getHttpServer())
+        .delete(url)
+        .set('Authorization', `Bearer ${token}`),
   };
 }
 
@@ -81,13 +92,21 @@ describe('Cross-user permissions (e2e)', () => {
     });
 
     it('lets the owner read their own document/deadline/contract', async () => {
-      await authed(app, userA.accessToken).get(`/documents/${documentId}`).expect(200);
-      await authed(app, userA.accessToken).get(`/deadlines/${deadlineId}`).expect(200);
-      await authed(app, userA.accessToken).get(`/contracts/${contractId}`).expect(200);
+      await authed(app, userA.accessToken)
+        .get(`/documents/${documentId}`)
+        .expect(200);
+      await authed(app, userA.accessToken)
+        .get(`/deadlines/${deadlineId}`)
+        .expect(200);
+      await authed(app, userA.accessToken)
+        .get(`/contracts/${contractId}`)
+        .expect(200);
     });
 
     it("blocks another user from reading user A's document", async () => {
-      await authed(app, userB.accessToken).get(`/documents/${documentId}`).expect(403);
+      await authed(app, userB.accessToken)
+        .get(`/documents/${documentId}`)
+        .expect(403);
     });
 
     it("blocks another user from updating user A's document", async () => {
@@ -98,17 +117,27 @@ describe('Cross-user permissions (e2e)', () => {
     });
 
     it("blocks another user from deleting user A's document", async () => {
-      await authed(app, userB.accessToken).delete(`/documents/${documentId}`).expect(403);
+      await authed(app, userB.accessToken)
+        .delete(`/documents/${documentId}`)
+        .expect(403);
     });
 
     it("blocks another user from reading or deleting user A's deadline", async () => {
-      await authed(app, userB.accessToken).get(`/deadlines/${deadlineId}`).expect(403);
-      await authed(app, userB.accessToken).delete(`/deadlines/${deadlineId}`).expect(403);
+      await authed(app, userB.accessToken)
+        .get(`/deadlines/${deadlineId}`)
+        .expect(403);
+      await authed(app, userB.accessToken)
+        .delete(`/deadlines/${deadlineId}`)
+        .expect(403);
     });
 
     it("blocks another user from reading or deleting user A's contract", async () => {
-      await authed(app, userB.accessToken).get(`/contracts/${contractId}`).expect(403);
-      await authed(app, userB.accessToken).delete(`/contracts/${contractId}`).expect(403);
+      await authed(app, userB.accessToken)
+        .get(`/contracts/${contractId}`)
+        .expect(403);
+      await authed(app, userB.accessToken)
+        .delete(`/contracts/${contractId}`)
+        .expect(403);
     });
 
     it('blocks user B from creating a deadline linked to a document they do not own', async () => {
@@ -119,7 +148,9 @@ describe('Cross-user permissions (e2e)', () => {
     });
 
     it('rejects unauthenticated access entirely', async () => {
-      await request(app.getHttpServer()).get(`/documents/${documentId}`).expect(401);
+      await request(app.getHttpServer())
+        .get(`/documents/${documentId}`)
+        .expect(401);
       await request(app.getHttpServer()).get('/documents').expect(401);
     });
 
@@ -131,7 +162,9 @@ describe('Cross-user permissions (e2e)', () => {
       const token = shareRes.body.token as string;
       const shareId = shareRes.body.id as string;
 
-      await request(app.getHttpServer()).get(`/public/shares/${token}`).expect(200);
+      await request(app.getHttpServer())
+        .get(`/public/shares/${token}`)
+        .expect(200);
 
       // user B cannot create a share for a document they don't own
       await authed(app, userB.accessToken)
@@ -140,15 +173,23 @@ describe('Cross-user permissions (e2e)', () => {
         .expect(403);
 
       // user B cannot revoke user A's share link
-      await authed(app, userB.accessToken).delete(`/shares/${shareId}`).expect(403);
+      await authed(app, userB.accessToken)
+        .delete(`/shares/${shareId}`)
+        .expect(403);
 
       // owner revokes it -> public access is now gone
-      await authed(app, userA.accessToken).delete(`/shares/${shareId}`).expect(204);
-      await request(app.getHttpServer()).get(`/public/shares/${token}`).expect(410);
+      await authed(app, userA.accessToken)
+        .delete(`/shares/${shareId}`)
+        .expect(204);
+      await request(app.getHttpServer())
+        .get(`/public/shares/${token}`)
+        .expect(410);
     });
 
     it('an unknown public share token returns 404', async () => {
-      await request(app.getHttpServer()).get('/public/shares/does-not-exist').expect(404);
+      await request(app.getHttpServer())
+        .get('/public/shares/does-not-exist')
+        .expect(404);
     });
   });
 
@@ -186,11 +227,15 @@ describe('Cross-user permissions (e2e)', () => {
     });
 
     it("blocks user B from reading user A's client even though B has their own company", async () => {
-      await authed(app, userB.accessToken).get(`/clients/${clientAId}`).expect(403);
+      await authed(app, userB.accessToken)
+        .get(`/clients/${clientAId}`)
+        .expect(403);
     });
 
     it("blocks user B from reading or updating user A's invoice", async () => {
-      await authed(app, userB.accessToken).get(`/invoices/${invoiceAId}`).expect(403);
+      await authed(app, userB.accessToken)
+        .get(`/invoices/${invoiceAId}`)
+        .expect(403);
       await authed(app, userB.accessToken)
         .patch(`/invoices/${invoiceAId}`)
         .send({ status: 'payee' })
@@ -205,9 +250,13 @@ describe('Cross-user permissions (e2e)', () => {
     });
 
     it("user B's own client/invoice list stays empty and does not leak user A's data", async () => {
-      const clients = await authed(app, userB.accessToken).get('/clients').expect(200);
+      const clients = await authed(app, userB.accessToken)
+        .get('/clients')
+        .expect(200);
       expect(clients.body).toEqual([]);
-      const invoices = await authed(app, userB.accessToken).get('/invoices').expect(200);
+      const invoices = await authed(app, userB.accessToken)
+        .get('/invoices')
+        .expect(200);
       expect(invoices.body).toEqual([]);
     });
 

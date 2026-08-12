@@ -44,19 +44,25 @@ describe('DocumentsService', () => {
     it('throws NotFoundException when the document does not exist', async () => {
       prisma.document.findUnique.mockResolvedValue(null);
 
-      await expect(service.findOne('missing', ownerId)).rejects.toThrow(NotFoundException);
+      await expect(service.findOne('missing', ownerId)).rejects.toThrow(
+        NotFoundException,
+      );
     });
 
     it('throws ForbiddenException when another user owns the document', async () => {
       prisma.document.findUnique.mockResolvedValue(document);
 
-      await expect(service.findOne(document.id, otherId)).rejects.toThrow(ForbiddenException);
+      await expect(service.findOne(document.id, otherId)).rejects.toThrow(
+        ForbiddenException,
+      );
     });
 
     it('returns the document for its owner', async () => {
       prisma.document.findUnique.mockResolvedValue(document);
 
-      await expect(service.findOne(document.id, ownerId)).resolves.toEqual(document);
+      await expect(service.findOne(document.id, ownerId)).resolves.toEqual(
+        document,
+      );
     });
   });
 
@@ -64,9 +70,9 @@ describe('DocumentsService', () => {
     it('blocks updates from a non-owner before touching prisma.update', async () => {
       prisma.document.findUnique.mockResolvedValue(document);
 
-      await expect(service.update(document.id, { name: 'x' } as any, otherId)).rejects.toThrow(
-        ForbiddenException,
-      );
+      await expect(
+        service.update(document.id, { name: 'x' } as any, otherId),
+      ).rejects.toThrow(ForbiddenException);
       expect(prisma.document.update).not.toHaveBeenCalled();
     });
   });
@@ -75,7 +81,9 @@ describe('DocumentsService', () => {
     it('blocks deletion from a non-owner and does not touch storage', async () => {
       prisma.document.findUnique.mockResolvedValue(document);
 
-      await expect(service.remove(document.id, otherId)).rejects.toThrow(ForbiddenException);
+      await expect(service.remove(document.id, otherId)).rejects.toThrow(
+        ForbiddenException,
+      );
       expect(prisma.document.delete).not.toHaveBeenCalled();
       expect(storage.delete).not.toHaveBeenCalled();
     });
@@ -85,7 +93,9 @@ describe('DocumentsService', () => {
 
       await service.remove(document.id, ownerId);
 
-      expect(prisma.document.delete).toHaveBeenCalledWith({ where: { id: document.id } });
+      expect(prisma.document.delete).toHaveBeenCalledWith({
+        where: { id: document.id },
+      });
       expect(storage.delete).toHaveBeenCalledWith(document.fileKey);
     });
   });
@@ -94,7 +104,9 @@ describe('DocumentsService', () => {
     it('rejects analysis of a document owned by someone else', async () => {
       prisma.document.findUnique.mockResolvedValue(document);
 
-      await expect(service.analyze(document.id, otherId)).rejects.toThrow(ForbiddenException);
+      await expect(service.analyze(document.id, otherId)).rejects.toThrow(
+        ForbiddenException,
+      );
       expect(storage.getBuffer).not.toHaveBeenCalled();
     });
 
@@ -103,11 +115,17 @@ describe('DocumentsService', () => {
       storage.getBuffer.mockResolvedValue(Buffer.from('file-bytes'));
       const longText = 'A'.repeat(600);
       ocr.extractText.mockResolvedValue({ text: longText, warning: undefined });
-      extraction.extract.mockReturnValue({ suggestedAmount: 42, suggestedProvider: 'EDF' });
+      extraction.extract.mockReturnValue({
+        suggestedAmount: 42,
+        suggestedProvider: 'EDF',
+      });
 
       const result = await service.analyze(document.id, ownerId);
 
-      expect(ocr.extractText).toHaveBeenCalledWith(Buffer.from('file-bytes'), document.mimeType);
+      expect(ocr.extractText).toHaveBeenCalledWith(
+        Buffer.from('file-bytes'),
+        document.mimeType,
+      );
       expect(result.rawTextPreview).toHaveLength(500);
       expect(result.suggestedAmount).toBe(42);
       expect(result.suggestedProvider).toBe('EDF');

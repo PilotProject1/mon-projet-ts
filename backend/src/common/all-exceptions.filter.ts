@@ -34,7 +34,9 @@ export class AllExceptionsFilter implements ExceptionFilter {
     }
 
     const payload =
-      typeof body === 'string' ? { message: body } : (body as Record<string, unknown>);
+      typeof body === 'string'
+        ? { message: body }
+        : (body as Record<string, unknown>);
 
     response.status(status).json({
       statusCode: status,

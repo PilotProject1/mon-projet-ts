@@ -20,9 +20,14 @@ export class S3StorageService extends StorageService {
   constructor() {
     super();
     const endpoint = process.env.S3_ENDPOINT;
-    if (!endpoint || !process.env.S3_BUCKET || !process.env.S3_ACCESS_KEY_ID || !process.env.S3_SECRET_ACCESS_KEY) {
+    if (
+      !endpoint ||
+      !process.env.S3_BUCKET ||
+      !process.env.S3_ACCESS_KEY_ID ||
+      !process.env.S3_SECRET_ACCESS_KEY
+    ) {
       throw new Error(
-        "Configuration S3 incomplète : S3_ENDPOINT, S3_BUCKET, S3_ACCESS_KEY_ID et S3_SECRET_ACCESS_KEY sont requis quand STORAGE_DRIVER=s3",
+        'Configuration S3 incomplète : S3_ENDPOINT, S3_BUCKET, S3_ACCESS_KEY_ID et S3_SECRET_ACCESS_KEY sont requis quand STORAGE_DRIVER=s3',
       );
     }
     this.bucket = process.env.S3_BUCKET;
@@ -51,7 +56,9 @@ export class S3StorageService extends StorageService {
   }
 
   async delete(key: string): Promise<void> {
-    await this.client.send(new DeleteObjectCommand({ Bucket: this.bucket, Key: key }));
+    await this.client.send(
+      new DeleteObjectCommand({ Bucket: this.bucket, Key: key }),
+    );
   }
 
   createReadStream(key: string): Readable {
@@ -67,7 +74,9 @@ export class S3StorageService extends StorageService {
   }
 
   async getBuffer(key: string): Promise<Buffer> {
-    const res = await this.client.send(new GetObjectCommand({ Bucket: this.bucket, Key: key }));
+    const res = await this.client.send(
+      new GetObjectCommand({ Bucket: this.bucket, Key: key }),
+    );
     const body = res.Body as Readable;
     const chunks: Buffer[] = [];
     for await (const chunk of body) {
