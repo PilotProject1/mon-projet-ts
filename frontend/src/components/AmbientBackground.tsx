@@ -46,7 +46,7 @@ export default function AmbientBackground({ variant = 'app' }: AmbientBackground
         />
         <svg
           viewBox="0 0 200 200"
-          className="absolute right-[6%] top-1/2 h-[420px] w-[420px] -translate-y-1/2 opacity-[0.06]"
+          className="absolute left-1/2 top-1/2 h-[520px] w-[520px] -translate-x-1/2 -translate-y-1/2 opacity-[0.05]"
         >
           <g
             transform="translate(100,100)"

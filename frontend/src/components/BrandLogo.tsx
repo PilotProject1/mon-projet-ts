@@ -5,7 +5,7 @@ interface BrandLogoProps {
 
 export default function BrandLogo({ iconSize = 34, wordmarkClassName = 'text-lg' }: BrandLogoProps) {
   return (
-    <div className="flex items-center gap-2.5">
+    <div className="flex shrink-0 items-center gap-2.5">
       <svg viewBox="0 0 200 200" width={iconSize} height={iconSize} className="shrink-0">
         <defs>
           <linearGradient id="badgeGrad" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -32,7 +32,7 @@ export default function BrandLogo({ iconSize = 34, wordmarkClassName = 'text-lg'
           <line x1="-30" y1="30" x2="30" y2="-30" strokeWidth="7" opacity="0.85" />
         </g>
       </svg>
-      <span className={`font-bold text-brand-deep ${wordmarkClassName}`}>
+      <span className={`whitespace-nowrap font-bold text-brand-deep ${wordmarkClassName}`}>
         SYN<span className="font-semibold text-brand-green">eco</span>
       </span>
     </div>
