@@ -36,12 +36,14 @@ export default function Login({ onLogin }: LoginProps) {
     <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-brand-mint px-6">
       <AmbientBackground variant="auth" />
 
-      <div className="relative z-10 w-full max-w-[440px] rounded-[28px] border border-white/60 bg-white px-10 pb-9 pt-11 shadow-[0_30px_70px_-20px_rgba(11,61,58,0.28),0_2px_8px_rgba(11,61,58,0.06)]">
+      <div className="relative z-10 w-full max-w-[440px] rounded-[28px] border border-white/60 bg-white px-6 pt-11 pb-9 shadow-[0_30px_70px_-20px_rgba(11,61,58,0.28),0_2px_8px_rgba(11,61,58,0.06)] sm:px-10">
         <div className="mb-7">
           <BrandLogo iconSize={46} wordmarkClassName="text-2xl" />
         </div>
 
-        <h1 className="mb-1 text-xl font-semibold text-brand-ink">Connectez-vous à votre espace</h1>
+        <h1 className="mb-1 text-lg font-semibold whitespace-nowrap text-brand-ink sm:text-xl">
+          Connectez-vous à votre espace
+        </h1>
         <p className="mb-7 text-sm text-brand-muted">Vos documents, synchronisés. Zéro papier.</p>
 
         {error && (
