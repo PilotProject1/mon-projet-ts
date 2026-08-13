@@ -28,6 +28,7 @@ import {
   invoicesApi,
   getAccessToken,
   ApiError,
+  planApi,
 } from './services/api'
 import type {
   Document,
@@ -42,6 +43,7 @@ import type {
   Client,
   Invoice,
   InvoiceStatus,
+  PlanUsage,
 } from './types'
 
 function App() {
@@ -55,15 +57,18 @@ function App() {
   const [company, setCompany] = useState<Company | null>(null)
   const [clients, setClients] = useState<Client[]>([])
   const [invoices, setInvoices] = useState<Invoice[]>([])
+  const [planUsage, setPlanUsage] = useState<PlanUsage | null>(null)
 
   async function loadData() {
-    const [docs, dls, ctrs, notifs, shrs] = await Promise.all([
+    const [docs, dls, ctrs, notifs, shrs, plan] = await Promise.all([
       documentsApi.list(),
       deadlinesApi.list(),
       contractsApi.list(),
       notificationsApi.list(),
       sharesApi.list(),
+      planApi.get(),
     ])
+    setPlanUsage(plan)
     setDocuments(docs)
     setDeadlines(dls)
     setContracts(ctrs)
@@ -118,18 +123,26 @@ function App() {
     setNotifications([])
     setShares([])
     setCompany(null)
+    setPlanUsage(null)
     setClients([])
     setInvoices([])
+  }
+
+  /** Le quota dépend du nombre de documents : il est relu après chaque ajout/suppression. */
+  async function refreshPlanUsage() {
+    setPlanUsage(await planApi.get())
   }
 
   async function addDocument(data: { name: string; type: DocumentType; file: File }) {
     const doc = await documentsApi.create(data)
     setDocuments((prev) => [doc, ...prev])
+    await refreshPlanUsage()
   }
 
   async function deleteDocument(id: string) {
     await documentsApi.remove(id)
     setDocuments((prev) => prev.filter((d) => d.id !== id))
+    await refreshPlanUsage()
   }
 
   async function addDeadline(data: { title: string; dueDate: string; documentId?: string }) {
@@ -258,6 +271,7 @@ function App() {
             user ? (
               <Layout
                 user={user}
+                planUsage={planUsage}
                 onLogout={handleLogout}
                 notifications={notifications}
                 onMarkRead={markNotificationRead}
@@ -274,6 +288,7 @@ function App() {
             element={
               <Documents
                 documents={documents}
+                planUsage={planUsage}
                 onAdd={addDocument}
                 onDelete={deleteDocument}
                 onCreateDeadline={addDeadline}

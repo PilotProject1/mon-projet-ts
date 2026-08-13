@@ -15,6 +15,7 @@ import { AiService } from '../ai/ai.service';
 import { AiExtractionService } from '../ai/ai-extraction.service';
 import { CreateDocumentDto } from './dto/create-document.dto';
 import { UpdateDocumentDto } from './dto/update-document.dto';
+import { PlansService } from '../plans/plans.service';
 
 @Injectable()
 export class DocumentsService {
@@ -27,6 +28,7 @@ export class DocumentsService {
     private readonly extraction: ExtractionService,
     private readonly ai: AiService,
     private readonly aiExtraction: AiExtractionService,
+    private readonly plans: PlansService,
   ) {}
 
   async create(
@@ -34,6 +36,10 @@ export class DocumentsService {
     userId: string,
     file: Express.Multer.File,
   ) {
+    // Vérifié avant l'écriture sur le stockage : sinon un fichier orphelin
+    // serait déposé alors que la création est refusée.
+    await this.plans.assertCanAddDocument(userId);
+
     const stored = await this.storage.save(file, userId);
     return this.prisma.document.create({
       data: {
@@ -81,8 +87,13 @@ export class DocumentsService {
       document.mimeType,
     );
 
+    // L'appel au modèle est facturé à la requête : il est réservé aux plans
+    // incluant l'IA. Les autres comptes gardent le moteur heuristique local.
+    const plan = await this.plans.getPlan(userId);
+    const aiAllowed = this.plans.hasFeature(plan, 'ia');
+
     let fields: ExtractedFields | null = null;
-    if (this.ai.available && text.trim().length > 0) {
+    if (aiAllowed && this.ai.available && text.trim().length > 0) {
       try {
         fields = await this.aiExtraction.extract(text);
       } catch (err) {

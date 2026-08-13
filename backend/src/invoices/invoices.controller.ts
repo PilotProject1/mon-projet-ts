@@ -14,17 +14,20 @@ import { InvoicesService } from './invoices.service';
 import { CreateInvoiceDto } from './dto/create-invoice.dto';
 import { UpdateInvoiceDto } from './dto/update-invoice.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { PlanFeatureGuard } from '../plans/plan-feature.guard';
+import { RequiresFeature } from '../plans/requires-feature.decorator';
 import {
   CurrentUser,
   type CurrentUserPayload,
 } from '../auth/decorators/current-user.decorator';
 
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, PlanFeatureGuard)
 @Controller('invoices')
 export class InvoicesController {
   constructor(private readonly invoicesService: InvoicesService) {}
 
   @Post()
+  @RequiresFeature('facturation')
   create(
     @Body() dto: CreateInvoiceDto,
     @CurrentUser() user: CurrentUserPayload,
@@ -43,6 +46,7 @@ export class InvoicesController {
   }
 
   @Patch(':id')
+  @RequiresFeature('facturation')
   update(
     @Param('id') id: string,
     @Body() dto: UpdateInvoiceDto,
@@ -52,6 +56,7 @@ export class InvoicesController {
   }
 
   @Delete(':id')
+  @RequiresFeature('facturation')
   @HttpCode(HttpStatus.NO_CONTENT)
   remove(@Param('id') id: string, @CurrentUser() user: CurrentUserPayload) {
     return this.invoicesService.remove(id, user.userId);
