@@ -36,9 +36,10 @@ async function bootstrap() {
 
   app.use(helmet());
 
-  const allowedOrigins = (
-    process.env.FRONTEND_ORIGIN ?? 'http://localhost:5173'
-  ).split(',');
+  const allowedOrigins = (process.env.FRONTEND_ORIGIN ?? 'http://localhost:5173')
+    .split(',')
+    .map((origin) => origin.trim().replace(/\/+$/, ''))
+    .filter((origin) => origin.length > 0);
   app.enableCors({ origin: allowedOrigins, credentials: true });
 
   app.useGlobalPipes(
