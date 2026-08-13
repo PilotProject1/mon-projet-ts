@@ -5,7 +5,7 @@ interface BrandLogoProps {
 
 export default function BrandLogo({ iconSize = 34, wordmarkClassName = 'text-lg' }: BrandLogoProps) {
   return (
-    <div className="flex items-center gap-2.5">
+    <div className="flex shrink-0 items-center gap-2.5">
       <svg viewBox="0 0 200 200" width={iconSize} height={iconSize} className="shrink-0">
         <defs>
           <linearGradient id="badgeGrad" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -18,21 +18,36 @@ export default function BrandLogo({ iconSize = 34, wordmarkClassName = 'text-lg'
           </linearGradient>
         </defs>
         <rect width="200" height="200" rx="46" fill="url(#badgeGrad)" />
-        <g
-          transform="translate(100,100)"
-          fill="none"
-          stroke="url(#leafGrad)"
-          strokeWidth="11"
-          strokeLinecap="round"
-        >
-          <path d="M -54 10 A 62 62 0 0 1 46 -46" />
-          <polygon points="46,-46 60,-30 30,-24" fill="#EAF6EF" stroke="none" />
-          <path d="M 54 -10 A 62 62 0 0 1 -46 46" />
-          <polygon points="-46,46 -60,30 -30,24" fill="#EAF6EF" stroke="none" />
-          <line x1="-30" y1="30" x2="30" y2="-30" strokeWidth="7" opacity="0.85" />
+        <g transform="translate(100,100)">
+          <path
+            d="M26,-58 C-8,-66 -50,-46 -58,-10 C-64,16 -50,38 -28,50"
+            fill="none"
+            stroke="url(#leafGrad)"
+            strokeWidth="13"
+            strokeLinecap="round"
+          />
+          <path
+            d="M-26,58 C8,66 50,46 58,10 C64,-16 50,-38 28,-50"
+            fill="none"
+            stroke="url(#leafGrad)"
+            strokeWidth="13"
+            strokeLinecap="round"
+          />
+          <g transform="translate(26,-58) rotate(-25)">
+            <path
+              d="M0,0 C14,-2 24,-14 22,-28 C21,-34 16,-38 10,-36 C2,-34 -4,-24 -2,-12 C-1,-6 0,-2 0,0 Z"
+              fill="#EAF6EF"
+            />
+          </g>
+          <g transform="translate(-26,58) rotate(155)">
+            <path
+              d="M0,0 C14,-2 24,-14 22,-28 C21,-34 16,-38 10,-36 C2,-34 -4,-24 -2,-12 C-1,-6 0,-2 0,0 Z"
+              fill="#EAF6EF"
+            />
+          </g>
         </g>
       </svg>
-      <span className={`font-bold text-brand-deep ${wordmarkClassName}`}>
+      <span className={`whitespace-nowrap font-bold text-brand-deep ${wordmarkClassName}`}>
         SYN<span className="font-semibold text-brand-green">eco</span>
       </span>
     </div>
