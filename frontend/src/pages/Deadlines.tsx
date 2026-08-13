@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import type { FormEvent } from 'react'
 import type { Deadline, Document } from '../types'
 import PriorityBadge from '../components/PriorityBadge'
@@ -30,6 +30,7 @@ export default function Deadlines({
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [remindingId, setRemindingId] = useState<string | null>(null)
+  const formRef = useRef<HTMLFormElement>(null)
 
   const filtered = deadlines
     .filter((d) => statusFilter === 'toutes' || d.status === statusFilter)
@@ -78,6 +79,14 @@ export default function Deadlines({
     }
   }
 
+  function handleRequestAdd(prefillDate: string) {
+    setDueDate(prefillDate)
+    setShowForm(true)
+    requestAnimationFrame(() => {
+      formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    })
+  }
+
   return (
     <div>
       <div className="mb-6 flex items-center justify-between">
@@ -96,6 +105,7 @@ export default function Deadlines({
 
       {showForm && (
         <form
+          ref={formRef}
           onSubmit={handleSubmit}
           className="mb-6 grid grid-cols-1 gap-3 rounded-lg border border-brand-border bg-white p-4 sm:grid-cols-2"
         >
@@ -191,7 +201,13 @@ export default function Deadlines({
       </div>
 
       {view === 'calendrier' ? (
-        <DeadlineCalendar deadlines={filtered} />
+        <DeadlineCalendar
+          deadlines={filtered}
+          documents={documents}
+          onToggleStatus={onToggleStatus}
+          onRemind={onRemind}
+          onRequestAdd={handleRequestAdd}
+        />
       ) : (
         <div className="rounded-lg border border-brand-border bg-white">
           {filtered.length === 0 ? (
