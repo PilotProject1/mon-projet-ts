@@ -1,67 +1,151 @@
+import { useState } from 'react'
 import { NavLink, Outlet } from 'react-router-dom'
+import {
+  LayoutDashboard,
+  Search,
+  FileText,
+  Clock,
+  FileSignature,
+  Share2,
+  Building2,
+  Users,
+  Receipt,
+  ChevronDown,
+  LogOut,
+} from 'lucide-react'
 import NotificationBell from './NotificationBell'
 import BrandLogo from './BrandLogo'
 import AmbientBackground from './AmbientBackground'
-import type { Notification } from '../types'
+import type { Notification, User } from '../types'
 
-const navItems = [
-  { to: '/', label: 'Dashboard', end: true },
-  { to: '/recherche', label: 'Recherche' },
-  { to: '/documents', label: 'Documents' },
-  { to: '/echeances', label: 'Échéances' },
-  { to: '/contrats', label: 'Contrats' },
-  { to: '/partages', label: 'Partages' },
-  { to: '/entreprise', label: 'Entreprise' },
-  { to: '/clients', label: 'Clients' },
-  { to: '/factures', label: 'Factures' },
+const navGroups = [
+  {
+    label: 'Aperçu',
+    items: [
+      { to: '/', label: 'Dashboard', end: true, icon: LayoutDashboard },
+      { to: '/recherche', label: 'Recherche', icon: Search },
+    ],
+  },
+  {
+    label: 'Gestion',
+    items: [
+      { to: '/documents', label: 'Documents', icon: FileText },
+      { to: '/echeances', label: 'Échéances', icon: Clock },
+      { to: '/contrats', label: 'Contrats', icon: FileSignature },
+      { to: '/partages', label: 'Partages', icon: Share2 },
+    ],
+  },
+  {
+    label: 'Entreprise',
+    items: [
+      { to: '/entreprise', label: 'Entreprise', icon: Building2 },
+      { to: '/clients', label: 'Clients', icon: Users },
+      { to: '/factures', label: 'Factures', icon: Receipt },
+    ],
+  },
 ]
 
 interface LayoutProps {
+  user: User
   onLogout: () => void
   notifications: Notification[]
   onMarkRead: (id: string) => void
 }
 
-export default function Layout({ onLogout, notifications, onMarkRead }: LayoutProps) {
-  return (
-    <div className="relative min-h-screen overflow-x-hidden bg-brand-mint">
-      <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden">
-        <AmbientBackground variant="app" />
-      </div>
+export default function Layout({ user, onLogout, notifications, onMarkRead }: LayoutProps) {
+  const [menuOpen, setMenuOpen] = useState(false)
 
-      <header className="relative z-10 border-b border-brand-border bg-white">
-        <div className="mx-auto flex max-w-5xl items-center justify-between px-6 py-4">
-          <BrandLogo />
-          <nav className="flex flex-wrap items-center justify-end gap-0.5">
-            {navItems.map((item) => (
-              <NavLink
-                key={item.to}
-                to={item.to}
-                end={item.end}
-                className={({ isActive }) =>
-                  `rounded-md px-2.5 py-2 text-sm font-medium whitespace-nowrap ${
-                    isActive
-                      ? 'brand-gradient text-white'
-                      : 'text-brand-muted hover:bg-brand-mint hover:text-brand-deep'
-                  }`
-                }
-              >
-                {item.label}
-              </NavLink>
-            ))}
-            <NotificationBell notifications={notifications} onMarkRead={onMarkRead} />
-            <button
-              onClick={onLogout}
-              className="ml-2 rounded-md px-3 py-2 text-sm font-medium text-brand-danger hover:bg-brand-mint"
-            >
-              Déconnexion
-            </button>
-          </nav>
+  return (
+    <div className="flex min-h-screen bg-brand-mint">
+      <aside className="flex w-[232px] shrink-0 flex-col bg-brand-deep px-4 py-5.5">
+        <div className="mb-7.5 flex items-center gap-2.5 px-1.5">
+          <BrandLogo iconSize={32} wordmarkClassName="text-[17px]" dark />
         </div>
-      </header>
-      <main className="relative z-10 mx-auto max-w-6xl px-6 py-8">
-        <Outlet />
-      </main>
+
+        <nav className="flex flex-1 flex-col gap-5.5">
+          {navGroups.map((group) => (
+            <div key={group.label}>
+              <div className="mb-2 px-2.5 text-[10.5px] font-semibold tracking-[0.08em] text-white/40 uppercase">
+                {group.label}
+              </div>
+              <div className="flex flex-col gap-0.5">
+                {group.items.map((item) => (
+                  <NavLink
+                    key={item.to}
+                    to={item.to}
+                    end={item.end}
+                    className={({ isActive }) =>
+                      `flex items-center gap-2.5 rounded-lg px-2.5 py-2.5 text-[13.5px] font-medium ${
+                        isActive
+                          ? 'bg-brand-green font-semibold text-white'
+                          : 'text-white/75 hover:bg-white/10 hover:text-white'
+                      }`
+                    }
+                  >
+                    {({ isActive }) => (
+                      <>
+                        <item.icon
+                          size={16.5}
+                          strokeWidth={2}
+                          className={isActive ? 'text-white' : 'text-white/65'}
+                        />
+                        {item.label}
+                      </>
+                    )}
+                  </NavLink>
+                ))}
+              </div>
+            </div>
+          ))}
+        </nav>
+
+        <div className="mt-3.5 border-t border-white/10 pt-3.5">
+          <p className="px-2.5 text-[11.5px] leading-relaxed text-white/45">
+            Vos documents, synchronisés.
+            <br />
+            Zéro papier.
+          </p>
+        </div>
+      </aside>
+
+      <div className="relative flex-1 overflow-x-hidden">
+        <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden">
+          <AmbientBackground variant="app" />
+        </div>
+
+        <div className="relative z-10 flex justify-end gap-3.5 px-8 pt-6">
+          <NotificationBell notifications={notifications} onMarkRead={onMarkRead} />
+          <div className="relative">
+            <button
+              onClick={() => setMenuOpen((v) => !v)}
+              className="flex items-center gap-2 rounded-[10px] border border-brand-border bg-white py-1.5 pr-2.5 pl-1.5"
+            >
+              <span className="flex h-6.5 w-6.5 items-center justify-center rounded-full bg-brand-green font-heading text-xs font-semibold text-white">
+                {user.name.charAt(0).toUpperCase()}
+              </span>
+              <ChevronDown size={14} className="text-brand-muted" />
+            </button>
+            {menuOpen && (
+              <>
+                <div className="fixed inset-0 z-10" onClick={() => setMenuOpen(false)} />
+                <div className="absolute right-0 z-20 mt-1.5 w-44 rounded-[10px] border border-brand-border bg-white p-1.5 shadow-[0_8px_24px_rgba(11,46,47,0.12)]">
+                  <button
+                    onClick={onLogout}
+                    className="flex w-full items-center gap-2 rounded-[7px] px-2.5 py-2 text-left text-sm text-brand-danger hover:bg-brand-mint"
+                  >
+                    <LogOut size={15} />
+                    Déconnexion
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+
+        <main className="relative z-10 mx-auto max-w-6xl px-8 pt-4 pb-8">
+          <Outlet />
+        </main>
+      </div>
     </div>
   )
 }

@@ -52,24 +52,24 @@ export default function AmbientBackground({ variant = 'app' }: AmbientBackground
             <path
               d="M -60 -34 A 70 70 0 1 1 -60 34"
               fill="none"
-              stroke="#0B3D3A"
+              stroke="#0B2E2F"
               strokeWidth="10"
               strokeLinecap="round"
             />
             <path
               d="M 60 34 A 70 70 0 1 1 60 -34"
               fill="none"
-              stroke="#0B3D3A"
+              stroke="#0B2E2F"
               strokeWidth="10"
               strokeLinecap="round"
             />
-            <polygon points="-60,-34 -46,-36 -52,-16" fill="#0B3D3A" />
-            <polygon points="60,34 46,36 52,16" fill="#0B3D3A" />
+            <polygon points="-60,-34 -46,-36 -52,-16" fill="#0B2E2F" />
+            <polygon points="60,34 46,36 52,16" fill="#0B2E2F" />
             <g transform="translate(0,4) scale(0.72)">
-              <path d="M-30,-44 L12,-44 L30,-26 L30,44 L-30,44 Z" fill="#0B3D3A" />
+              <path d="M-30,-44 L12,-44 L30,-26 L30,44 L-30,44 Z" fill="#0B2E2F" />
               <path
                 d="M0,44 C22,44 36,26 30,4 C27,-8 15,-14 4,-8 C0,6 -2,26 0,44 Z"
-                fill="#0B3D3A"
+                fill="#0B2E2F"
               />
             </g>
           </g>

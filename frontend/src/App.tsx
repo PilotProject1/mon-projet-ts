@@ -251,8 +251,9 @@ function App() {
         />
         <Route
           element={
-            isAuthenticated ? (
+            user ? (
               <Layout
+                user={user}
                 onLogout={handleLogout}
                 notifications={notifications}
                 onMarkRead={markNotificationRead}

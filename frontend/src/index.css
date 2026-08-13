@@ -1,34 +1,38 @@
 @import "tailwindcss";
-@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&family=Inter:wght@400;500;600&display=swap');
 
 @theme {
-  --font-sans: 'Poppins', ui-sans-serif, system-ui, sans-serif;
+  --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --font-heading: 'Poppins', ui-sans-serif, system-ui, sans-serif;
 
-  --color-brand-deep: #0b3d3a;
-  --color-brand-mid: #155e52;
-  --color-brand-green: #2e9e63;
-  --color-brand-green-light: #5fdb92;
-  --color-brand-mint: #eaf6ef;
-  --color-brand-ink: #12211e;
-  --color-brand-muted: #5c7a72;
-  --color-brand-border: #dcede4;
-  --color-brand-danger: #c0554b;
+  --color-brand-deep: #0b2e2f;
+  --color-brand-mid: #12514f;
+  --color-brand-line: #1b6b62;
+  --color-brand-green: #2f8f6f;
+  --color-brand-green-soft: #e3f1eb;
+  --color-brand-green-deep: #1f6a52;
+  --color-brand-mint: #f5f8f7;
+  --color-brand-ink: #132420;
+  --color-brand-muted: #5b6b65;
+  --color-brand-border: #e3e9e6;
+  --color-brand-danger: #b4483f;
+  --color-brand-amber: #c98a3e;
 }
 
 :root {
   /* alias bruts, utilisés dans les valeurs CSS (dégradés, halos) qui ne passent pas par les classes utilitaires */
-  --petrol-deep: #0b3d3a;
-  --petrol-mid: #155e52;
-  --green: #2e9e63;
+  --petrol-deep: #0b2e2f;
+  --petrol-mid: #12514f;
+  --green: #2f8f6f;
   --green-light: #5fdb92;
-  --mint-bg: #eaf6ef;
-  --ink: #12211e;
-  --muted: #5c7a72;
-  --border: #dcede4;
+  --mint-bg: #f5f8f7;
+  --ink: #132420;
+  --muted: #5b6b65;
+  --border: #e3e9e6;
 }
 
 body {
-  font-family: 'Poppins', Arial, sans-serif;
+  font-family: 'Inter', Arial, sans-serif;
   background: var(--mint-bg);
   color: var(--ink);
 }
@@ -38,14 +42,14 @@ body {
 }
 
 .brand-btn-shadow {
-  box-shadow: 0 12px 24px -8px rgba(46, 158, 99, 0.45);
+  box-shadow: 0 12px 24px -8px rgba(47, 143, 111, 0.45);
 }
 .brand-btn-shadow:hover {
-  box-shadow: 0 16px 28px -8px rgba(46, 158, 99, 0.55);
+  box-shadow: 0 16px 28px -8px rgba(47, 143, 111, 0.55);
 }
 
 .brand-card-shadow {
-  box-shadow: 0 8px 24px -14px rgba(11, 61, 58, 0.12);
+  box-shadow: 0 8px 24px -14px rgba(11, 46, 47, 0.12);
 }
 
 /* Halos de fond ambiants (charte SYNeco) */
