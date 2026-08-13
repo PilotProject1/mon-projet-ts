@@ -126,3 +126,19 @@ export interface SearchAnswer {
   summary: string
   results: SearchHit[]
 }
+
+export type Plan = 'gratuit' | 'premium' | 'pro' | 'pme'
+export type PlanFeature = 'ia' | 'partage' | 'facturation' | 'equipes'
+
+export interface PlanUsage {
+  plan: Plan
+  label: string
+  monthlyPrice: number
+  features: PlanFeature[]
+  documents: {
+    used: number
+    /** null = illimité */
+    max: number | null
+    remaining: number | null
+  }
+}

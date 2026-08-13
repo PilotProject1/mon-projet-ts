@@ -3,12 +3,14 @@ import { CompanyService } from './company.service';
 import { CreateCompanyDto } from './dto/create-company.dto';
 import { UpdateCompanyDto } from './dto/update-company.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { PlanFeatureGuard } from '../plans/plan-feature.guard';
+import { RequiresFeature } from '../plans/requires-feature.decorator';
 import {
   CurrentUser,
   type CurrentUserPayload,
 } from '../auth/decorators/current-user.decorator';
 
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, PlanFeatureGuard)
 @Controller('company')
 export class CompanyController {
   constructor(private readonly companyService: CompanyService) {}
@@ -19,6 +21,7 @@ export class CompanyController {
   }
 
   @Post()
+  @RequiresFeature('facturation')
   create(
     @Body() dto: CreateCompanyDto,
     @CurrentUser() user: CurrentUserPayload,
@@ -27,6 +30,7 @@ export class CompanyController {
   }
 
   @Patch()
+  @RequiresFeature('facturation')
   update(
     @Body() dto: UpdateCompanyDto,
     @CurrentUser() user: CurrentUserPayload,

@@ -10,6 +10,7 @@ describe('DocumentsService', () => {
   let extraction: any;
   let ai: any;
   let aiExtraction: any;
+  let plans: any;
 
   const ownerId = 'user-1';
   const otherId = 'user-2';
@@ -40,6 +41,13 @@ describe('DocumentsService', () => {
     extraction = { extract: jest.fn() };
     ai = { available: false };
     aiExtraction = { extract: jest.fn() };
+    // Par défaut le plan de test autorise l'IA : les cas existants vérifient
+    // le comportement de l'extraction, pas la restriction par plan.
+    plans = {
+      getPlan: jest.fn().mockResolvedValue('premium'),
+      hasFeature: jest.fn().mockReturnValue(true),
+      assertCanAddDocument: jest.fn().mockResolvedValue(undefined),
+    };
 
     service = new DocumentsService(
       prisma,
@@ -48,6 +56,7 @@ describe('DocumentsService', () => {
       extraction,
       ai,
       aiExtraction,
+      plans,
     );
   });
 

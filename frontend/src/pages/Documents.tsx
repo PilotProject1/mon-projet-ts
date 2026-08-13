@@ -1,11 +1,20 @@
 import { useRef, useState } from 'react'
 import type { ChangeEvent, FormEvent } from 'react'
-import type { Document, DocumentType, DocumentAnalysis, RenewalType, ShareLink } from '../types'
+import type {
+  Document,
+  DocumentType,
+  DocumentAnalysis,
+  PlanUsage,
+  RenewalType,
+  ShareLink,
+} from '../types'
 import { ApiError, documentsApi } from '../services/api'
 import { formatDate } from '../utils/formatDate'
+import PlanUsageCard from '../components/PlanUsageCard'
 
 interface DocumentsProps {
   documents: Document[]
+  planUsage: PlanUsage | null
   onAdd: (data: { name: string; type: DocumentType; file: File }) => Promise<void>
   onDelete: (id: string) => Promise<void>
   onCreateDeadline: (data: { title: string; dueDate: string; documentId?: string }) => Promise<void>
@@ -49,12 +58,18 @@ function formatSize(bytes: number) {
 
 export default function Documents({
   documents,
+  planUsage,
   onAdd,
   onDelete,
   onCreateDeadline,
   onCreateContract,
   onCreateShare,
 }: DocumentsProps) {
+  const quotaReached =
+    planUsage !== null &&
+    planUsage.documents.max !== null &&
+    planUsage.documents.used >= planUsage.documents.max
+
   const [search, setSearch] = useState('')
   const [typeFilter, setTypeFilter] = useState<DocumentType | 'tous'>('tous')
   const [showForm, setShowForm] = useState(false)
@@ -253,11 +268,21 @@ export default function Documents({
         <h1 className="text-[28px] font-bold text-brand-deep">Documents</h1>
         <button
           onClick={() => setShowForm((v) => !v)}
-          className="brand-gradient rounded-md px-3 py-2 text-sm font-semibold text-white"
+          disabled={!showForm && quotaReached}
+          title={
+            quotaReached ? 'Limite de documents atteinte sur votre plan actuel' : undefined
+          }
+          className="brand-gradient rounded-md px-3 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
         >
           {showForm ? 'Annuler' : '+ Ajouter un document'}
         </button>
       </div>
+
+      {planUsage && (
+        <div className="mb-6">
+          <PlanUsageCard usage={planUsage} />
+        </div>
+      )}
 
       {error && (
         <div className="mb-4 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>

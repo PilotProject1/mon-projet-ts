@@ -30,6 +30,13 @@ enum Role {
   admin
 }
 
+enum Plan {
+  gratuit
+  premium
+  pro
+  pme
+}
+
 enum RenewalType {
   tacite
   manuel
@@ -54,6 +61,7 @@ model User {
   passwordHash String
   name         String
   role         Role     @default(user)
+  plan         Plan     @default(gratuit)
   createdAt    DateTime @default(now())
 
   documents     Document[]

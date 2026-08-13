@@ -17,8 +17,9 @@ import {
 } from 'lucide-react'
 import NotificationBell from './NotificationBell'
 import BrandLogo from './BrandLogo'
+import PlanUsageCard from './PlanUsageCard'
 import AmbientBackground from './AmbientBackground'
-import type { Notification, User } from '../types'
+import type { Notification, PlanUsage, User } from '../types'
 
 const navGroups = [
   {
@@ -49,12 +50,19 @@ const navGroups = [
 
 interface LayoutProps {
   user: User
+  planUsage: PlanUsage | null
   onLogout: () => void
   notifications: Notification[]
   onMarkRead: (id: string) => void
 }
 
-export default function Layout({ user, onLogout, notifications, onMarkRead }: LayoutProps) {
+export default function Layout({
+  user,
+  planUsage,
+  onLogout,
+  notifications,
+  onMarkRead,
+}: LayoutProps) {
   const [menuOpen, setMenuOpen] = useState(false)
   const [navOpen, setNavOpen] = useState(false)
 
@@ -120,6 +128,12 @@ export default function Layout({ user, onLogout, notifications, onMarkRead }: La
             </div>
           ))}
         </nav>
+
+        {planUsage && (
+          <div className="mt-3.5 border-t border-white/10 pt-3.5">
+            <PlanUsageCard usage={planUsage} compact />
+          </div>
+        )}
 
         <div className="mt-3.5 border-t border-white/10 pt-3.5">
           <p className="px-2.5 text-[11.5px] leading-relaxed text-white/45">

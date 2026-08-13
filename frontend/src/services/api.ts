@@ -15,6 +15,7 @@ import type {
   Invoice,
   InvoiceStatus,
   SearchAnswer,
+  PlanUsage,
 } from '../types'
 
 const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:3000'
@@ -268,4 +269,8 @@ export const invoicesApi = {
 export const searchApi = {
   ask: (query: string) =>
     request<SearchAnswer>('/search', { method: 'POST', body: JSON.stringify({ query }) }),
+}
+
+export const planApi = {
+  get: () => request<PlanUsage>('/plan'),
 }

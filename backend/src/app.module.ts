@@ -16,6 +16,7 @@ import { CompanyModule } from './company/company.module';
 import { ClientsModule } from './clients/clients.module';
 import { InvoicesModule } from './invoices/invoices.module';
 import { SearchModule } from './search/search.module';
+import { PlansModule } from './plans/plans.module';
 import { LoggingInterceptor } from './common/logging.interceptor';
 import { AllExceptionsFilter } from './common/all-exceptions.filter';
 
@@ -30,6 +31,7 @@ import { AllExceptionsFilter } from './common/all-exceptions.filter';
       },
     ]),
     PrismaModule,
+    PlansModule,
     UsersModule,
     AuthModule,
     DocumentsModule,
