@@ -6,23 +6,19 @@ export default function MentionsLegales() {
     <LegalPageShell title="Mentions légales" lastUpdated="13 août 2026">
       <h2>1. Éditeur du site</h2>
       <p>
-        Le site SYNeco est édité par <ARemplir>prénom et nom, ou dénomination sociale</ARemplir>,{' '}
-        <ARemplir>forme juridique, ex. entrepreneur individuel</ARemplir>, dont le siège est situé{' '}
-        <ARemplir>adresse complète du siège</ARemplir>.
+        Le site SYNeco est édité par <strong>VINCENTLV</strong>,{' '}
+        <ARemplir>forme juridique exacte, ex. entreprise individuelle</ARemplir>, dont le siège est
+        situé 9 rue Poincaré, 57240 Nilvange, France.
       </p>
       <table>
         <tbody>
           <tr>
             <th>SIREN</th>
-            <td>
-              <ARemplir>numéro SIREN à 9 chiffres</ARemplir>
-            </td>
+            <td>941 471 112</td>
           </tr>
           <tr>
             <th>SIRET (siège)</th>
-            <td>
-              <ARemplir>numéro SIRET à 14 chiffres</ARemplir>
-            </td>
+            <td>941 471 112 00016</td>
           </tr>
           <tr>
             <th>Immatriculation</th>
@@ -32,29 +28,23 @@ export default function MentionsLegales() {
           </tr>
           <tr>
             <th>TVA intracommunautaire</th>
-            <td>
-              <ARemplir>
-                numéro de TVA, ou « TVA non applicable, article 293 B du CGI » en franchise
-              </ARemplir>
-            </td>
+            <td>FR 37 941 471 112</td>
           </tr>
           <tr>
             <th>Téléphone</th>
             <td>
-              <ARemplir>numéro de téléphone</ARemplir>
+              <a href="tel:+33674337499">06 74 33 74 99</a>
             </td>
           </tr>
           <tr>
             <th>E-mail</th>
             <td>
-              <ARemplir>adresse e-mail de contact</ARemplir>
+              <a href="mailto:syneco.pro@outlook.fr">syneco.pro@outlook.fr</a>
             </td>
           </tr>
         </tbody>
       </table>
-      <p>
-        Directeur de la publication : <ARemplir>prénom et nom</ARemplir>.
-      </p>
+      <p>Directeur de la publication : Monsieur Vincent Loïc.</p>
       <p>
         Ces informations sont publiées en application de l'article 6 III-1 de la loi n° 2004-575 du
         21 juin 2004 pour la confiance dans l'économie numérique, qui impose à tout éditeur
@@ -142,7 +132,8 @@ export default function MentionsLegales() {
 
       <h2>6. Contact</h2>
       <p>
-        Pour toute question relative au site : <ARemplir>adresse e-mail de contact</ARemplir>.
+        Pour toute question relative au site :{' '}
+        <a href="mailto:syneco.pro@outlook.fr">syneco.pro@outlook.fr</a> ou 06 74 33 74 99.
       </p>
     </LegalPageShell>
   )
