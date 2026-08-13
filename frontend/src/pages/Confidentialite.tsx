@@ -12,8 +12,16 @@ export default function Confidentialite() {
 
       <h2>1. Responsable du traitement</h2>
       <p>
-        Le responsable du traitement est <ARemplir>prénom et nom de l'éditeur</ARemplir>, joignable à{' '}
+        Le responsable du traitement est{' '}
+        <ARemplir>prénom et nom, ou dénomination sociale</ARemplir>, immatriculé sous le numéro SIREN{' '}
+        <ARemplir>numéro SIREN</ARemplir>, dont le siège est situé{' '}
+        <ARemplir>adresse complète du siège</ARemplir>, joignable à{' '}
         <ARemplir>adresse e-mail de contact</ARemplir>.
+      </p>
+      <p>
+        Aucun délégué à la protection des données n'a été désigné, cette désignation n'étant pas
+        obligatoire au regard de l'activité exercée. Les demandes relatives aux données personnelles
+        sont à adresser directement au responsable du traitement.
       </p>
 
       <h2>2. Données collectées</h2>

@@ -6,17 +6,59 @@ export default function MentionsLegales() {
     <LegalPageShell title="Mentions légales" lastUpdated="13 août 2026">
       <h2>1. Éditeur du site</h2>
       <p>
-        Le site SYNeco est édité par <ARemplir>prénom et nom</ARemplir>, éditeur non professionnel
-        (projet personnel), joignable à l'adresse <ARemplir>adresse e-mail de contact</ARemplir>.
+        Le site SYNeco est édité par <ARemplir>prénom et nom, ou dénomination sociale</ARemplir>,{' '}
+        <ARemplir>forme juridique, ex. entrepreneur individuel</ARemplir>, dont le siège est situé{' '}
+        <ARemplir>adresse complète du siège</ARemplir>.
       </p>
+      <table>
+        <tbody>
+          <tr>
+            <th>SIREN</th>
+            <td>
+              <ARemplir>numéro SIREN à 9 chiffres</ARemplir>
+            </td>
+          </tr>
+          <tr>
+            <th>SIRET (siège)</th>
+            <td>
+              <ARemplir>numéro SIRET à 14 chiffres</ARemplir>
+            </td>
+          </tr>
+          <tr>
+            <th>Immatriculation</th>
+            <td>
+              <ARemplir>RCS de [ville] si activité commerciale, sinon RNE</ARemplir>
+            </td>
+          </tr>
+          <tr>
+            <th>TVA intracommunautaire</th>
+            <td>
+              <ARemplir>
+                numéro de TVA, ou « TVA non applicable, article 293 B du CGI » en franchise
+              </ARemplir>
+            </td>
+          </tr>
+          <tr>
+            <th>Téléphone</th>
+            <td>
+              <ARemplir>numéro de téléphone</ARemplir>
+            </td>
+          </tr>
+          <tr>
+            <th>E-mail</th>
+            <td>
+              <ARemplir>adresse e-mail de contact</ARemplir>
+            </td>
+          </tr>
+        </tbody>
+      </table>
       <p>
         Directeur de la publication : <ARemplir>prénom et nom</ARemplir>.
       </p>
       <p>
-        Conformément à l'article 6 III-2 de la loi n° 2004-575 du 21 juin 2004 pour la confiance
-        dans l'économie numérique, l'éditeur non professionnel qui souhaite préserver son anonymat
-        vis-à-vis du public peut se limiter à indiquer le nom de son hébergeur, à condition d'avoir
-        communiqué à celui-ci ses éléments d'identification personnelle.
+        Ces informations sont publiées en application de l'article 6 III-1 de la loi n° 2004-575 du
+        21 juin 2004 pour la confiance dans l'économie numérique, qui impose à tout éditeur
+        professionnel de se rendre identifiable auprès du public.
       </p>
 
       <h2>2. Hébergement</h2>
@@ -77,8 +119,15 @@ export default function MentionsLegales() {
       <p>
         SYNeco est un outil d'organisation documentaire. Les informations qu'il extrait
         automatiquement des documents (dates, montants, échéances) sont fournies à titre indicatif et
-        peuvent comporter des erreurs : il vous appartient de les vérifier. L'éditeur ne saurait être
-        tenu responsable des conséquences d'une échéance manquée ou d'une donnée mal interprétée.
+        peuvent comporter des erreurs : elles ne remplacent pas la lecture du document d'origine et
+        il vous appartient de les vérifier. Les rappels constituent une aide et ne garantissent pas
+        qu'une échéance sera respectée.
+      </p>
+      <p>
+        L'éditeur reste tenu des obligations prévues par la loi, notamment en matière de conformité
+        du service et de protection des données. Les limitations énoncées ci-dessus s'appliquent dans
+        les limites permises par la réglementation et ne privent pas le consommateur des droits qu'il
+        tient du Code de la consommation.
       </p>
       <p>
         L'éditeur s'efforce d'assurer la disponibilité du service sans pouvoir la garantir, notamment
