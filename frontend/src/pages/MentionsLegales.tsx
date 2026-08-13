@@ -27,8 +27,10 @@ export default function MentionsLegales() {
             </td>
           </tr>
           <tr>
-            <th>TVA intracommunautaire</th>
-            <td>FR 37 941 471 112</td>
+            <th>TVA</th>
+            <td>
+              TVA non applicable, article 293 B du Code général des impôts (franchise en base).
+            </td>
           </tr>
           <tr>
             <th>Téléphone</th>
