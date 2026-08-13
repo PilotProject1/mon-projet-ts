@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Bell } from 'lucide-react'
 import type { Notification } from '../types'
 
 interface NotificationBellProps {
@@ -14,21 +15,19 @@ export default function NotificationBell({ notifications, onMarkRead }: Notifica
     <div className="relative">
       <button
         onClick={() => setOpen((v) => !v)}
-        className="relative rounded-md px-3 py-2 text-sm font-medium text-brand-muted hover:bg-brand-mint hover:text-brand-deep"
+        className="relative flex h-9 w-9 items-center justify-center rounded-[10px] border border-brand-border bg-white"
       >
-        Notifications
+        <Bell size={16.5} className="text-brand-muted" />
         {unreadCount > 0 && (
-          <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-semibold text-white">
-            {unreadCount}
-          </span>
+          <span className="absolute top-1.5 right-1.5 h-1.5 w-1.5 rounded-full bg-brand-amber" />
         )}
       </button>
 
       {open && (
         <>
           <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
-          <div className="absolute right-0 z-20 mt-1 w-80 rounded-lg border border-brand-border bg-white shadow-lg">
-            <div className="border-b border-brand-border px-4 py-2 text-sm font-semibold text-brand-deep">
+          <div className="absolute right-0 z-20 mt-1.5 w-80 rounded-[10px] border border-brand-border bg-white shadow-[0_8px_24px_rgba(11,46,47,0.12)]">
+            <div className="border-b border-brand-border px-4 py-2 font-heading text-sm font-semibold text-brand-deep">
               Notifications
             </div>
             {notifications.length === 0 ? (
