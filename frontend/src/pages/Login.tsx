@@ -97,6 +97,15 @@ export default function Login({ onLogin }: LoginProps) {
             Créer un compte
           </Link>
         </p>
+
+        <p className="mt-4 flex flex-wrap justify-center gap-x-3 gap-y-1 text-xs text-brand-muted">
+          <Link to="/mentions-legales" className="hover:text-brand-green hover:underline">
+            Mentions légales
+          </Link>
+          <Link to="/confidentialite" className="hover:text-brand-green hover:underline">
+            Confidentialité
+          </Link>
+        </p>
       </div>
     </div>
   )

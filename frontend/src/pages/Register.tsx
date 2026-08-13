@@ -107,7 +107,19 @@ export default function Register({ onLogin }: RegisterProps) {
           </button>
         </form>
 
-        <p className="mt-6 text-center text-sm text-brand-muted">
+        <p className="mt-4 text-center text-xs leading-relaxed text-brand-muted">
+          En créant un compte, vous reconnaissez avoir pris connaissance de la{' '}
+          <Link to="/confidentialite" className="text-brand-green hover:underline">
+            politique de confidentialité
+          </Link>{' '}
+          et des{' '}
+          <Link to="/mentions-legales" className="text-brand-green hover:underline">
+            mentions légales
+          </Link>
+          .
+        </p>
+
+        <p className="mt-5 text-center text-sm text-brand-muted">
           Déjà un compte ?{' '}
           <Link to="/connexion" className="font-semibold text-brand-green hover:underline">
             Se connecter

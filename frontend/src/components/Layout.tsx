@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { NavLink, Outlet } from 'react-router-dom'
+import { Link, NavLink, Outlet } from 'react-router-dom'
 import {
   LayoutDashboard,
   Search,
@@ -127,6 +127,14 @@ export default function Layout({ user, onLogout, notifications, onMarkRead }: La
             <br />
             Zéro papier.
           </p>
+          <div className="mt-2.5 flex flex-wrap gap-x-3 gap-y-1 px-2.5">
+            <Link to="/mentions-legales" className="text-[11px] text-white/40 hover:text-white/70">
+              Mentions légales
+            </Link>
+            <Link to="/confidentialite" className="text-[11px] text-white/40 hover:text-white/70">
+              Confidentialité
+            </Link>
+          </div>
         </div>
       </aside>
 
