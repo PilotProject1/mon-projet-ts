@@ -50,28 +50,26 @@ export default function AmbientBackground({ variant = 'app' }: AmbientBackground
         >
           <g transform="translate(100,100)">
             <path
-              d="M -60 -34 A 70 70 0 1 1 -60 34"
+              d="M -62 -36 A 72 72 0 1 1 -62 36"
               fill="none"
               stroke="#0B2E2F"
-              strokeWidth="10"
+              strokeWidth="9"
               strokeLinecap="round"
             />
             <path
-              d="M 60 34 A 70 70 0 1 1 60 -34"
+              d="M 62 36 A 72 72 0 1 1 62 -36"
               fill="none"
               stroke="#0B2E2F"
-              strokeWidth="10"
+              strokeWidth="9"
               strokeLinecap="round"
             />
-            <polygon points="-60,-34 -46,-36 -52,-16" fill="#0B2E2F" />
-            <polygon points="60,34 46,36 52,16" fill="#0B2E2F" />
-            <g transform="translate(0,4) scale(0.72)">
-              <path d="M-30,-44 L12,-44 L30,-26 L30,44 L-30,44 Z" fill="#0B2E2F" />
-              <path
-                d="M0,44 C22,44 36,26 30,4 C27,-8 15,-14 4,-8 C0,6 -2,26 0,44 Z"
-                fill="#0B2E2F"
-              />
-            </g>
+            <polygon points="-62,-36 -48,-38 -54,-18" fill="#0B2E2F" />
+            <polygon points="62,36 48,38 54,18" fill="#0B2E2F" />
+            <path d="M-26,-40 L10,-40 L26,-24 L26,20 L-26,20 Z" fill="#0B2E2F" />
+            <path
+              d="M-8,20 C-8,44 4,60 22,64 C40,60 46,42 38,26 C32,14 14,8 -8,20 Z"
+              fill="#0B2E2F"
+            />
           </g>
         </svg>
       </>
