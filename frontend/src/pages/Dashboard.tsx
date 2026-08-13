@@ -19,7 +19,7 @@ interface StatCardProps {
 
 function StatCard({ icon: Icon, label, value, tint }: StatCardProps) {
   return (
-    <div className="brand-card-shadow relative flex-1 overflow-hidden rounded-[14px] border border-brand-border bg-white px-5.5 py-5">
+    <div className="brand-card-shadow relative min-w-[200px] flex-1 overflow-hidden rounded-[14px] border border-brand-border bg-white px-5.5 py-5">
       <div className="absolute top-0 left-0 h-full w-1" style={{ background: tint }} />
       <div className="mb-3.5 flex items-center gap-2.5">
         <div
