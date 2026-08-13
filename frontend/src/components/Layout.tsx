@@ -135,7 +135,7 @@ export default function Layout({ user, onLogout, notifications, onMarkRead }: La
           <AmbientBackground variant="app" />
         </div>
 
-        <div className="relative z-10 flex items-center justify-between gap-3.5 px-4 pt-6 md:justify-end md:px-8">
+        <div className="relative z-20 flex items-center justify-between gap-3.5 px-4 pt-6 md:justify-end md:px-8">
           <button
             onClick={() => setNavOpen(true)}
             className="flex h-9 w-9 items-center justify-center rounded-[10px] border border-brand-border bg-white text-brand-deep md:hidden"

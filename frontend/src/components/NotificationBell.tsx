@@ -26,7 +26,7 @@ export default function NotificationBell({ notifications, onMarkRead }: Notifica
       {open && (
         <>
           <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
-          <div className="absolute right-0 z-20 mt-1.5 w-80 rounded-[10px] border border-brand-border bg-white shadow-[0_8px_24px_rgba(11,46,47,0.12)]">
+          <div className="fixed top-16 right-4 z-20 w-80 max-w-[calc(100vw-2rem)] rounded-[10px] border border-brand-border bg-white shadow-[0_8px_24px_rgba(11,46,47,0.12)] md:absolute md:top-auto md:right-0 md:mt-1.5 md:max-w-none">
             <div className="border-b border-brand-border px-4 py-2 font-heading text-sm font-semibold text-brand-deep">
               Notifications
             </div>
