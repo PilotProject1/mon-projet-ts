@@ -12,8 +12,14 @@ export default function Confidentialite() {
 
       <h2>1. Responsable du traitement</h2>
       <p>
-        Le responsable du traitement est <ARemplir>prénom et nom de l'éditeur</ARemplir>, joignable à{' '}
-        <ARemplir>adresse e-mail de contact</ARemplir>.
+        Le responsable du traitement est <strong>VINCENTLV</strong>, immatriculé sous le numéro
+        SIREN 941 471 112, dont le siège est situé 9 rue Poincaré, 57240 Nilvange, France, joignable
+        à <a href="mailto:syneco.pro@outlook.fr">syneco.pro@outlook.fr</a> ou au 06 74 33 74 99.
+      </p>
+      <p>
+        Aucun délégué à la protection des données n'a été désigné, cette désignation n'étant pas
+        obligatoire au regard de l'activité exercée. Les demandes relatives aux données personnelles
+        sont à adresser directement au responsable du traitement.
       </p>
 
       <h2>2. Données collectées</h2>
@@ -230,7 +236,8 @@ export default function Confidentialite() {
       <p>
         Une partie de ces droits s'exerce directement depuis l'application : vous pouvez consulter,
         modifier et supprimer vos documents et vos données à tout moment. Pour toute autre demande,
-        écrivez à <ARemplir>adresse e-mail de contact</ARemplir>. Une réponse vous sera apportée dans
+        écrivez à <a href="mailto:syneco.pro@outlook.fr">syneco.pro@outlook.fr</a>. Une réponse vous
+        sera apportée dans
         un délai maximum d'un mois.
       </p>
       <p>

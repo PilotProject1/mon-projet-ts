@@ -6,17 +6,49 @@ export default function MentionsLegales() {
     <LegalPageShell title="Mentions légales" lastUpdated="13 août 2026">
       <h2>1. Éditeur du site</h2>
       <p>
-        Le site SYNeco est édité par <ARemplir>prénom et nom</ARemplir>, éditeur non professionnel
-        (projet personnel), joignable à l'adresse <ARemplir>adresse e-mail de contact</ARemplir>.
+        Le site SYNeco est édité par <strong>VINCENTLV</strong>,{' '}
+        <ARemplir>forme juridique exacte, ex. entreprise individuelle</ARemplir>, dont le siège est
+        situé 9 rue Poincaré, 57240 Nilvange, France.
       </p>
+      <table>
+        <tbody>
+          <tr>
+            <th>SIREN</th>
+            <td>941 471 112</td>
+          </tr>
+          <tr>
+            <th>SIRET (siège)</th>
+            <td>941 471 112 00016</td>
+          </tr>
+          <tr>
+            <th>Immatriculation</th>
+            <td>
+              <ARemplir>RCS de [ville] si activité commerciale, sinon RNE</ARemplir>
+            </td>
+          </tr>
+          <tr>
+            <th>TVA intracommunautaire</th>
+            <td>FR 37 941 471 112</td>
+          </tr>
+          <tr>
+            <th>Téléphone</th>
+            <td>
+              <a href="tel:+33674337499">06 74 33 74 99</a>
+            </td>
+          </tr>
+          <tr>
+            <th>E-mail</th>
+            <td>
+              <a href="mailto:syneco.pro@outlook.fr">syneco.pro@outlook.fr</a>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      <p>Directeur de la publication : Monsieur Vincent Loïc.</p>
       <p>
-        Directeur de la publication : <ARemplir>prénom et nom</ARemplir>.
-      </p>
-      <p>
-        Conformément à l'article 6 III-2 de la loi n° 2004-575 du 21 juin 2004 pour la confiance
-        dans l'économie numérique, l'éditeur non professionnel qui souhaite préserver son anonymat
-        vis-à-vis du public peut se limiter à indiquer le nom de son hébergeur, à condition d'avoir
-        communiqué à celui-ci ses éléments d'identification personnelle.
+        Ces informations sont publiées en application de l'article 6 III-1 de la loi n° 2004-575 du
+        21 juin 2004 pour la confiance dans l'économie numérique, qui impose à tout éditeur
+        professionnel de se rendre identifiable auprès du public.
       </p>
 
       <h2>2. Hébergement</h2>
@@ -77,8 +109,15 @@ export default function MentionsLegales() {
       <p>
         SYNeco est un outil d'organisation documentaire. Les informations qu'il extrait
         automatiquement des documents (dates, montants, échéances) sont fournies à titre indicatif et
-        peuvent comporter des erreurs : il vous appartient de les vérifier. L'éditeur ne saurait être
-        tenu responsable des conséquences d'une échéance manquée ou d'une donnée mal interprétée.
+        peuvent comporter des erreurs : elles ne remplacent pas la lecture du document d'origine et
+        il vous appartient de les vérifier. Les rappels constituent une aide et ne garantissent pas
+        qu'une échéance sera respectée.
+      </p>
+      <p>
+        L'éditeur reste tenu des obligations prévues par la loi, notamment en matière de conformité
+        du service et de protection des données. Les limitations énoncées ci-dessus s'appliquent dans
+        les limites permises par la réglementation et ne privent pas le consommateur des droits qu'il
+        tient du Code de la consommation.
       </p>
       <p>
         L'éditeur s'efforce d'assurer la disponibilité du service sans pouvoir la garantir, notamment
@@ -93,7 +132,8 @@ export default function MentionsLegales() {
 
       <h2>6. Contact</h2>
       <p>
-        Pour toute question relative au site : <ARemplir>adresse e-mail de contact</ARemplir>.
+        Pour toute question relative au site :{' '}
+        <a href="mailto:syneco.pro@outlook.fr">syneco.pro@outlook.fr</a> ou 06 74 33 74 99.
       </p>
     </LegalPageShell>
   )
