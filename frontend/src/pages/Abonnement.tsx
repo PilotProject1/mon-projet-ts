@@ -36,6 +36,7 @@ export default function Abonnement({ planUsage, onPlanChanged }: AbonnementProps
   const [searchParams, setSearchParams] = useSearchParams()
 
   const paiement = searchParams.get('paiement')
+  const retourPortail = searchParams.get('retour') === 'portail'
 
   useEffect(() => {
     planApi
@@ -46,11 +47,13 @@ export default function Abonnement({ planUsage, onPlanChanged }: AbonnementProps
 
   // Au retour de Stripe, le plan a pu changer entre-temps : on le relit.
   // Le webhook fait foi, cette relecture ne sert qu'à rafraîchir l'affichage.
+  // Le portail permettant aussi de changer d'offre ou de résilier, le retour
+  // depuis celui-ci déclenche la même relecture.
   useEffect(() => {
-    if (paiement === 'succes') {
+    if (paiement === 'succes' || retourPortail) {
       onPlanChanged().catch(() => undefined)
     }
-  }, [paiement, onPlanChanged])
+  }, [paiement, retourPortail, onPlanChanged])
 
   async function handleSubscribe(plan: 'premium' | 'pro') {
     setError(null)
@@ -114,6 +117,16 @@ export default function Abonnement({ planUsage, onPlanChanged }: AbonnementProps
               à tout moment depuis le portail de facturation.
             </>
           )}
+        </div>
+      )}
+
+      {retourPortail && (
+        <div className="mb-4 rounded-md bg-brand-mint px-3 py-2 text-sm text-brand-deep">
+          Vos modifications ont été prises en compte. L'offre affichée ci-dessous reflète votre
+          abonnement à jour ; un changement programmé ne prendra effet qu'à l'échéance indiquée.
+          <button onClick={() => setSearchParams({})} className="ml-2 font-medium underline">
+            Fermer
+          </button>
         </div>
       )}
 
