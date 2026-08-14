@@ -6,9 +6,9 @@ export default function MentionsLegales() {
     <LegalPageShell title="Mentions légales" lastUpdated="13 août 2026">
       <h2>1. Éditeur du site</h2>
       <p>
-        Le site SYNeco est édité par <strong>VINCENTLV</strong>,{' '}
-        <ARemplir>forme juridique exacte, ex. entreprise individuelle</ARemplir>, dont le siège est
-        situé 9 rue Poincaré, 57240 Nilvange, France.
+        Le site SYNeco est édité par <strong>Monsieur Loïc Vincent</strong>, entrepreneur individuel
+        exerçant sous le nom commercial <strong>VincentLV</strong>, dont le siège est situé 9 rue
+        Poincaré, 57240 Nilvange, France.
       </p>
       <table>
         <tbody>
@@ -23,7 +23,8 @@ export default function MentionsLegales() {
           <tr>
             <th>Immatriculation</th>
             <td>
-              <ARemplir>RCS de [ville] si activité commerciale, sinon RNE</ARemplir>
+              Registre national des entreprises (RNE), immatriculé le 25 mars 2025 — entreprise
+              artisanale
             </td>
           </tr>
           <tr>
@@ -46,7 +47,7 @@ export default function MentionsLegales() {
           </tr>
         </tbody>
       </table>
-      <p>Directeur de la publication : Monsieur Vincent Loïc.</p>
+      <p>Directeur de la publication : Monsieur Loïc Vincent.</p>
       <p>
         Ces informations sont publiées en application de l'article 6 III-1 de la loi n° 2004-575 du
         21 juin 2004 pour la confiance dans l'économie numérique, qui impose à tout éditeur
@@ -90,7 +91,7 @@ export default function MentionsLegales() {
           </tr>
           <tr>
             <td>Stockage des documents</td>
-            <td>Cloudflare, Inc. (service R2)</td>
+            <td>Cloudflare, Inc. (service R2), sous juridiction Union européenne</td>
             <td>
               <ARemplir>adresse postale</ARemplir>
             </td>
