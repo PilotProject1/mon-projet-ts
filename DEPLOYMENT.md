@@ -31,6 +31,8 @@ Par défaut l'application stocke les fichiers sur disque (`STORAGE_DRIVER=local`
 Pour la prod, deux choix :
 - **Ton hébergeur a un disque persistant** (volume monté) → tu peux garder `STORAGE_DRIVER=local`.
 - **Sinon** → crée un bucket S3-compatible (Cloudflare R2 recommandé) et configure :
+
+  > ⚠️ Sur R2, la **juridiction** du bucket (« European Union ») se choisit **à la création et ne peut plus être modifiée ensuite**. Sans elle, le bucket reçoit une simple indication de placement régional, qui ne garantit pas contractuellement que les fichiers restent dans l'Union européenne. Comme l'application stocke des documents personnels, ce choix se fait au moment de créer le bucket : y revenir plus tard impose d'en créer un nouveau et d'y recopier tous les fichiers. L'endpoint à reporter dans `S3_ENDPOINT` est celui affiché par Cloudflare dans les réglages du bucket.
   ```
   STORAGE_DRIVER=s3
   S3_ENDPOINT=https://xxxx.r2.cloudflarestorage.com
