@@ -33,6 +33,10 @@ export default function Abonnement({ planUsage, onPlanChanged }: AbonnementProps
   // Renonciation expresse au droit de rétractation, exigée pour un service
   // numérique exécuté immédiatement (art. L221-25 du Code de la consommation).
   const [renonciation, setRenonciation] = useState(false)
+  // Offre choisie, en attente de confirmation. Le consentement est recueilli
+  // dans cet écran plutôt que sur la page : il se rattache ainsi à une
+  // commande précise — offre et prix affichés — et non à une intention vague.
+  const [offreAConfirmer, setOffreAConfirmer] = useState<PlanCatalogueEntry | null>(null)
   const [searchParams, setSearchParams] = useSearchParams()
 
   const paiement = searchParams.get('paiement')
@@ -82,11 +86,6 @@ export default function Abonnement({ planUsage, onPlanChanged }: AbonnementProps
   const currentPlan = planUsage?.plan
   const hasPaidPlan = currentPlan && currentPlan !== 'gratuit'
   const echeance = planUsage?.renewsAt ? new Date(planUsage.renewsAt) : null
-  // Un compte déjà abonné ne repasse pas par une nouvelle commande : cela
-  // créerait un second abonnement facturé en parallèle du premier. Le
-  // changement d'offre se fait depuis le portail, qui remplace l'abonnement
-  // existant et calcule le prorata.
-  const peutSouscrire = !hasPaidPlan
 
   return (
     <div>
@@ -212,12 +211,12 @@ export default function Abonnement({ planUsage, onPlanChanged }: AbonnementProps
                   </button>
                 ) : entry.purchasable ? (
                   <button
-                    onClick={() => handleSubscribe(entry.plan as 'premium' | 'pro')}
-                    disabled={pendingPlan !== null || !renonciation}
-                    title={
-                      renonciation ? undefined : 'Cochez la case de confirmation ci-dessous'
-                    }
-                    className="brand-gradient w-full rounded-md px-3 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
+                    onClick={() => {
+                      setRenonciation(false)
+                      setOffreAConfirmer(entry)
+                    }}
+                    disabled={pendingPlan !== null}
+                    className="brand-gradient w-full rounded-md px-3 py-2 text-sm font-semibold text-white disabled:opacity-60"
                   >
                     {pendingPlan === entry.plan ? 'Redirection...' : `Choisir ${entry.label}`}
                   </button>
@@ -232,25 +231,6 @@ export default function Abonnement({ planUsage, onPlanChanged }: AbonnementProps
         })}
       </div>
 
-      {peutSouscrire && (
-        <label className="mt-6 flex cursor-pointer items-start gap-2.5 rounded-lg border border-brand-border bg-white p-4">
-          <input
-            type="checkbox"
-            checked={renonciation}
-            onChange={(e) => setRenonciation(e.target.checked)}
-            className="mt-0.5 h-4 w-4 shrink-0 accent-[#2f8f6f]"
-          />
-          <span className="text-sm leading-relaxed text-brand-ink">
-            Je demande l'accès immédiat au service et reconnais qu'une fois celui-ci pleinement
-            exécuté, je perdrai mon droit de rétractation de quatorze jours. J'accepte les{' '}
-            <Link to="/cgv" className="text-brand-green underline">
-              conditions générales de vente
-            </Link>
-            .
-          </span>
-        </label>
-      )}
-
       {hasPaidPlan && (
         <div className="brand-card-shadow mt-6 rounded-lg border border-brand-border bg-white p-5">
           <p className="mb-1 text-sm font-semibold text-brand-deep">Gérer mon abonnement</p>
@@ -264,6 +244,75 @@ export default function Abonnement({ planUsage, onPlanChanged }: AbonnementProps
           >
             {pendingPlan === 'portal' ? 'Redirection...' : 'Ouvrir le portail de facturation'}
           </button>
+        </div>
+      )}
+
+
+      {offreAConfirmer && (
+        <div
+          className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-4 sm:items-center"
+          onClick={() => setOffreAConfirmer(null)}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="titre-confirmation"
+            onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-md rounded-2xl bg-white p-5 shadow-[0_20px_60px_-15px_rgba(11,46,47,0.35)]"
+          >
+            <h2
+              id="titre-confirmation"
+              className="font-heading text-lg font-semibold text-brand-deep"
+            >
+              Confirmer votre abonnement
+            </h2>
+
+            <div className="my-4 rounded-lg bg-brand-mint p-3.5">
+              <div className="flex items-baseline justify-between gap-3">
+                <span className="font-medium text-brand-deep">{offreAConfirmer.label}</span>
+                <span className="font-heading text-lg font-semibold text-brand-deep">
+                  {formatPrice(offreAConfirmer.monthlyPrice)}
+                </span>
+              </div>
+              <p className="mt-1 text-xs text-brand-muted">
+                Sans engagement, résiliable à tout moment. TVA non applicable, article 293 B du
+                CGI : ce montant est celui réellement prélevé.
+              </p>
+            </div>
+
+            <label className="flex cursor-pointer items-start gap-2.5">
+              <input
+                type="checkbox"
+                checked={renonciation}
+                onChange={(e) => setRenonciation(e.target.checked)}
+                className="mt-0.5 h-4 w-4 shrink-0 accent-[#2f8f6f]"
+              />
+              <span className="text-[13px] leading-relaxed text-brand-ink">
+                Je demande l'accès immédiat au service et reconnais qu'une fois celui-ci pleinement
+                exécuté, je perdrai mon droit de rétractation de quatorze jours. J'accepte les{' '}
+                <Link to="/cgv" className="text-brand-green underline" target="_blank">
+                  conditions générales de vente
+                </Link>
+                .
+              </span>
+            </label>
+
+            <div className="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+              <button
+                onClick={() => setOffreAConfirmer(null)}
+                className="rounded-md border border-brand-border px-4 py-2.5 text-sm font-medium text-brand-deep hover:bg-brand-mint"
+              >
+                Annuler
+              </button>
+              <button
+                onClick={() => handleSubscribe(offreAConfirmer.plan as 'premium' | 'pro')}
+                disabled={!renonciation || pendingPlan !== null}
+                className="brand-gradient rounded-md px-4 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {pendingPlan ? 'Redirection...' : 'Continuer vers le paiement'}
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
