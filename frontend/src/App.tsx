@@ -16,6 +16,7 @@ import Search from './pages/Search'
 import Abonnement from './pages/Abonnement'
 import MentionsLegales from './pages/MentionsLegales'
 import Confidentialite from './pages/Confidentialite'
+import Cgv from './pages/Cgv'
 import BrandLogo from './components/BrandLogo'
 import {
   authApi,
@@ -260,6 +261,7 @@ function App() {
         <Route path="/partage/:token" element={<PublicShare />} />
         <Route path="/mentions-legales" element={<MentionsLegales />} />
         <Route path="/confidentialite" element={<Confidentialite />} />
+        <Route path="/cgv" element={<Cgv />} />
         <Route
           path="/connexion"
           element={

@@ -212,6 +212,9 @@ export class BillingService {
         stripeSubscriptionId: grantsAccess ? subscription.id : null,
         planRenewsAt:
           grantsAccess && periodEnd ? new Date(periodEnd * 1000) : null,
+        planCancelAtPeriodEnd: grantsAccess
+          ? Boolean(subscription.cancel_at_period_end)
+          : false,
       },
     });
 

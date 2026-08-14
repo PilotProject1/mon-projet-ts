@@ -141,6 +141,10 @@ export interface PlanUsage {
     max: number | null
     remaining: number | null
   }
+  /** Échéance de l'abonnement, null sur le plan gratuit. */
+  renewsAt: string | null
+  /** true si l'abonnement se termine à cette date au lieu d'être reconduit. */
+  endsAtPeriodEnd: boolean
 }
 
 export interface PlanCatalogueEntry {

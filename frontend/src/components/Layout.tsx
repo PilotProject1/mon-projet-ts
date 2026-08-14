@@ -153,6 +153,9 @@ export default function Layout({
             <Link to="/confidentialite" className="text-[11px] text-white/40 hover:text-white/70">
               Confidentialité
             </Link>
+            <Link to="/cgv" className="text-[11px] text-white/40 hover:text-white/70">
+              CGV
+            </Link>
           </div>
         </div>
       </aside>

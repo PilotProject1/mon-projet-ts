@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { Check } from 'lucide-react'
 import type { PlanCatalogueEntry, PlanFeature, PlanUsage } from '../types'
 import { ApiError, billingApi, planApi } from '../services/api'
@@ -20,10 +20,19 @@ function formatPrice(euros: number) {
   return euros === 0 ? 'Gratuit' : `${euros.toFixed(2).replace('.', ',')} €/mois`
 }
 
+const DATE_LONGUE = new Intl.DateTimeFormat('fr-FR', {
+  day: 'numeric',
+  month: 'long',
+  year: 'numeric',
+})
+
 export default function Abonnement({ planUsage, onPlanChanged }: AbonnementProps) {
   const [catalogue, setCatalogue] = useState<PlanCatalogueEntry[]>([])
   const [error, setError] = useState<string | null>(null)
   const [pendingPlan, setPendingPlan] = useState<string | null>(null)
+  // Renonciation expresse au droit de rétractation, exigée pour un service
+  // numérique exécuté immédiatement (art. L221-25 du Code de la consommation).
+  const [renonciation, setRenonciation] = useState(false)
   const [searchParams, setSearchParams] = useSearchParams()
 
   const paiement = searchParams.get('paiement')
@@ -69,6 +78,12 @@ export default function Abonnement({ planUsage, onPlanChanged }: AbonnementProps
 
   const currentPlan = planUsage?.plan
   const hasPaidPlan = currentPlan && currentPlan !== 'gratuit'
+  const echeance = planUsage?.renewsAt ? new Date(planUsage.renewsAt) : null
+  // Un compte déjà abonné ne repasse pas par une nouvelle commande : cela
+  // créerait un second abonnement facturé en parallèle du premier. Le
+  // changement d'offre se fait depuis le portail, qui remplace l'abonnement
+  // existant et calcule le prorata.
+  const peutSouscrire = !hasPaidPlan
 
   return (
     <div>
@@ -78,6 +93,29 @@ export default function Abonnement({ planUsage, onPlanChanged }: AbonnementProps
           Votre offre actuelle et les formules disponibles.
         </p>
       </div>
+
+      {hasPaidPlan && echeance && (
+        <div
+          className={`mb-4 rounded-md px-3 py-2 text-sm ${
+            planUsage?.endsAtPeriodEnd
+              ? 'bg-amber-50 text-amber-800'
+              : 'bg-brand-mint text-brand-deep'
+          }`}
+        >
+          {planUsage?.endsAtPeriodEnd ? (
+            <>
+              Votre abonnement est résilié et prend fin le{' '}
+              <strong>{DATE_LONGUE.format(echeance)}</strong>. Vous conservez l'accès jusqu'à cette
+              date, puis votre compte reviendra à l'offre gratuite. Aucun prélèvement n'interviendra.
+            </>
+          ) : (
+            <>
+              Prochain renouvellement le <strong>{DATE_LONGUE.format(echeance)}</strong>. Résiliable
+              à tout moment depuis le portail de facturation.
+            </>
+          )}
+        </div>
+      )}
 
       {paiement === 'succes' && (
         <div className="mb-4 rounded-md bg-green-50 px-3 py-2 text-sm text-green-800">
@@ -151,11 +189,22 @@ export default function Abonnement({ planUsage, onPlanChanged }: AbonnementProps
               <div className="mt-auto">
                 {isCurrent ? (
                   <p className="text-center text-sm text-brand-muted">Votre offre</p>
+                ) : entry.purchasable && hasPaidPlan ? (
+                  <button
+                    onClick={handlePortal}
+                    disabled={pendingPlan !== null}
+                    className="w-full rounded-md border border-brand-border px-3 py-2 text-sm font-medium text-brand-deep hover:bg-brand-mint disabled:opacity-60"
+                  >
+                    {pendingPlan === 'portal' ? 'Redirection...' : 'Changer pour cette offre'}
+                  </button>
                 ) : entry.purchasable ? (
                   <button
                     onClick={() => handleSubscribe(entry.plan as 'premium' | 'pro')}
-                    disabled={pendingPlan !== null}
-                    className="brand-gradient w-full rounded-md px-3 py-2 text-sm font-semibold text-white disabled:opacity-60"
+                    disabled={pendingPlan !== null || !renonciation}
+                    title={
+                      renonciation ? undefined : 'Cochez la case de confirmation ci-dessous'
+                    }
+                    className="brand-gradient w-full rounded-md px-3 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     {pendingPlan === entry.plan ? 'Redirection...' : `Choisir ${entry.label}`}
                   </button>
@@ -169,6 +218,25 @@ export default function Abonnement({ planUsage, onPlanChanged }: AbonnementProps
           )
         })}
       </div>
+
+      {peutSouscrire && (
+        <label className="mt-6 flex cursor-pointer items-start gap-2.5 rounded-lg border border-brand-border bg-white p-4">
+          <input
+            type="checkbox"
+            checked={renonciation}
+            onChange={(e) => setRenonciation(e.target.checked)}
+            className="mt-0.5 h-4 w-4 shrink-0 accent-[#2f8f6f]"
+          />
+          <span className="text-sm leading-relaxed text-brand-ink">
+            Je demande l'accès immédiat au service et reconnais qu'une fois celui-ci pleinement
+            exécuté, je perdrai mon droit de rétractation de quatorze jours. J'accepte les{' '}
+            <Link to="/cgv" className="text-brand-green underline">
+              conditions générales de vente
+            </Link>
+            .
+          </span>
+        </label>
+      )}
 
       {hasPaidPlan && (
         <div className="brand-card-shadow mt-6 rounded-lg border border-brand-border bg-white p-5">
