@@ -3,7 +3,7 @@ import LegalPageShell, { ARemplir } from '../components/LegalPageShell'
 
 export default function Confidentialite() {
   return (
-    <LegalPageShell title="Politique de confidentialité" lastUpdated="13 août 2026">
+    <LegalPageShell title="Politique de confidentialité" lastUpdated="14 août 2026">
       <p>
         SYNeco sert à centraliser des documents personnels (contrats, factures, assurances) et à en
         suivre les échéances. Ces documents sont sensibles par nature : cette page décrit précisément
@@ -140,7 +140,22 @@ export default function Confidentialite() {
         transmise à ce prestataire et l'application bascule sur une analyse locale.
       </p>
 
-      <h2>5. Destinataires et sous-traitants</h2>
+      <h2>5. Photographie d'un document</h2>
+      <p>
+        L'application permet de photographier un document, dont les bords sont alors détectés,
+        l'image redressée et l'éclairage corrigé. <strong>Ce traitement s'effectue entièrement sur votre
+        appareil</strong>, dans le navigateur. La photo d'origine n'est jamais transmise : seule
+        l'image nettoyée est déposée, et elle suit ensuite le même parcours que n'importe quel
+        fichier ajouté manuellement.
+      </p>
+      <p>
+        L'accès à l'appareil photo relève de l'autorisation que vous accordez à votre navigateur ou
+        à votre système. Il n'est demandé qu'au moment où vous choisissez de prendre une photo,
+        aucune capture n'a lieu en dehors de cette action, et le refuser laisse le dépôt de fichiers
+        pleinement utilisable.
+      </p>
+
+      <h2>6. Destinataires et sous-traitants</h2>
       <p>
         Vos données ne sont accessibles qu'à vous. Elles transitent toutefois par les prestataires
         techniques nécessaires au fonctionnement du service :
@@ -199,7 +214,7 @@ export default function Confidentialite() {
         contractuelles types de la Commission européenne ou d'un mécanisme d'adéquation équivalent.
       </p>
 
-      <h2>6. Données de vos propres clients</h2>
+      <h2>7. Données de vos propres clients</h2>
       <p>
         Si vous utilisez le module de facturation, vous enregistrez des données concernant vos
         clients. Pour ces données, <strong>vous êtes responsable du traitement</strong> et SYNeco
@@ -207,7 +222,7 @@ export default function Confidentialite() {
         base légale pour enregistrer leurs coordonnées.
       </p>
 
-      <h2>7. Durée de conservation</h2>
+      <h2>8. Durée de conservation</h2>
       <ul>
         <li>
           <strong>Données de compte, documents et données associées</strong> : conservés tant que
@@ -227,7 +242,7 @@ export default function Confidentialite() {
         </li>
       </ul>
 
-      <h2>8. Vos droits</h2>
+      <h2>9. Vos droits</h2>
       <p>
         Conformément au Règlement général sur la protection des données, vous disposez des droits
         d'accès, de rectification, d'effacement, de limitation, d'opposition et de portabilité de vos
@@ -251,7 +266,7 @@ export default function Confidentialite() {
         ).
       </p>
 
-      <h2>9. Cookies et traceurs</h2>
+      <h2>10. Cookies et traceurs</h2>
       <p>
         SYNeco n'utilise <strong>aucun cookie publicitaire ni outil de mesure d'audience</strong>.
         Votre session est maintenue au moyen de jetons d'authentification stockés localement dans
@@ -260,7 +275,7 @@ export default function Confidentialite() {
       </p>
       <p>Ces jetons sont effacés lorsque vous vous déconnectez.</p>
 
-      <h2>10. Sécurité</h2>
+      <h2>11. Sécurité</h2>
       <ul>
         <li>Les échanges entre votre navigateur et le service sont chiffrés (HTTPS).</li>
         <li>
@@ -277,13 +292,13 @@ export default function Confidentialite() {
         </li>
       </ul>
 
-      <h2>11. Mineurs</h2>
+      <h2>12. Mineurs</h2>
       <p>
         Le service n'est pas destiné aux personnes de moins de 15 ans. Aucune inscription n'est
         sollicitée auprès de mineurs.
       </p>
 
-      <h2>12. Modification de cette politique</h2>
+      <h2>13. Modification de cette politique</h2>
       <p>
         Cette politique peut évoluer, notamment en cas d'ajout de nouvelles fonctionnalités. La date
         de dernière mise à jour figure en haut de cette page ; en cas de changement substantiel, vous

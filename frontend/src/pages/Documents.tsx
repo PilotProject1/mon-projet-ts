@@ -1,5 +1,6 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { ChangeEvent, FormEvent } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import type {
   Document,
   DocumentType,
@@ -11,6 +12,7 @@ import type {
 import { ApiError, documentsApi } from '../services/api'
 import { formatDate } from '../utils/formatDate'
 import PlanUsageCard from '../components/PlanUsageCard'
+import DocumentScanner from '../components/DocumentScanner'
 
 interface DocumentsProps {
   documents: Document[]
@@ -78,8 +80,19 @@ export default function Documents({
   const [file, setFile] = useState<File | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
+  const [scanning, setScanning] = useState(false)
   const [openingId, setOpeningId] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  // Le raccourci « Photographier un document » de l'application installée
+  // arrive sur /documents?scan=1 : le formulaire doit être déjà ouvert.
+  const [searchParams, setSearchParams] = useSearchParams()
+  useEffect(() => {
+    if (searchParams.get('scan') === null) return
+    if (!quotaReached) setShowForm(true)
+    searchParams.delete('scan')
+    setSearchParams(searchParams, { replace: true })
+  }, [searchParams, setSearchParams, quotaReached])
 
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const [analyzing, setAnalyzing] = useState(false)
@@ -121,9 +134,26 @@ export default function Documents({
     setFile(selected)
   }
 
+  /**
+   * Le scanner produit un JPEG déjà conforme (type et taille). Le nom est
+   * prérempli pour que la photo puisse être enregistrée sans autre saisie.
+   */
+  function handleScanned(scanned: File) {
+    setError(null)
+    setFile(scanned)
+    if (fileInputRef.current) fileInputRef.current.value = ''
+    setName((current) =>
+      current.trim() ? current : `Document photographié du ${formatDate(new Date().toISOString())}`,
+    )
+  }
+
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
-    if (!name.trim() || !file) return
+    if (!name.trim()) return
+    if (!file) {
+      setError('Photographiez le document ou choisissez un fichier.')
+      return
+    }
     setError(null)
     setSubmitting(true)
     try {
@@ -324,28 +354,37 @@ export default function Documents({
               ))}
             </select>
           </div>
+          <DocumentScanner onScanned={handleScanned} onProcessingChange={setScanning} />
+
+          <div className="flex items-center gap-3">
+            <span className="h-px flex-1 bg-brand-border" />
+            <span className="text-xs font-medium text-brand-muted">ou</span>
+            <span className="h-px flex-1 bg-brand-border" />
+          </div>
+
           <div>
             <label htmlFor="doc-file" className="mb-1 block text-sm font-medium text-brand-deep">
-              Fichier (PDF, JPG, PNG ou WEBP, 10 Mo max)
+              Choisir un fichier (PDF, JPG, PNG ou WEBP, 10 Mo max)
             </label>
             <input
               id="doc-file"
               ref={fileInputRef}
               type="file"
-              required
               accept={ALLOWED_MIME_TYPES.join(',')}
               onChange={handleFileChange}
               className="w-full text-sm text-brand-ink file:mr-3 file:rounded-md file:border-0 file:bg-brand-mint file:px-3 file:py-2 file:text-sm file:font-medium file:text-brand-deep hover:file:bg-brand-border"
             />
-            {file && (
-              <p className="mt-1 text-xs text-brand-muted">
-                {file.name} · {formatSize(file.size)}
-              </p>
-            )}
           </div>
+
+          {file && (
+            <p className="min-w-0 truncate text-xs text-brand-muted">
+              Fichier retenu : {file.name} · {formatSize(file.size)}
+            </p>
+          )}
+
           <button
             type="submit"
-            disabled={submitting || !file}
+            disabled={submitting || scanning || !file}
             className="brand-gradient rounded-md px-3 py-2 text-sm font-semibold text-white disabled:opacity-60"
           >
             {submitting ? 'Envoi...' : 'Enregistrer'}
