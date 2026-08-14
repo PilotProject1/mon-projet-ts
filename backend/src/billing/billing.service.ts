@@ -83,7 +83,8 @@ export class BillingService {
     }
 
     const customerId = await this.resolveCustomerId(userId);
-    const session = await this.stripe.checkout.sessions.create({
+
+    const params = {
       mode: 'subscription',
       customer: customerId,
       line_items: [{ price: priceId, quantity: 1 }],
@@ -93,7 +94,20 @@ export class BillingService {
       subscription_data: { metadata: { userId, plan } },
       success_url: `${this.frontendUrl}/abonnement?paiement=succes`,
       cancel_url: `${this.frontendUrl}/abonnement?paiement=annule`,
-    });
+    } satisfies Stripe.Checkout.SessionCreateParams;
+
+    // Managed Payments est actif par défaut sur certains comptes : Stripe s'y
+    // substitue alors au vendeur et ajoute la TVA. Incompatible avec la
+    // franchise en base (art. 293 B), qui suppose des prix nets et un vendeur
+    // unique — celui désigné par les CGV.
+    //
+    // Le paramètre n'est pas encore typé par le SDK v22 bien que Stripe le
+    // documente ; le `satisfies` ci-dessus préserve la vérification de type
+    // sur tout le reste de la requête.
+    const session = await this.stripe.checkout.sessions.create({
+      ...params,
+      managed_payments: { enabled: false },
+    } as unknown as Stripe.Checkout.SessionCreateParams);
 
     if (!session.url) {
       throw new ServiceUnavailableException(
