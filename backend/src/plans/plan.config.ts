@@ -62,3 +62,37 @@ export function plansWithFeature(feature: PlanFeature): Plan[] {
     PLANS[plan].features.includes(feature),
   );
 }
+
+/**
+ * Plans qu'un utilisateur peut souscrire en ligne.
+ *
+ * `pme` en est volontairement absent : il annonce le multi-utilisateur et la
+ * gestion d'équipes, qui ne sont pas implémentés. Le mettre en vente
+ * reviendrait à facturer une fonctionnalité inexistante.
+ */
+export const PURCHASABLE_PLANS = ['premium', 'pro'] as const;
+export type PurchasablePlan = (typeof PURCHASABLE_PLANS)[number];
+
+export function isPurchasablePlan(value: string): value is PurchasablePlan {
+  return (PURCHASABLE_PLANS as readonly string[]).includes(value);
+}
+
+/**
+ * Identifiant de prix Stripe associé à chaque plan payant, renseigné par
+ * variable d'environnement pour que les mêmes sources servent en test et en
+ * production.
+ */
+export function stripePriceIdFor(plan: PurchasablePlan): string | undefined {
+  const byPlan: Record<PurchasablePlan, string | undefined> = {
+    premium: process.env.STRIPE_PRICE_PREMIUM,
+    pro: process.env.STRIPE_PRICE_PRO,
+  };
+  return byPlan[plan];
+}
+
+/** Plan correspondant à un identifiant de prix Stripe, pour les webhooks. */
+export function planForStripePriceId(priceId: string): PurchasablePlan | null {
+  return (
+    PURCHASABLE_PLANS.find((plan) => stripePriceIdFor(plan) === priceId) ?? null
+  );
+}

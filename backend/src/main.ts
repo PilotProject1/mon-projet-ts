@@ -26,7 +26,11 @@ function assertRequiredEnvVars() {
 async function bootstrap() {
   assertRequiredEnvVars();
 
-  const app = await NestFactory.create<NestExpressApplication>(AppModule);
+  // rawBody: Stripe signe le corps exact de la requête. Sans conservation de
+  // l'original, le reparsage JSON invaliderait toute vérification de signature.
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, {
+    rawBody: true,
+  });
 
   // Derriere un reverse proxy (Render, Railway, Fly...), necessaire pour que
   // l'adresse IP du client (rate-limiting) et le protocole (https) soient corrects.

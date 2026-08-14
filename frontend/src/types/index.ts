@@ -142,3 +142,12 @@ export interface PlanUsage {
     remaining: number | null
   }
 }
+
+export interface PlanCatalogueEntry {
+  plan: Plan
+  label: string
+  monthlyPrice: number
+  maxDocuments: number | null
+  features: PlanFeature[]
+  purchasable: boolean
+}

@@ -108,7 +108,21 @@ S3_SECRET_ACCESS_KEY=...
 # optionnel — active l'extraction IA des documents et la recherche en langage naturel
 # sans cette clé, l'application fonctionne normalement (repli sur le moteur heuristique)
 ANTHROPIC_API_KEY=...
+# optionnel — paiement des abonnements
+STRIPE_SECRET_KEY=...
+STRIPE_WEBHOOK_SECRET=...
+STRIPE_PRICE_PREMIUM=...
+STRIPE_PRICE_PRO=...
 ```
+
+## Étape 10 — Paiement des abonnements (Stripe)
+
+1. Crée les deux produits dans Stripe (Premium et Professionnel), chacun avec un tarif **récurrent mensuel en euros**, et relève leur identifiant `price_...`.
+2. Déclare un webhook vers `https://ton-backend.example.com/billing/webhook`, abonné aux événements `checkout.session.completed`, `customer.subscription.created`, `customer.subscription.updated` et `customer.subscription.deleted`. Stripe fournit alors le secret `whsec_...`.
+3. Renseigne les quatre variables ci-dessus côté hébergeur, puis redéploie.
+4. Active le **portail client** dans les réglages Stripe : c'est lui qui permet à un abonné de changer de carte, récupérer ses factures et résilier sans intervention de ta part.
+
+> Le plan d'un compte n'est jamais modifié par la redirection de retour après paiement, qu'un visiteur peut atteindre sans avoir payé, mais uniquement par les webhooks dont la signature a été vérifiée. Un abonnement impayé ou résilié ramène automatiquement le compte au plan gratuit.
 
 **Frontend**
 ```

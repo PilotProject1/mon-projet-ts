@@ -64,6 +64,12 @@ model User {
   plan         Plan     @default(gratuit)
   createdAt    DateTime @default(now())
 
+  // Facturation Stripe. Le plan reste la source de vérité côté application ;
+  // ces champs servent à relier un compte à son abonnement.
+  stripeCustomerId     String?   @unique
+  stripeSubscriptionId String?   @unique
+  planRenewsAt         DateTime?
+
   documents     Document[]
   deadlines     Deadline[]
   contracts     Contract[]

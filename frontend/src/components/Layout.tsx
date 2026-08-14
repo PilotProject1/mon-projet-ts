@@ -10,6 +10,7 @@ import {
   Building2,
   Users,
   Receipt,
+  CreditCard,
   ChevronDown,
   LogOut,
   Menu,
@@ -45,6 +46,10 @@ const navGroups = [
       { to: '/clients', label: 'Clients', icon: Users },
       { to: '/factures', label: 'Factures', icon: Receipt },
     ],
+  },
+  {
+    label: 'Compte',
+    items: [{ to: '/abonnement', label: 'Abonnement', icon: CreditCard }],
   },
 ]
 
