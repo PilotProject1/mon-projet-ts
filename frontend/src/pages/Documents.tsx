@@ -354,11 +354,26 @@ export default function Documents({
       )}
 
       <div className="mb-4 flex gap-3">
+        {/* La liste est filtrée à chaque frappe : il n'y a rien à valider.
+            type="search" fait afficher au clavier mobile une touche « rechercher »
+            qui referme le clavier, et une croix pour effacer le champ. */}
         <input
-          type="text"
+          type="search"
+          inputMode="search"
+          enterKeyHint="search"
+          autoComplete="off"
+          autoCorrect="off"
+          spellCheck={false}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault()
+              e.currentTarget.blur()
+            }
+          }}
           placeholder="Rechercher un document..."
+          aria-label="Rechercher un document"
           className="flex-1 rounded-md border border-brand-border px-3 py-2 text-sm focus:border-brand-green focus:outline-none"
         />
         <select

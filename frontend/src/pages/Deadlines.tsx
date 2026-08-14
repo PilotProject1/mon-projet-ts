@@ -10,6 +10,7 @@ interface DeadlinesProps {
   deadlines: Deadline[]
   documents: Document[]
   onAdd: (data: { title: string; dueDate: string; documentId?: string }) => Promise<void>
+  onDelete: (id: string) => Promise<void>
   onToggleStatus: (id: string) => Promise<void>
   onRemind: (id: string) => Promise<void>
 }
@@ -18,6 +19,7 @@ export default function Deadlines({
   deadlines,
   documents,
   onAdd,
+  onDelete,
   onToggleStatus,
   onRemind,
 }: DeadlinesProps) {
@@ -76,6 +78,15 @@ export default function Deadlines({
       setError(err instanceof ApiError ? err.message : "Impossible d'envoyer le rappel")
     } finally {
       setRemindingId(null)
+    }
+  }
+
+  async function handleDelete(id: string) {
+    setError(null)
+    try {
+      await onDelete(id)
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Impossible de supprimer l'échéance")
     }
   }
 
@@ -205,6 +216,7 @@ export default function Deadlines({
           deadlines={filtered}
           documents={documents}
           onToggleStatus={onToggleStatus}
+          onDelete={onDelete}
           onRemind={onRemind}
           onRequestAdd={handleRequestAdd}
         />
@@ -245,6 +257,12 @@ export default function Deadlines({
                         className="text-sm font-medium text-brand-green hover:underline"
                       >
                         {d.status === 'terminee' ? 'Réouvrir' : 'Terminer'}
+                      </button>
+                      <button
+                        onClick={() => handleDelete(d.id)}
+                        className="text-sm text-brand-muted hover:text-brand-danger"
+                      >
+                        Supprimer
                       </button>
                     </div>
                   </li>
