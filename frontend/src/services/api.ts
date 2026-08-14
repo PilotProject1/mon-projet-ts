@@ -16,6 +16,7 @@ import type {
   InvoiceStatus,
   SearchAnswer,
   PlanUsage,
+  PlanCatalogueEntry,
 } from '../types'
 
 const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:3000'
@@ -273,4 +274,18 @@ export const searchApi = {
 
 export const planApi = {
   get: () => request<PlanUsage>('/plan'),
+
+  catalogue: () => request<{ plans: PlanCatalogueEntry[] }>('/plan/catalogue'),
+}
+
+export const billingApi = {
+  /** Ouvre une session de paiement Stripe et renvoie l'URL de redirection. */
+  checkout: (plan: 'premium' | 'pro') =>
+    request<{ url: string }>('/billing/checkout', {
+      method: 'POST',
+      body: JSON.stringify({ plan }),
+    }),
+
+  /** Portail Stripe : moyen de paiement, factures, résiliation. */
+  portal: () => request<{ url: string }>('/billing/portal', { method: 'POST' }),
 }

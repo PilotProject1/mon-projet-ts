@@ -13,6 +13,7 @@ import CompanyPage from './pages/Company'
 import Clients from './pages/Clients'
 import Invoices from './pages/Invoices'
 import Search from './pages/Search'
+import Abonnement from './pages/Abonnement'
 import MentionsLegales from './pages/MentionsLegales'
 import Confidentialite from './pages/Confidentialite'
 import BrandLogo from './components/BrandLogo'
@@ -288,6 +289,10 @@ function App() {
         >
           <Route path="/" element={<Dashboard documents={documents} deadlines={deadlines} />} />
           <Route path="/recherche" element={<Search />} />
+          <Route
+            path="/abonnement"
+            element={<Abonnement planUsage={planUsage} onPlanChanged={refreshPlanUsage} />}
+          />
           <Route
             path="/documents"
             element={
