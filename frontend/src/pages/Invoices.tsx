@@ -226,7 +226,7 @@ export default function Invoices({
         ) : (
           <ul className="divide-y divide-brand-border">
             {invoices.map((invoice) => (
-              <li key={invoice.id} className="flex items-center justify-between px-4 py-3">
+              <li key={invoice.id} className="flex flex-col items-start gap-2 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <p className="text-sm font-medium text-brand-ink">
                     {invoice.number} · {invoice.clientName}
@@ -235,7 +235,7 @@ export default function Invoices({
                     {formatAmount(invoice.total)} · Échéance le {formatDate(invoice.dueDate)}
                   </p>
                 </div>
-                <div className="flex items-center gap-3">
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 sm:shrink-0">
                   <select
                     value={invoice.status}
                     disabled={updatingId === invoice.id}

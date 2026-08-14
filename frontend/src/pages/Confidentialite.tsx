@@ -171,12 +171,13 @@ export default function Confidentialite() {
             <td>Union européenne — Francfort (AWS eu-central-1)</td>
           </tr>
           <tr>
+            <td>Cloudflare, Inc. (service R2)</td>
+            <td>Stockage des fichiers que vous déposez</td>
             <td>
-              <ARemplir>fournisseur de stockage, ex. Cloudflare R2</ARemplir>
-            </td>
-            <td>Stockage des fichiers déposés</td>
-            <td>
-              <ARemplir>région</ARemplir>
+              <ARemplir>
+                localisation du bucket : automatique par défaut, ou Union européenne si la
+                juridiction « eu » a été retenue
+              </ARemplir>
             </td>
           </tr>
           <tr>
@@ -217,7 +218,7 @@ export default function Confidentialite() {
           définitive.
         </li>
         <li>
-          <strong>Journaux techniques</strong> : <ARemplir>durée retenue, ex. 12 mois</ARemplir>.
+          <strong>Journaux techniques</strong> : 12 mois au maximum.
         </li>
         <li>
           <strong>Sauvegardes</strong> : les sauvegardes de la base de données peuvent conserver vos

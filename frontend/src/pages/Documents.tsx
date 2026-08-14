@@ -382,15 +382,15 @@ export default function Documents({
           <ul className="divide-y divide-brand-border">
             {filtered.map((doc) => (
               <li key={doc.id} className="px-4 py-3">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-brand-ink">{doc.name}</p>
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-medium text-brand-ink">{doc.name}</p>
                     <p className="text-xs text-brand-muted">
                       {typeLabels[doc.type]} · {formatSize(doc.sizeBytes)} · Ajouté le{' '}
                       {formatDate(doc.createdAt)}
                     </p>
                   </div>
-                  <div className="flex items-center gap-3">
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 sm:shrink-0">
                     <span
                       className={`rounded-full px-2 py-0.5 text-xs font-medium ${
                         doc.status === 'traite'

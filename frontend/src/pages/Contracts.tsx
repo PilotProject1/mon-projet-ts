@@ -211,7 +211,7 @@ export default function Contracts({ contracts, documents, onAdd, onDelete }: Con
             {contracts.map((c) => {
               const linkedDoc = documents.find((doc) => doc.id === c.documentId)
               return (
-                <li key={c.id} className="flex items-center justify-between px-4 py-3">
+                <li key={c.id} className="flex flex-col items-start gap-2 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
                   <div>
                     <p className="text-sm font-medium text-brand-ink">{c.provider}</p>
                     <p className="text-xs text-brand-muted">

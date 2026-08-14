@@ -66,7 +66,7 @@ export default function Shares({ shares, onRevoke }: SharesProps) {
               const status = getStatus(share)
               const isActive = status.label === 'Actif'
               return (
-                <li key={share.id} className="flex items-center justify-between px-4 py-3">
+                <li key={share.id} className="flex flex-col items-start gap-2 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
                   <div>
                     <p className="text-sm font-medium text-brand-ink">{share.documentName}</p>
                     <p className="text-xs text-brand-muted">
@@ -74,7 +74,7 @@ export default function Shares({ shares, onRevoke }: SharesProps) {
                       {formatDate(share.expiresAt)} · {share.accessCount} accès
                     </p>
                   </div>
-                  <div className="flex items-center gap-3">
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 sm:shrink-0">
                     <span
                       className={`rounded-full px-2 py-0.5 text-xs font-medium ${status.className}`}
                     >
