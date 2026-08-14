@@ -150,6 +150,11 @@ function App() {
     setDeadlines((prev) => [deadline, ...prev])
   }
 
+  async function deleteDeadline(id: string) {
+    await deadlinesApi.remove(id)
+    setDeadlines((prev) => prev.filter((d) => d.id !== id))
+  }
+
   async function toggleDeadlineStatus(id: string) {
     const current = deadlines.find((d) => d.id === id)
     if (!current) return
@@ -304,6 +309,7 @@ function App() {
                 deadlines={deadlines}
                 documents={documents}
                 onAdd={addDeadline}
+                onDelete={deleteDeadline}
                 onToggleStatus={toggleDeadlineStatus}
                 onRemind={sendReminder}
               />

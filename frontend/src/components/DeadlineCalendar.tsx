@@ -8,6 +8,7 @@ interface DeadlineCalendarProps {
   deadlines: Deadline[]
   documents: Document[]
   onToggleStatus: (id: string) => Promise<void>
+  onDelete: (id: string) => Promise<void>
   onRemind: (id: string) => Promise<void>
   onRequestAdd: (dueDate: string) => void
 }
@@ -51,6 +52,7 @@ export default function DeadlineCalendar({
   deadlines,
   documents,
   onToggleStatus,
+  onDelete,
   onRemind,
   onRequestAdd,
 }: DeadlineCalendarProps) {
@@ -90,6 +92,15 @@ export default function DeadlineCalendar({
       await onToggleStatus(id)
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Impossible de mettre à jour l'échéance")
+    }
+  }
+
+  async function handleDelete(id: string) {
+    setError(null)
+    try {
+      await onDelete(id)
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Impossible de supprimer l'échéance")
     }
   }
 
@@ -252,6 +263,12 @@ export default function DeadlineCalendar({
                       className="text-xs font-medium text-brand-green hover:underline"
                     >
                       {d.status === 'terminee' ? 'Réouvrir' : 'Terminer'}
+                    </button>
+                    <button
+                      onClick={() => handleDelete(d.id)}
+                      className="text-xs text-brand-muted hover:text-brand-danger"
+                    >
+                      Supprimer
                     </button>
                   </div>
                 </li>
