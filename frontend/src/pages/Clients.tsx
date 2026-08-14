@@ -141,7 +141,7 @@ export default function Clients({ company, clients, onAdd, onDelete }: ClientsPr
         ) : (
           <ul className="divide-y divide-brand-border">
             {clients.map((client) => (
-              <li key={client.id} className="flex items-center justify-between px-4 py-3">
+              <li key={client.id} className="flex flex-col items-start gap-2 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <p className="text-sm font-medium text-brand-ink">{client.name}</p>
                   <p className="text-xs text-brand-muted">

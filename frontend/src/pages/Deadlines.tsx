@@ -217,7 +217,7 @@ export default function Deadlines({
               {filtered.map((d) => {
                 const linkedDoc = documents.find((doc) => doc.id === d.documentId)
                 return (
-                  <li key={d.id} className="flex items-center justify-between px-4 py-3">
+                  <li key={d.id} className="flex flex-col items-start gap-2 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
                     <div>
                       <p
                         className={`text-sm font-medium ${
@@ -231,7 +231,7 @@ export default function Deadlines({
                         {linkedDoc ? ` · ${linkedDoc.name}` : ''}
                       </p>
                     </div>
-                    <div className="flex items-center gap-3">
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 sm:shrink-0">
                       <PriorityBadge priority={d.priority} />
                       <button
                         onClick={() => handleRemind(d.id)}
