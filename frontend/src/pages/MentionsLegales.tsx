@@ -88,6 +88,13 @@ export default function MentionsLegales() {
               <ARemplir>adresse postale</ARemplir>
             </td>
           </tr>
+          <tr>
+            <td>Stockage des documents</td>
+            <td>Cloudflare, Inc. (service R2)</td>
+            <td>
+              <ARemplir>adresse postale</ARemplir>
+            </td>
+          </tr>
         </tbody>
       </table>
 
