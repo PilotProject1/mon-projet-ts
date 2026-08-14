@@ -73,6 +73,10 @@ model User {
   // planRenewsAt désigne alors une date de fin, non de reconduction.
   planCancelAtPeriodEnd Boolean  @default(false)
 
+  // Rappels d'échéance envoyés par e-mail. Désactivable par l'utilisateur ;
+  // les rappels restent alors visibles dans l'application.
+  reminderEmails Boolean @default(true)
+
   documents     Document[]
   deadlines     Deadline[]
   contracts     Contract[]
@@ -209,4 +213,13 @@ model Notification {
 
   deadlineId String
   deadline   Deadline @relation(fields: [deadlineId], references: [id], onDelete: Cascade)
+
+  // Nombre de jours restant avant l'échéance au moment du rappel automatique.
+  // null pour un rappel déclenché à la main, qui reste donc répétable :
+  // PostgreSQL considère deux NULL comme distincts dans un index unique.
+  offsetDays Int?
+
+  // Garantit qu'une même échéance ne déclenche qu'un seul rappel par palier,
+  // même si la tournée est rejouée ou si deux instances tournent en parallèle.
+  @@unique([deadlineId, offsetDays])
 }

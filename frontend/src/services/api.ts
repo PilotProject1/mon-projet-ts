@@ -7,6 +7,7 @@ import type {
   Contract,
   RenewalType,
   Notification,
+  NotificationPreferences,
   DocumentAnalysis,
   ShareLink,
   PublicShareInfo,
@@ -183,7 +184,9 @@ export const deadlinesApi = {
 
   remove: (id: string) => request<void>(`/deadlines/${id}`, { method: 'DELETE' }),
 
-  remind: (id: string) => request<Notification>(`/deadlines/${id}/remind`, { method: 'POST' }),
+  // null lorsqu'un rappel identique a déjà été envoyé pour ce palier.
+  remind: (id: string) =>
+    request<Notification | null>(`/deadlines/${id}/remind`, { method: 'POST' }),
 }
 
 export const contractsApi = {
@@ -206,6 +209,14 @@ export const notificationsApi = {
 
   markRead: (id: string) =>
     request<Notification>(`/notifications/${id}/lue`, { method: 'PATCH' }),
+
+  getPreferences: () => request<NotificationPreferences>('/notifications/preferences'),
+
+  updatePreferences: (emailReminders: boolean) =>
+    request<NotificationPreferences>('/notifications/preferences', {
+      method: 'PATCH',
+      body: JSON.stringify({ emailReminders }),
+    }),
 }
 
 export const sharesApi = {

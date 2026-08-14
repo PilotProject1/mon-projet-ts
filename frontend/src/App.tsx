@@ -169,7 +169,8 @@ function App() {
 
   async function sendReminder(id: string) {
     const notification = await deadlinesApi.remind(id)
-    setNotifications((prev) => [notification, ...prev])
+    // Le serveur ne renvoie rien lorsqu'un rappel identique existe déjà.
+    if (notification) setNotifications((prev) => [notification, ...prev])
   }
 
   async function addContract(data: {

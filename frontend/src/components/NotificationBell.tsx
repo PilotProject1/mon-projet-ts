@@ -15,6 +15,10 @@ export default function NotificationBell({ notifications, onMarkRead }: Notifica
     <div className="relative">
       <button
         onClick={() => setOpen((v) => !v)}
+        aria-label={
+          unreadCount > 0 ? `Notifications (${unreadCount} non lues)` : 'Notifications'
+        }
+        aria-expanded={open}
         className="relative flex h-9 w-9 items-center justify-center rounded-[10px] border border-brand-border bg-white"
       >
         <Bell size={16.5} className="text-brand-muted" />

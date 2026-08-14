@@ -113,7 +113,27 @@ STRIPE_SECRET_KEY=...
 STRIPE_WEBHOOK_SECRET=...
 STRIPE_PRICE_PREMIUM=...
 STRIPE_PRICE_PRO=...
+# optionnel — rappels d'échéance par e-mail
+# sans ces variables, les rappels restent visibles dans l'application mais aucun e-mail ne part
+SMTP_HOST=...
+SMTP_PORT=587
+SMTP_USER=...
+SMTP_PASSWORD=...
+MAIL_FROM=SYNeco <rappels@ton-domaine.example.com>
 ```
+
+## Étape 11 — Rappels d'échéance par e-mail
+
+Les rappels partent d'une tournée quotidienne exécutée par le backend, **à 8 h heure de Paris**, aux paliers 30 jours, 7 jours, 1 jour, puis le jour de l'échéance. Une échéance ne déclenche qu'un rappel par palier, et seules les échéances encore à faire sont concernées.
+
+1. Ouvre un compte chez un expéditeur d'e-mails transactionnels — **Brevo** convient bien (offre gratuite, hébergement en France). Un compte Outlook ou Gmail fonctionne aussi, mais les quotas sont bas et les messages partent plus souvent en indésirable.
+2. Fais valider ton domaine chez le fournisseur (enregistrements SPF et DKIM à ajouter chez Gandi). Sans cette étape, les rappels arriveront en indésirable, voire pas du tout.
+3. Renseigne les cinq variables ci-dessus côté hébergeur, puis redéploie. `MAIL_FROM` doit être une adresse **autorisée par le fournisseur**, sans quoi l'envoi est refusé.
+4. Vérifie l'envoi sans attendre 8 h : le bouton « Rappel » d'une échéance emprunte exactement le même chemin, e-mail compris. En local, `npm run rappels` déclenche la tournée complète.
+
+> **Le service doit tourner à l'heure de la tournée.** Sur une offre Render gratuite, l'instance s'endort après inactivité et le planificateur ne s'exécute pas : les rappels seraient rattrapés au prochain réveil, avec du retard. Une offre payante, ou un appel externe qui réveille le service chaque matin, lève cette limite.
+
+> Un utilisateur peut couper les rappels par e-mail depuis la page Échéances. Ses rappels restent alors consultables dans l'application.
 
 ## Étape 10 — Paiement des abonnements (Stripe)
 

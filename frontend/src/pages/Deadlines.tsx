@@ -3,6 +3,7 @@ import type { FormEvent } from 'react'
 import type { Deadline, Document } from '../types'
 import PriorityBadge from '../components/PriorityBadge'
 import DeadlineCalendar from '../components/DeadlineCalendar'
+import ReminderSettings from '../components/ReminderSettings'
 import { ApiError } from '../services/api'
 import { formatDate } from '../utils/formatDate'
 
@@ -110,6 +111,8 @@ export default function Deadlines({
         </button>
       </div>
 
+      <ReminderSettings />
+
       {error && (
         <div className="mb-4 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>
       )}
@@ -180,7 +183,9 @@ export default function Deadlines({
         </form>
       )}
 
-      <div className="mb-4 flex items-center justify-between">
+      {/* Les deux groupes côte à côte débordaient de l'écran à 390 px, ce qui
+          rognait l'onglet « Calendrier » : ils s'empilent sur téléphone. */}
+      <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex gap-2">
           {(['toutes', 'a_faire', 'terminee'] as const).map((value) => (
             <button

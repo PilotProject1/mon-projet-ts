@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { APP_GUARD, APP_INTERCEPTOR, APP_FILTER } from '@nestjs/core';
 import { ConfigModule } from '@nestjs/config';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
+import { ScheduleModule } from '@nestjs/schedule';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { PrismaModule } from './prisma/prisma.module';
@@ -16,6 +17,7 @@ import { CompanyModule } from './company/company.module';
 import { ClientsModule } from './clients/clients.module';
 import { InvoicesModule } from './invoices/invoices.module';
 import { SearchModule } from './search/search.module';
+import { MailModule } from './mail/mail.module';
 import { PlansModule } from './plans/plans.module';
 import { BillingModule } from './billing/billing.module';
 import { LoggingInterceptor } from './common/logging.interceptor';
@@ -24,6 +26,8 @@ import { AllExceptionsFilter } from './common/all-exceptions.filter';
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
+    // Tournée quotidienne des rappels d'échéance.
+    ScheduleModule.forRoot(),
     ThrottlerModule.forRoot([
       {
         name: 'default',
@@ -32,6 +36,7 @@ import { AllExceptionsFilter } from './common/all-exceptions.filter';
       },
     ]),
     PrismaModule,
+    MailModule,
     PlansModule,
     BillingModule,
     UsersModule,
