@@ -112,7 +112,10 @@ export class BillingService {
 
     const session = await this.stripe.billingPortal.sessions.create({
       customer: user.stripeCustomerId,
-      return_url: `${this.frontendUrl}/abonnement`,
+      // Le portail étant hébergé par Stripe, c'est au retour que l'application
+      // peut confirmer la modification et relire le plan : le paramètre sert
+      // de signal, l'état réel venant toujours du webhook.
+      return_url: `${this.frontendUrl}/abonnement?retour=portail`,
     });
     return { url: session.url };
   }
