@@ -17,7 +17,7 @@ Tu n'es pas obligé de suivre exactement ces plateformes, mais le code est écri
 
 1. Crée un compte chez un fournisseur Postgres managé (Neon, Supabase, ou l'add-on Postgres de ton hébergeur backend).
 2. Récupère l'URL de connexion (`DATABASE_URL`).
-3. Applique les migrations sur cette base depuis ta machine, une seule fois :
+3. Les migrations sont appliquées automatiquement à chaque démarrage du serveur (voir étape 3), tu n'as rien à lancer à la main. Pour les appliquer ponctuellement depuis ta machine :
    ```bash
    cd backend
    DATABASE_URL="<ton-url-de-prod>" npx prisma migrate deploy
@@ -46,7 +46,9 @@ Pour la prod, deux choix :
 2. Configure le service :
    - Répertoire racine : `backend`
    - Commande de build : `npm run build`
-   - Commande de démarrage : `node dist/main`
+   - Commande de démarrage : `npm run start:prod`
+
+   > ⚠️ La commande de démarrage doit bien être `npm run start:prod`, et non `node dist/main`. C'est elle qui applique les migrations Prisma en attente avant de lancer le serveur. Avec `node dist/main`, le code est déployé mais le schéma de la base ne suit pas : les requêtes échouent alors avec des erreurs du type « The column `X` does not exist in the current database ».
 3. Renseigne les variables d'environnement (voir la checklist en bas de page).
 4. Déploie. Vérifie que `https://ton-backend.example.com/health` répond `{"status":"ok", ...}`.
 
