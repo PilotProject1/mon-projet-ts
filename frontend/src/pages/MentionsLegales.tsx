@@ -76,18 +76,14 @@ export default function MentionsLegales() {
           </tr>
           <tr>
             <td>Hébergement du serveur applicatif</td>
-            <td>
-              <ARemplir>Render, Railway ou autre</ARemplir>
-            </td>
+            <td>Render Services, Inc. (États-Unis)</td>
             <td>
               <ARemplir>adresse postale</ARemplir>
             </td>
           </tr>
           <tr>
             <td>Base de données</td>
-            <td>
-              <ARemplir>Neon, Supabase ou autre</ARemplir>
-            </td>
+            <td>Neon Inc., données hébergées à Francfort (Union européenne)</td>
             <td>
               <ARemplir>adresse postale</ARemplir>
             </td>

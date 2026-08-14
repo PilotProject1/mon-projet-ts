@@ -159,22 +159,16 @@ export default function Confidentialite() {
             <td>États-Unis</td>
           </tr>
           <tr>
-            <td>
-              <ARemplir>hébergeur du serveur</ARemplir>
-            </td>
+            <td>Render Services, Inc.</td>
             <td>Hébergement du serveur applicatif</td>
             <td>
-              <ARemplir>région</ARemplir>
+              <ARemplir>région du service Render</ARemplir>
             </td>
           </tr>
           <tr>
-            <td>
-              <ARemplir>fournisseur de base de données</ARemplir>
-            </td>
-            <td>Stockage des données de compte et métadonnées</td>
-            <td>
-              <ARemplir>région</ARemplir>
-            </td>
+            <td>Neon Inc.</td>
+            <td>Base de données (comptes, échéances, contrats, métadonnées)</td>
+            <td>Union européenne — Francfort (AWS eu-central-1)</td>
           </tr>
           <tr>
             <td>
@@ -193,9 +187,14 @@ export default function Confidentialite() {
         </tbody>
       </table>
       <p>
-        Certains de ces prestataires étant situés hors de l'Union européenne, les transferts
-        s'effectuent sur la base des clauses contractuelles types de la Commission européenne ou d'un
-        mécanisme d'adéquation équivalent.
+        <strong>La base de données est hébergée dans l'Union européenne</strong>, à Francfort : vos
+        comptes, échéances, contrats et métadonnées de documents ne quittent pas le territoire
+        européen au repos.
+      </p>
+      <p>
+        Certains prestataires restent toutefois établis aux États-Unis, et l'assistant IA y transmet
+        des données lorsqu'il est activé. Ces transferts s'effectuent sur la base des clauses
+        contractuelles types de la Commission européenne ou d'un mécanisme d'adéquation équivalent.
       </p>
 
       <h2>6. Données de vos propres clients</h2>
