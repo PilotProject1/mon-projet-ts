@@ -173,7 +173,7 @@ export default function Confidentialite() {
           <tr>
             <td>Cloudflare, Inc. (service R2)</td>
             <td>Stockage des fichiers que vous déposez</td>
-            <td>Europe de l'Est — placement indicatif, sans restriction de juridiction</td>
+            <td>Union européenne (juridiction européenne)</td>
           </tr>
           <tr>
             <td>Anthropic PBC</td>
@@ -188,10 +188,9 @@ export default function Confidentialite() {
         européen au repos.
       </p>
       <p>
-        Les fichiers que vous déposez sont stockés sur des centres de données européens (région
-        Europe de l'Est). Il s'agit d'une indication de placement et non d'un cantonnement
-        contractuel à l'Union européenne : leur localisation précise relève de notre prestataire de
-        stockage.
+        <strong>Vos documents sont eux aussi conservés dans l'Union européenne.</strong> Le stockage
+        est configuré sous juridiction européenne : notre prestataire s'engage à ne les placer que
+        dans des centres de données situés sur ce territoire.
       </p>
       <p>
         Certains prestataires restent toutefois établis aux États-Unis, et l'assistant IA y transmet

@@ -90,7 +90,7 @@ export default function MentionsLegales() {
           </tr>
           <tr>
             <td>Stockage des documents</td>
-            <td>Cloudflare, Inc. (service R2)</td>
+            <td>Cloudflare, Inc. (service R2), sous juridiction Union européenne</td>
             <td>
               <ARemplir>adresse postale</ARemplir>
             </td>
