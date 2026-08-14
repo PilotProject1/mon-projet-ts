@@ -12,9 +12,10 @@ export default function Confidentialite() {
 
       <h2>1. Responsable du traitement</h2>
       <p>
-        Le responsable du traitement est <strong>VINCENTLV</strong>, immatriculé sous le numéro
-        SIREN 941 471 112, dont le siège est situé 9 rue Poincaré, 57240 Nilvange, France, joignable
-        à <a href="mailto:syneco.pro@outlook.fr">syneco.pro@outlook.fr</a> ou au 06 74 33 74 99.
+        Le responsable du traitement est <strong>Monsieur Loïc Vincent</strong>, entrepreneur
+        individuel exerçant sous le nom commercial VincentLV, immatriculé sous le numéro SIREN
+        941 471 112, dont le siège est situé 9 rue Poincaré, 57240 Nilvange, France, joignable à{' '}
+        <a href="mailto:syneco.pro@outlook.fr">syneco.pro@outlook.fr</a> ou au 06 74 33 74 99.
       </p>
       <p>
         Aucun délégué à la protection des données n'a été désigné, cette désignation n'étant pas
