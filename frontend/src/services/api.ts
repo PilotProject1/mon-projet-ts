@@ -148,10 +148,11 @@ export const authApi = {
 export const documentsApi = {
   list: () => request<Document[]>('/documents'),
 
-  create: (data: { name: string; type: DocumentType; file: File }) => {
+  create: (data: { name: string; type?: DocumentType; file: File }) => {
     const formData = new FormData()
     formData.append('name', data.name)
-    formData.append('type', data.type)
+    // Sans type, le serveur le déduit du contenu du document.
+    if (data.type) formData.append('type', data.type)
     formData.append('file', data.file)
     return request<Document>('/documents', { method: 'POST', body: formData })
   },

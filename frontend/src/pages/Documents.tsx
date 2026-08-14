@@ -17,7 +17,7 @@ import DocumentScanner from '../components/DocumentScanner'
 interface DocumentsProps {
   documents: Document[]
   planUsage: PlanUsage | null
-  onAdd: (data: { name: string; type: DocumentType; file: File }) => Promise<void>
+  onAdd: (data: { name: string; type?: DocumentType; file: File }) => Promise<void>
   onDelete: (id: string) => Promise<void>
   onCreateDeadline: (data: { title: string; dueDate: string; documentId?: string }) => Promise<void>
   onCreateContract: (data: {
@@ -76,7 +76,8 @@ export default function Documents({
   const [typeFilter, setTypeFilter] = useState<DocumentType | 'tous'>('tous')
   const [showForm, setShowForm] = useState(false)
   const [name, setName] = useState('')
-  const [type, setType] = useState<DocumentType>('autre')
+  // Chaîne vide : le serveur reconnaît le type à partir du contenu.
+  const [type, setType] = useState<DocumentType | ''>('')
   const [file, setFile] = useState<File | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
@@ -157,9 +158,9 @@ export default function Documents({
     setError(null)
     setSubmitting(true)
     try {
-      await onAdd({ name: name.trim(), type, file })
+      await onAdd({ name: name.trim(), ...(type ? { type } : {}), file })
       setName('')
-      setType('autre')
+      setType('')
       setFile(null)
       if (fileInputRef.current) fileInputRef.current.value = ''
       setShowForm(false)
@@ -344,15 +345,22 @@ export default function Documents({
             <select
               id="doc-type"
               value={type}
-              onChange={(e) => setType(e.target.value as DocumentType)}
+              onChange={(e) => setType(e.target.value as DocumentType | '')}
               className="w-full rounded-md border border-brand-border px-3 py-2 text-sm focus:border-brand-green focus:outline-none"
             >
+              <option value="">Détecter automatiquement</option>
               {Object.entries(typeLabels).map(([value, label]) => (
                 <option key={value} value={value}>
                   {label}
                 </option>
               ))}
             </select>
+            {type === '' && (
+              <p className="mt-1 text-xs text-brand-muted">
+                Le type est déduit du texte du document (« facture », « assuré », « garantie »…),
+                juste après le dépôt.
+              </p>
+            )}
           </div>
           <DocumentScanner onScanned={handleScanned} onProcessingChange={setScanning} />
 
@@ -452,7 +460,7 @@ export default function Documents({
                           : 'bg-amber-100 text-amber-700'
                       }`}
                     >
-                      {doc.status === 'traite' ? 'Traité' : 'En attente'}
+                      {doc.status === 'traite' ? 'Analysé' : 'Analyse en cours...'}
                     </span>
                     <button
                       onClick={() => handleAnalyze(doc)}

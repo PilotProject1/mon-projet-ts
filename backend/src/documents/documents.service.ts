@@ -17,9 +17,21 @@ import { CreateDocumentDto } from './dto/create-document.dto';
 import { UpdateDocumentDto } from './dto/update-document.dto';
 import { PlansService } from '../plans/plans.service';
 
+/** Au-delà, la reconnaissance du type est abandonnée. */
+const DETECTION_TIMEOUT_MS = 90_000;
+
 @Injectable()
 export class DocumentsService {
   private readonly logger = new Logger(DocumentsService.name);
+
+  private withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+    return Promise.race([
+      promise,
+      new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('délai dépassé')), ms).unref(),
+      ),
+    ]);
+  }
 
   constructor(
     private readonly prisma: PrismaService,
@@ -41,15 +53,74 @@ export class DocumentsService {
     await this.plans.assertCanAddDocument(userId);
 
     const stored = await this.storage.save(file, userId);
-    return this.prisma.document.create({
+    const detectType = dto.type === undefined;
+
+    const document = await this.prisma.document.create({
       data: {
-        ...dto,
+        name: dto.name,
+        type: dto.type ?? 'autre',
         userId,
         fileKey: stored.key,
         mimeType: stored.mimeType,
         sizeBytes: stored.sizeBytes,
+        // Un type choisi à la main ne demande aucune lecture : le document
+        // est traité d'emblée.
+        status: detectType ? 'en_attente' : 'traite',
       },
     });
+
+    if (detectType) {
+      // La reconnaissance passe par l'OCR, qui peut demander une minute sur
+      // une photo. Elle se poursuit après la réponse : l'utilisateur voit son
+      // document apparaître tout de suite, son type se préciser ensuite.
+      void this.detectType(document.id, userId);
+    }
+
+    return document;
+  }
+
+  /**
+   * Déduit le type d'un document de son contenu, puis le marque analysé.
+   *
+   * Ne lève jamais : elle s'exécute hors du cycle d'une requête. Le statut est
+   * remis à « traité » même en cas d'échec, pour qu'un document ne reste pas
+   * indéfiniment en attente.
+   */
+  private async detectType(documentId: string, userId: string): Promise<void> {
+    try {
+      const document = await this.prisma.document.findUnique({
+        where: { id: documentId },
+      });
+      if (!document) return;
+
+      // Aucune lecture ne doit pouvoir laisser un document « en analyse »
+      // indéfiniment : passé ce délai, on renonce au type et on libère la
+      // ligne, quitte à ce que l'utilisateur le choisisse lui-même.
+      const { fields } = await this.withTimeout(
+        this.runExtraction(document, userId),
+        DETECTION_TIMEOUT_MS,
+      );
+      await this.prisma.document.update({
+        where: { id: documentId },
+        data: {
+          status: 'traite',
+          ...(fields.suggestedType ? { type: fields.suggestedType } : {}),
+        },
+      });
+      this.logger.log(
+        `Document ${documentId} reconnu comme « ${fields.suggestedType ?? 'indéterminé'} »`,
+      );
+    } catch (error) {
+      this.logger.warn(
+        `Reconnaissance du document ${documentId} impossible : ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
+      // Le document a pu être supprimé entre-temps : l'échec est sans suite.
+      await this.prisma.document
+        .update({ where: { id: documentId }, data: { status: 'traite' } })
+        .catch(() => undefined);
+    }
   }
 
   findAll(userId: string) {
@@ -79,8 +150,19 @@ export class DocumentsService {
     return this.storage.createReadStream(fileKey);
   }
 
-  async analyze(id: string, userId: string) {
-    const document = await this.findOne(id, userId);
+  /**
+   * Lecture du document puis extraction des champs. Partagée par l'analyse à
+   * la demande et par la reconnaissance du type au dépôt, pour que les deux
+   * s'appuient exactement sur le même moteur.
+   */
+  private async runExtraction(
+    document: { fileKey: string; mimeType: string },
+    userId: string,
+  ): Promise<{
+    fields: ExtractedFields;
+    text: string;
+    warning: string | null;
+  }> {
     const buffer = await this.storage.getBuffer(document.fileKey);
     const { text, warning } = await this.ocr.extractText(
       buffer,
@@ -88,7 +170,8 @@ export class DocumentsService {
     );
 
     // L'appel au modèle est facturé à la requête : il est réservé aux plans
-    // incluant l'IA. Les autres comptes gardent le moteur heuristique local.
+    // incluant l'IA. Les autres comptes gardent le moteur heuristique local,
+    // qui reconnaît déjà les mots caractéristiques (« facture », « assuré »…).
     const plan = await this.plans.getPlan(userId);
     const aiAllowed = this.plans.hasFeature(plan, 'ia');
 
@@ -103,6 +186,16 @@ export class DocumentsService {
       }
     }
     fields ??= this.extraction.extract(text);
+
+    return { fields, text, warning };
+  }
+
+  async analyze(id: string, userId: string) {
+    const document = await this.findOne(id, userId);
+    const { fields, text, warning } = await this.runExtraction(
+      document,
+      userId,
+    );
 
     return {
       warning,

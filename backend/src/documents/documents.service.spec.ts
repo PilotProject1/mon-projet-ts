@@ -120,6 +120,59 @@ describe('DocumentsService', () => {
     });
   });
 
+  describe('create', () => {
+    beforeEach(() => {
+      storage.save.mockResolvedValue({
+        key: 'key-1',
+        mimeType: 'application/pdf',
+        sizeBytes: 42,
+      });
+    });
+
+    it('met le document en analyse quand aucun type n’est imposé', async () => {
+      prisma.document.create.mockResolvedValue({ ...document, id: 'doc-neuf' });
+      prisma.document.findUnique.mockResolvedValue(null); // interrompt la reconnaissance
+
+      await service.create({ name: 'Sans type' }, ownerId, {} as any);
+
+      expect(prisma.document.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            type: 'autre',
+            status: 'en_attente',
+          }),
+        }),
+      );
+    });
+
+    it('tient pour traité un document dont le type est choisi à la main', async () => {
+      prisma.document.create.mockResolvedValue(document);
+
+      await service.create(
+        { name: 'Avec type', type: 'facture' } as any,
+        ownerId,
+        {} as any,
+      );
+
+      expect(prisma.document.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ type: 'facture', status: 'traite' }),
+        }),
+      );
+      // Aucune lecture n'est engagée : le type est déjà connu.
+      expect(storage.getBuffer).not.toHaveBeenCalled();
+    });
+
+    it('refuse d’ajouter au-delà du quota, avant toute écriture', async () => {
+      plans.assertCanAddDocument.mockRejectedValue(new Error('quota atteint'));
+
+      await expect(
+        service.create({ name: 'Trop' } as any, ownerId, {} as any),
+      ).rejects.toThrow('quota atteint');
+      expect(storage.save).not.toHaveBeenCalled();
+    });
+  });
+
   describe('analyze', () => {
     it('rejects analysis of a document owned by someone else', async () => {
       prisma.document.findUnique.mockResolvedValue(document);

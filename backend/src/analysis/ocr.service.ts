@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PDFParse } from 'pdf-parse';
-import { createWorker } from 'tesseract.js';
+import { createWorker, OEM } from 'tesseract.js';
 
 export interface OcrResult {
   text: string;
@@ -9,10 +9,28 @@ export interface OcrResult {
 
 const IMAGE_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 const MIN_MEANINGFUL_TEXT_LENGTH = 20;
+/** Chargement du moteur et de son modèle de langue. */
+const WORKER_TIMEOUT_MS = 30_000;
+/** Une page se lit en quelques secondes ; au-delà, quelque chose est bloqué. */
+const RECOGNITION_TIMEOUT_MS = 45_000;
+
+type OcrWorker = Awaited<ReturnType<typeof createWorker>>;
 
 @Injectable()
 export class OcrService {
   private readonly logger = new Logger(OcrService.name);
+
+  private withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+    return Promise.race([
+      promise,
+      new Promise<never>((_, reject) =>
+        setTimeout(
+          () => reject(new Error(`lecture optique interrompue après ${ms} ms`)),
+          ms,
+        ).unref(),
+      ),
+    ]);
+  }
 
   async extractText(buffer: Buffer, mimeType: string): Promise<OcrResult> {
     if (mimeType === 'application/pdf') {
@@ -52,11 +70,45 @@ export class OcrService {
   }
 
   private async extractFromImage(buffer: Buffer): Promise<OcrResult> {
-    const worker = await createWorker('fra');
+    const failure: OcrResult = {
+      text: '',
+      warning: "L'analyse de cette image a échoué.",
+    };
+
+    // Le premier appel télécharge le modèle français. Deux précautions sont
+    // indispensables à cette étape :
+    //
+    //  - errorHandler : sans lui, tesseract.js relance l'erreur depuis le
+    //    message du worker, hors de toute promesse. Elle devenait une
+    //    exception non capturée, et le serveur entier tombait sur une simple
+    //    image illisible ou un modèle inaccessible ;
+    //  - une échéance : lorsque le chargement du modèle échoue, la promesse de
+    //    création n'est pas rejetée, elle reste en suspens. L'analyse aurait
+    //    attendu indéfiniment.
+    const creation = createWorker('fra', OEM.LSTM_ONLY, {
+      errorHandler: (error) =>
+        this.logger.error(
+          `Moteur OCR en erreur : ${error instanceof Error ? error.message : String(error)}`,
+        ),
+    });
+
+    let worker: OcrWorker;
+    try {
+      worker = await this.withTimeout(creation, WORKER_TIMEOUT_MS);
+    } catch (error) {
+      this.logger.error('Moteur OCR indisponible', error);
+      // Si la création aboutit plus tard, le moteur est libéré malgré tout.
+      void creation.then((late) => late.terminate()).catch(() => undefined);
+      return failure;
+    }
+
     try {
       const {
         data: { text },
-      } = await worker.recognize(buffer);
+      } = await this.withTimeout(
+        worker.recognize(buffer),
+        RECOGNITION_TIMEOUT_MS,
+      );
       if (text.trim().length < MIN_MEANINGFUL_TEXT_LENGTH) {
         return {
           text,
@@ -66,9 +118,9 @@ export class OcrService {
       return { text, warning: null };
     } catch (error) {
       this.logger.error('OCR image échoué', error);
-      return { text: '', warning: "L'analyse de cette image a échoué." };
+      return failure;
     } finally {
-      await worker.terminate();
+      await worker.terminate().catch(() => undefined);
     }
   }
 }

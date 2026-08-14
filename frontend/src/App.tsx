@@ -135,10 +135,31 @@ function App() {
     setPlanUsage(await planApi.get())
   }
 
-  async function addDocument(data: { name: string; type: DocumentType; file: File }) {
+  /**
+   * Suit la reconnaissance du type, qui se poursuit côté serveur après le
+   * dépôt : la liste est relue tant qu'un document reste en cours d'analyse.
+   * Le nombre de tentatives est borné pour ne jamais interroger sans fin,
+   * et couvre largement le délai au-delà duquel le serveur abandonne.
+   */
+  async function followPendingAnalysis() {
+    for (let attempt = 0; attempt < 60; attempt++) {
+      await new Promise((resolve) => setTimeout(resolve, 2000))
+      let latest: Document[]
+      try {
+        latest = await documentsApi.list()
+      } catch {
+        return
+      }
+      setDocuments(latest)
+      if (!latest.some((doc) => doc.status === 'en_attente')) return
+    }
+  }
+
+  async function addDocument(data: { name: string; type?: DocumentType; file: File }) {
     const doc = await documentsApi.create(data)
     setDocuments((prev) => [doc, ...prev])
     await refreshPlanUsage()
+    if (doc.status === 'en_attente') void followPendingAnalysis()
   }
 
   async function deleteDocument(id: string) {
