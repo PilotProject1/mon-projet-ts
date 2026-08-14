@@ -18,6 +18,10 @@ export interface PlanUsage {
     max: number | null;
     remaining: number | null;
   };
+  /** Échéance de l'abonnement, null sur le plan gratuit. */
+  renewsAt: string | null;
+  /** true si l'abonnement se termine à cette date au lieu d'être reconduit. */
+  endsAtPeriodEnd: boolean;
 }
 
 @Injectable()
@@ -36,11 +40,18 @@ export class PlansService {
   }
 
   async getUsage(userId: string): Promise<PlanUsage> {
-    const [plan, documentCount] = await Promise.all([
-      this.getPlan(userId),
+    const [user, documentCount] = await Promise.all([
+      this.prisma.user.findUnique({
+        where: { id: userId },
+        select: { plan: true, planRenewsAt: true, planCancelAtPeriodEnd: true },
+      }),
       this.prisma.document.count({ where: { userId } }),
     ]);
+    if (!user) {
+      throw new NotFoundException('Utilisateur introuvable');
+    }
 
+    const plan = user.plan;
     const definition = PLANS[plan];
     return {
       plan,
@@ -55,6 +66,8 @@ export class PlansService {
             ? null
             : Math.max(definition.maxDocuments - documentCount, 0),
       },
+      renewsAt: user.planRenewsAt?.toISOString() ?? null,
+      endsAtPeriodEnd: user.planCancelAtPeriodEnd,
     };
   }
 

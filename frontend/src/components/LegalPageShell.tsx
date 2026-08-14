@@ -51,6 +51,9 @@ export default function LegalPageShell({ title, lastUpdated, children }: LegalPa
             <Link to="/confidentialite" className="hover:text-brand-green hover:underline">
               Politique de confidentialité
             </Link>
+            <Link to="/cgv" className="hover:text-brand-green hover:underline">
+              Conditions générales de vente
+            </Link>
           </div>
         </footer>
       </main>
