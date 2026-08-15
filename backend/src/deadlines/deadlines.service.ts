@@ -84,10 +84,20 @@ export class DeadlinesService {
     await this.prisma.deadline.delete({ where: { id } });
   }
 
+  /**
+   * Rappel déclenché à la main. Il emprunte le même chemin que la tournée
+   * automatique — e-mail compris — et reste répétable, son palier étant nul.
+   */
   async remind(id: string, userId: string) {
     const deadline = await this.findOne(id, userId);
-    const dueDateLabel = deadline.dueDate.toISOString().slice(0, 10);
-    const message = `Rappel : "${deadline.title}" à échéance le ${dueDateLabel}`;
-    return this.notifications.create(userId, deadline.id, message);
+    const recipient = await this.prisma.user.findUniqueOrThrow({
+      where: { id: userId },
+      select: { id: true, email: true, reminderEmails: true },
+    });
+    return this.notifications.deliver({
+      deadline,
+      recipient,
+      offsetDays: null,
+    });
   }
 }

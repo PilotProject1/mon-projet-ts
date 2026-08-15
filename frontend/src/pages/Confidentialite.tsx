@@ -155,7 +155,33 @@ export default function Confidentialite() {
         pleinement utilisable.
       </p>
 
-      <h2>6. Destinataires et sous-traitants</h2>
+      <h2>6. Rappels d'échéance</h2>
+      <p>
+        Lorsqu'une échéance approche, un rappel est créé dans l'application et, si vous ne l'avez
+        pas désactivé, envoyé à votre adresse e-mail — trente jours, sept jours et un jour avant
+        l'échéance, puis le jour même. L'e-mail contient l'intitulé de l'échéance et sa date ; il
+        ne contient jamais le document lui-même.
+      </p>
+      <p>
+        Ce traitement repose sur l'exécution du contrat : il constitue la raison d'être du service.
+        Vous pouvez néanmoins <strong>désactiver les rappels par e-mail à tout moment</strong>,
+        depuis la page Échéances ; le lien figure également au bas de chaque message. Les rappels
+        restent alors consultables dans l'application.
+      </p>
+      <p>
+        Si vous l'autorisez, le rappel peut également s'afficher <strong>directement sur l'écran de
+        votre appareil</strong>. L'autorisation est demandée appareil par appareil et n'est jamais
+        présumée : sans elle, rien n'est enregistré et rien n'est envoyé. Nous conservons alors
+        l'adresse technique fournie par votre navigateur et les clés de chiffrement associées, sans
+        aucun autre identifiant d'appareil. Désactiver l'option supprime cet enregistrement, et un
+        appareil qui se désabonne est retiré automatiquement.
+      </p>
+      <p>
+        Le contenu de ces notifications est <strong>chiffré</strong> : le service de notification de
+        votre navigateur l'achemine sans pouvoir le lire.
+      </p>
+
+      <h2>7. Destinataires et sous-traitants</h2>
       <p>
         Vos données ne sont accessibles qu'à vous. Elles transitent toutefois par les prestataires
         techniques nécessaires au fonctionnement du service :
@@ -196,6 +222,23 @@ export default function Confidentialite() {
             <td>Analyse documentaire et recherche (si activée)</td>
             <td>États-Unis</td>
           </tr>
+          <tr>
+            <td>
+              <ARemplir>expéditeur d'e-mails retenu</ARemplir>
+            </td>
+            <td>Acheminement des rappels d'échéance par e-mail</td>
+            <td>
+              <ARemplir>localisation de l'expéditeur d'e-mails</ARemplir>
+            </td>
+          </tr>
+          <tr>
+            <td>Éditeur de votre navigateur (Google, Mozilla, Apple, Microsoft)</td>
+            <td>
+              Acheminement des notifications affichées sur votre appareil, si vous les avez
+              autorisées — le contenu leur est illisible
+            </td>
+            <td>Selon le navigateur utilisé</td>
+          </tr>
         </tbody>
       </table>
       <p>
@@ -214,7 +257,7 @@ export default function Confidentialite() {
         contractuelles types de la Commission européenne ou d'un mécanisme d'adéquation équivalent.
       </p>
 
-      <h2>7. Données de vos propres clients</h2>
+      <h2>8. Données de vos propres clients</h2>
       <p>
         Si vous utilisez le module de facturation, vous enregistrez des données concernant vos
         clients. Pour ces données, <strong>vous êtes responsable du traitement</strong> et SYNeco
@@ -222,7 +265,7 @@ export default function Confidentialite() {
         base légale pour enregistrer leurs coordonnées.
       </p>
 
-      <h2>8. Durée de conservation</h2>
+      <h2>9. Durée de conservation</h2>
       <ul>
         <li>
           <strong>Données de compte, documents et données associées</strong> : conservés tant que
@@ -242,7 +285,7 @@ export default function Confidentialite() {
         </li>
       </ul>
 
-      <h2>9. Vos droits</h2>
+      <h2>10. Vos droits</h2>
       <p>
         Conformément au Règlement général sur la protection des données, vous disposez des droits
         d'accès, de rectification, d'effacement, de limitation, d'opposition et de portabilité de vos
@@ -266,7 +309,7 @@ export default function Confidentialite() {
         ).
       </p>
 
-      <h2>10. Cookies et traceurs</h2>
+      <h2>11. Cookies et traceurs</h2>
       <p>
         SYNeco n'utilise <strong>aucun cookie publicitaire ni outil de mesure d'audience</strong>.
         Votre session est maintenue au moyen de jetons d'authentification stockés localement dans
@@ -275,7 +318,7 @@ export default function Confidentialite() {
       </p>
       <p>Ces jetons sont effacés lorsque vous vous déconnectez.</p>
 
-      <h2>11. Sécurité</h2>
+      <h2>12. Sécurité</h2>
       <ul>
         <li>Les échanges entre votre navigateur et le service sont chiffrés (HTTPS).</li>
         <li>
@@ -292,13 +335,13 @@ export default function Confidentialite() {
         </li>
       </ul>
 
-      <h2>12. Mineurs</h2>
+      <h2>13. Mineurs</h2>
       <p>
         Le service n'est pas destiné aux personnes de moins de 15 ans. Aucune inscription n'est
         sollicitée auprès de mineurs.
       </p>
 
-      <h2>13. Modification de cette politique</h2>
+      <h2>14. Modification de cette politique</h2>
       <p>
         Cette politique peut évoluer, notamment en cas d'ajout de nouvelles fonctionnalités. La date
         de dernière mise à jour figure en haut de cette page ; en cas de changement substantiel, vous

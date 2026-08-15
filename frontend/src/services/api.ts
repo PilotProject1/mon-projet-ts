@@ -7,6 +7,7 @@ import type {
   Contract,
   RenewalType,
   Notification,
+  NotificationPreferences,
   DocumentAnalysis,
   ShareLink,
   PublicShareInfo,
@@ -147,10 +148,11 @@ export const authApi = {
 export const documentsApi = {
   list: () => request<Document[]>('/documents'),
 
-  create: (data: { name: string; type: DocumentType; file: File }) => {
+  create: (data: { name: string; type?: DocumentType; file: File }) => {
     const formData = new FormData()
     formData.append('name', data.name)
-    formData.append('type', data.type)
+    // Sans type, le serveur le déduit du contenu du document.
+    if (data.type) formData.append('type', data.type)
     formData.append('file', data.file)
     return request<Document>('/documents', { method: 'POST', body: formData })
   },
@@ -183,7 +185,9 @@ export const deadlinesApi = {
 
   remove: (id: string) => request<void>(`/deadlines/${id}`, { method: 'DELETE' }),
 
-  remind: (id: string) => request<Notification>(`/deadlines/${id}/remind`, { method: 'POST' }),
+  // null lorsqu'un rappel identique a déjà été envoyé pour ce palier.
+  remind: (id: string) =>
+    request<Notification | null>(`/deadlines/${id}/remind`, { method: 'POST' }),
 }
 
 export const contractsApi = {
@@ -206,6 +210,37 @@ export const notificationsApi = {
 
   markRead: (id: string) =>
     request<Notification>(`/notifications/${id}/lue`, { method: 'PATCH' }),
+
+  getPreferences: () => request<NotificationPreferences>('/notifications/preferences'),
+
+  updatePreferences: (emailReminders: boolean) =>
+    request<NotificationPreferences>('/notifications/preferences', {
+      method: 'PATCH',
+      body: JSON.stringify({ emailReminders }),
+    }),
+}
+
+export const pushApi = {
+  getPublicKey: () =>
+    request<{ publicKey: string | null; available: boolean; devices: number }>(
+      '/push/cle-publique',
+    ),
+
+  subscribe: (subscription: {
+    endpoint: string
+    keys: { p256dh: string; auth: string }
+    label?: string
+  }) =>
+    request<{ subscribed: boolean }>('/push/abonnements', {
+      method: 'POST',
+      body: JSON.stringify(subscription),
+    }),
+
+  unsubscribe: (endpoint: string) =>
+    request<{ subscribed: boolean }>('/push/abonnements', {
+      method: 'DELETE',
+      body: JSON.stringify({ endpoint }),
+    }),
 }
 
 export const sharesApi = {

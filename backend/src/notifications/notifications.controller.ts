@@ -1,5 +1,6 @@
-import { Controller, Get, Param, Patch, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, UseGuards } from '@nestjs/common';
 import { NotificationsService } from './notifications.service';
+import { UpdatePreferencesDto } from './dto/update-preferences.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import {
   CurrentUser,
@@ -14,6 +15,24 @@ export class NotificationsController {
   @Get()
   findAll(@CurrentUser() user: CurrentUserPayload) {
     return this.notificationsService.findAll(user.userId);
+  }
+
+  // Déclarée avant les routes à paramètre pour que « preferences » ne soit
+  // jamais confondu avec un identifiant de notification.
+  @Get('preferences')
+  getPreferences(@CurrentUser() user: CurrentUserPayload) {
+    return this.notificationsService.getPreferences(user.userId);
+  }
+
+  @Patch('preferences')
+  updatePreferences(
+    @Body() dto: UpdatePreferencesDto,
+    @CurrentUser() user: CurrentUserPayload,
+  ) {
+    return this.notificationsService.updatePreferences(
+      user.userId,
+      dto.emailReminders,
+    );
   }
 
   @Patch(':id/lue')

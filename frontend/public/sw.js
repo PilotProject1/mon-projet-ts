@@ -96,3 +96,58 @@ self.addEventListener('fetch', (event) => {
     event.respondWith(cacheFirstAsset(request))
   }
 })
+
+/*
+ * Notifications push.
+ *
+ * Le contenu arrive chiffré depuis le serveur : le service de notification du
+ * navigateur (Google, Mozilla, Apple) l'achemine sans pouvoir le lire.
+ */
+self.addEventListener('push', (event) => {
+  let payload = {}
+  try {
+    payload = event.data ? event.data.json() : {}
+  } catch {
+    /* charge utile illisible : on affiche quand même quelque chose d'utile */
+  }
+
+  const title = payload.title || 'SYNeco'
+  const options = {
+    body: payload.body || 'Une échéance approche.',
+    icon: '/icon-192.png',
+    badge: '/icon-192.png',
+    lang: 'fr',
+    // Une notification de même étiquette remplace la précédente au lieu de
+    // s'empiler : un rappel répété ne sature pas l'écran verrouillé.
+    tag: payload.tag || 'syneco',
+    data: { url: payload.url || '/echeances' },
+  }
+
+  // waitUntil est obligatoire : sans lui, le navigateur peut arrêter le
+  // service worker avant l'affichage, et certains sanctionnent une
+  // notification promise puis jamais montrée.
+  event.waitUntil(self.registration.showNotification(title, options))
+})
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close()
+  const target = new URL(event.notification.data?.url || '/echeances', self.location.origin)
+
+  event.waitUntil(
+    (async () => {
+      const clientList = await self.clients.matchAll({
+        type: 'window',
+        includeUncontrolled: true,
+      })
+      // Rouvrir un onglet déjà ouvert plutôt que d'en empiler un nouveau.
+      for (const client of clientList) {
+        if (new URL(client.url).origin === target.origin && 'focus' in client) {
+          await client.focus()
+          if ('navigate' in client) await client.navigate(target.href)
+          return
+        }
+      }
+      await self.clients.openWindow(target.href)
+    })(),
+  )
+})

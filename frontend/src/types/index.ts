@@ -84,6 +84,13 @@ export interface Notification {
   readAt: string | null
 }
 
+export interface NotificationPreferences {
+  /** Rappels d'échéance envoyés par e-mail. */
+  emailReminders: boolean
+  /** false si le serveur n'a pas de serveur SMTP configuré. */
+  emailConfigured: boolean
+}
+
 export interface Company {
   id: string
   ownerId: string

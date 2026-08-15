@@ -113,7 +113,58 @@ STRIPE_SECRET_KEY=...
 STRIPE_WEBHOOK_SECRET=...
 STRIPE_PRICE_PREMIUM=...
 STRIPE_PRICE_PRO=...
+# optionnel — rappels d'échéance par e-mail
+# sans ces variables, les rappels restent visibles dans l'application mais aucun e-mail ne part
+SMTP_HOST=...
+SMTP_PORT=587
+SMTP_USER=...
+SMTP_PASSWORD=...
+MAIL_FROM=SYNeco <rappels@ton-domaine.example.com>
+# nécessaire si l'instance s'endort : déclenchement des rappels depuis l'extérieur
+REMINDERS_TRIGGER_TOKEN=...
+# optionnel — notifications push (générées par `npm run vapid`)
+VAPID_PUBLIC_KEY=...
+VAPID_PRIVATE_KEY=...
+VAPID_SUBJECT=mailto:contact@ton-domaine.example.com
 ```
+
+## Étape 11 — Rappels d'échéance par e-mail
+
+Les rappels partent d'une tournée quotidienne exécutée par le backend, **à 8 h heure de Paris**, aux paliers 30 jours, 7 jours, 1 jour, puis le jour de l'échéance. Une échéance ne déclenche qu'un rappel par palier, et seules les échéances encore à faire sont concernées.
+
+1. Ouvre un compte chez un expéditeur d'e-mails transactionnels — **Brevo** convient bien (offre gratuite, hébergement en France). Un compte Outlook ou Gmail fonctionne aussi, mais les quotas sont bas et les messages partent plus souvent en indésirable.
+2. Fais valider ton domaine chez le fournisseur (enregistrements SPF et DKIM à ajouter chez Gandi). Sans cette étape, les rappels arriveront en indésirable, voire pas du tout.
+3. Renseigne les cinq variables ci-dessus côté hébergeur, puis redéploie. `MAIL_FROM` doit être une adresse **autorisée par le fournisseur**, sans quoi l'envoi est refusé.
+4. Vérifie l'envoi sans attendre 8 h : le bouton « Rappel » d'une échéance emprunte exactement le même chemin, e-mail compris. En local, `npm run rappels` déclenche la tournée complète.
+
+> Un utilisateur peut couper les rappels par e-mail depuis la page Échéances. Ses rappels restent alors consultables dans l'application.
+
+### Faire partir les rappels sans offre payante
+
+Sur une offre Render gratuite, l'instance s'endort après quelques minutes sans trafic : le planificateur interne ne s'exécute alors pas à 8 h. Plutôt que de payer, ou de maintenir le service éveillé toute la journée en le pinguant, **un appel programmé depuis l'extérieur réveille le serveur et déclenche la tournée dans le même mouvement**.
+
+1. Choisis une chaîne longue et aléatoire, par exemple avec `openssl rand -hex 32`, et déclare-la côté hébergeur sous `REMINDERS_TRIGGER_TOKEN`. Sans elle, le point d'entrée reste fermé.
+2. Crée un compte gratuit sur [cron-job.org](https://cron-job.org) (ou équivalent), puis une tâche :
+   - **URL** : `https://ton-backend.example.com/rappels/executer`
+   - **Méthode** : `POST`
+   - **En-tête** : `x-rappels-token: <ta chaîne>`
+   - **Horaire** : tous les jours à 8 h
+   - **Délai d'attente** : au moins 60 secondes — une instance endormie met une trentaine de secondes à se réveiller.
+3. Déclenche la tâche une fois à la main : la réponse indique le nombre de rappels envoyés.
+
+La tournée reste idempotente : que ce soit l'appel externe, le planificateur interne ou les deux qui l'exécutent, **un palier ne donne jamais lieu à deux rappels**. Il n'y a donc rien à désactiver.
+
+## Étape 12 — Notifications push
+
+Le rappel s'affiche alors sur l'écran de l'appareil, application fermée.
+
+1. Génère la paire de clés **une seule fois** : `npm run vapid`. En changer invaliderait tous les appareils déjà autorisés, qui cesseraient d'être notifiés.
+2. Déclare `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` et `VAPID_SUBJECT` côté hébergeur, puis redéploie. La clé privée est un secret : jamais dans le dépôt.
+3. Sur le site, page Échéances, active « Notifications sur cet appareil ». Le navigateur demande l'autorisation ; l'accepter enregistre l'appareil.
+
+> **Sur iPhone**, les notifications ne fonctionnent qu'après avoir ajouté SYNeco à l'écran d'accueil : Safari ne les autorise pas sur un simple onglet. L'interface le rappelle si le cas se présente.
+
+> Le contenu est chiffré de bout en bout : le service de notification du navigateur (Google, Mozilla, Apple) achemine le message sans pouvoir le lire. Un appareil qui se désabonne est retiré automatiquement au premier envoi refusé.
 
 ## Étape 10 — Paiement des abonnements (Stripe)
 

@@ -27,7 +27,8 @@ describe('DeadlinesService', () => {
         delete: jest.fn(),
       },
     };
-    notifications = { create: jest.fn() };
+    prisma.user = { findUniqueOrThrow: jest.fn() };
+    notifications = { deliver: jest.fn() };
 
     service = new DeadlinesService(prisma, notifications);
   });
@@ -89,20 +90,29 @@ describe('DeadlinesService', () => {
       await expect(service.remind(deadline.id, otherId)).rejects.toThrow(
         ForbiddenException,
       );
-      expect(notifications.create).not.toHaveBeenCalled();
+      expect(notifications.deliver).not.toHaveBeenCalled();
     });
 
-    it('creates an in-app notification for the owner', async () => {
+    it('notifies the owner, with a null tier so the reminder stays repeatable', async () => {
       prisma.deadline.findUnique.mockResolvedValue(deadline);
-      notifications.create.mockResolvedValue({ id: 'notif-1' });
+      prisma.user.findUniqueOrThrow.mockResolvedValue({
+        id: ownerId,
+        email: 'proprietaire@example.com',
+        reminderEmails: true,
+      });
+      notifications.deliver.mockResolvedValue({ id: 'notif-1' });
 
       await service.remind(deadline.id, ownerId);
 
-      expect(notifications.create).toHaveBeenCalledWith(
-        ownerId,
-        deadline.id,
-        expect.stringContaining(deadline.title),
-      );
+      expect(notifications.deliver).toHaveBeenCalledWith({
+        deadline,
+        recipient: {
+          id: ownerId,
+          email: 'proprietaire@example.com',
+          reminderEmails: true,
+        },
+        offsetDays: null,
+      });
     });
   });
 
