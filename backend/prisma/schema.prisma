@@ -77,12 +77,13 @@ model User {
   // les rappels restent alors visibles dans l'application.
   reminderEmails Boolean @default(true)
 
-  documents     Document[]
-  deadlines     Deadline[]
-  contracts     Contract[]
-  notifications Notification[]
-  shareLinks    ShareLink[]
-  company       Company?
+  documents         Document[]
+  deadlines         Deadline[]
+  contracts         Contract[]
+  notifications     Notification[]
+  shareLinks        ShareLink[]
+  pushSubscriptions PushSubscription[]
+  company           Company?
 }
 
 model Document {
@@ -222,4 +223,24 @@ model Notification {
   // Garantit qu'une même échéance ne déclenche qu'un seul rappel par palier,
   // même si la tournée est rejouée ou si deux instances tournent en parallèle.
   @@unique([deadlineId, offsetDays])
+}
+
+/// Un navigateur ayant accepté de recevoir des notifications. L'existence de
+/// cette ligne vaut consentement : la retirer suffit à ne plus être notifié.
+model PushSubscription {
+  id        String   @id @default(cuid())
+  /// Adresse fournie par le service de notification du navigateur.
+  endpoint  String   @unique
+  /// Clés de chiffrement du destinataire : le serveur ne peut pas lire ce
+  /// qu'il envoie sans elles, et elles ne servent qu'à cet envoi.
+  p256dh    String
+  auth      String
+  /// Aide l'utilisateur à reconnaître l'appareil dans la liste.
+  label     String?
+  createdAt DateTime @default(now())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }

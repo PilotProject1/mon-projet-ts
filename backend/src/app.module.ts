@@ -18,6 +18,7 @@ import { ClientsModule } from './clients/clients.module';
 import { InvoicesModule } from './invoices/invoices.module';
 import { SearchModule } from './search/search.module';
 import { MailModule } from './mail/mail.module';
+import { PushModule } from './push/push.module';
 import { PlansModule } from './plans/plans.module';
 import { BillingModule } from './billing/billing.module';
 import { LoggingInterceptor } from './common/logging.interceptor';
@@ -37,6 +38,7 @@ import { AllExceptionsFilter } from './common/all-exceptions.filter';
     ]),
     PrismaModule,
     MailModule,
+    PushModule,
     PlansModule,
     BillingModule,
     UsersModule,

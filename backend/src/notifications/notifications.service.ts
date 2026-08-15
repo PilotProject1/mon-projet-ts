@@ -7,6 +7,7 @@ import {
 import { Prisma, type Notification } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { MailService } from '../mail/mail.service';
+import { PushService } from '../push/push.service';
 import { daysUntil, reminderMessage } from './deadline-reminder.util';
 import { reminderEmail } from './reminder-email.template';
 
@@ -30,14 +31,16 @@ export class NotificationsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly mail: MailService,
+    private readonly push: PushService,
   ) {}
 
   /**
-   * Enregistre un rappel et tente de le porter jusqu'à la boîte mail.
+   * Enregistre un rappel et tente de le porter jusqu'à l'utilisateur, par
+   * e-mail et par notification sur ses appareils.
    *
    * La notification est créée d'abord : l'application reste le canal sûr, et
-   * `channel` n'indique « email » qu'une fois l'envoi réellement accepté par
-   * le serveur SMTP.
+   * `channel` ne mentionne un canal sortant qu'une fois l'envoi réellement
+   * accepté — par le serveur SMTP, par le service de notification.
    *
    * Renvoie null lorsque le palier a déjà donné lieu à un rappel : la
    * contrainte d'unicité tient lieu de verrou, ce qui rend la tournée
@@ -75,29 +78,46 @@ export class NotificationsService {
       throw error;
     }
 
-    if (!recipient.reminderEmails) {
-      return notification;
+    // Les deux canaux sortants sont indépendants : chacun est tenté, aucun ne
+    // conditionne l'autre, et `channel` retient ceux qui ont abouti.
+    const delivered: string[] = [];
+
+    if (recipient.reminderEmails) {
+      const { subject, text, html } = reminderEmail({
+        title: deadline.title,
+        dueDate: deadline.dueDate,
+        message,
+      });
+      const sent = await this.mail.send({
+        to: recipient.email,
+        subject,
+        text,
+        html,
+      });
+      if (sent) delivered.push('email');
     }
 
-    const { subject, text, html } = reminderEmail({
-      title: deadline.title,
-      dueDate: deadline.dueDate,
-      message,
+    // Aucun réglage à vérifier ici : un abonnement push n'existe que si
+    // l'utilisateur a explicitement autorisé les notifications sur cet
+    // appareil, et le retirer suffit à ne plus rien recevoir.
+    const pushed = await this.push.sendToUser(recipient.id, {
+      title: 'Rappel SYNeco',
+      body: message,
+      url: '/echeances',
+      // Un même rappel qui reviendrait remplace le précédent au lieu de
+      // s'empiler sur l'écran verrouillé.
+      tag: `echeance-${deadline.id}`,
     });
-    const sent = await this.mail.send({
-      to: recipient.email,
-      subject,
-      text,
-      html,
-    });
-    if (!sent) {
+    if (pushed > 0) delivered.push('push');
+
+    if (delivered.length === 0) {
       // Le rappel reste consultable dans l'application : rien n'est perdu.
       return notification;
     }
 
     return this.prisma.notification.update({
       where: { id: notification.id },
-      data: { channel: 'email' },
+      data: { channel: delivered.join('+') },
     });
   }
 

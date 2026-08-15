@@ -220,6 +220,29 @@ export const notificationsApi = {
     }),
 }
 
+export const pushApi = {
+  getPublicKey: () =>
+    request<{ publicKey: string | null; available: boolean; devices: number }>(
+      '/push/cle-publique',
+    ),
+
+  subscribe: (subscription: {
+    endpoint: string
+    keys: { p256dh: string; auth: string }
+    label?: string
+  }) =>
+    request<{ subscribed: boolean }>('/push/abonnements', {
+      method: 'POST',
+      body: JSON.stringify(subscription),
+    }),
+
+  unsubscribe: (endpoint: string) =>
+    request<{ subscribed: boolean }>('/push/abonnements', {
+      method: 'DELETE',
+      body: JSON.stringify({ endpoint }),
+    }),
+}
+
 export const sharesApi = {
   list: () => request<ShareLink[]>('/shares'),
 

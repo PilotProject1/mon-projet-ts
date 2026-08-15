@@ -168,6 +168,18 @@ export default function Confidentialite() {
         depuis la page Échéances ; le lien figure également au bas de chaque message. Les rappels
         restent alors consultables dans l'application.
       </p>
+      <p>
+        Si vous l'autorisez, le rappel peut également s'afficher <strong>directement sur l'écran de
+        votre appareil</strong>. L'autorisation est demandée appareil par appareil et n'est jamais
+        présumée : sans elle, rien n'est enregistré et rien n'est envoyé. Nous conservons alors
+        l'adresse technique fournie par votre navigateur et les clés de chiffrement associées, sans
+        aucun autre identifiant d'appareil. Désactiver l'option supprime cet enregistrement, et un
+        appareil qui se désabonne est retiré automatiquement.
+      </p>
+      <p>
+        Le contenu de ces notifications est <strong>chiffré</strong> : le service de notification de
+        votre navigateur l'achemine sans pouvoir le lire.
+      </p>
 
       <h2>7. Destinataires et sous-traitants</h2>
       <p>
@@ -218,6 +230,14 @@ export default function Confidentialite() {
             <td>
               <ARemplir>localisation de l'expéditeur d'e-mails</ARemplir>
             </td>
+          </tr>
+          <tr>
+            <td>Éditeur de votre navigateur (Google, Mozilla, Apple, Microsoft)</td>
+            <td>
+              Acheminement des notifications affichées sur votre appareil, si vous les avez
+              autorisées — le contenu leur est illisible
+            </td>
+            <td>Selon le navigateur utilisé</td>
           </tr>
         </tbody>
       </table>
