@@ -17,6 +17,7 @@ import type {
   InvoiceStatus,
   SearchAnswer,
   Recurrences,
+  Briefing,
   PlanUsage,
   PlanCatalogueEntry,
 } from '../types'
@@ -313,6 +314,10 @@ export const invoicesApi = {
 export const searchApi = {
   ask: (query: string) =>
     request<SearchAnswer>('/search', { method: 'POST', body: JSON.stringify({ query }) }),
+}
+
+export const briefingApi = {
+  get: () => request<Briefing>('/briefing'),
 }
 
 export const recurrencesApi = {
