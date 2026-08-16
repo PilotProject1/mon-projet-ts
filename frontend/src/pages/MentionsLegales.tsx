@@ -77,7 +77,7 @@ export default function MentionsLegales() {
           </tr>
           <tr>
             <td>Hébergement du serveur applicatif</td>
-            <td>Render Services, Inc. (États-Unis)</td>
+            <td>Render Services, Inc. — service hébergé en Virginie (États-Unis)</td>
             <td>
               <ARemplir>adresse postale</ARemplir>
             </td>

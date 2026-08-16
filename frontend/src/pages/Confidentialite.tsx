@@ -216,9 +216,7 @@ export default function Confidentialite() {
           <tr>
             <td>Render Services, Inc.</td>
             <td>Hébergement du serveur applicatif</td>
-            <td>
-              <ARemplir>région du service Render</ARemplir>
-            </td>
+            <td>États-Unis — Virginie (US East)</td>
           </tr>
           <tr>
             <td>Neon Inc.</td>
@@ -261,9 +259,17 @@ export default function Confidentialite() {
         dans des centres de données situés sur ce territoire.
       </p>
       <p>
-        Certains prestataires restent toutefois établis aux États-Unis, et l'assistant IA y transmet
-        des données lorsqu'il est activé. Ces transferts s'effectuent sur la base des clauses
-        contractuelles types de la Commission européenne ou d'un mécanisme d'adéquation équivalent.
+        <strong>Le serveur applicatif, lui, est hébergé aux États-Unis</strong>, en Virginie. C'est
+        lui qui reçoit et traite chaque demande : vos données y transitent en clair le temps du
+        traitement, avant d'être écrites dans la base européenne ou renvoyées à votre navigateur.
+        Elles n'y sont pas conservées, mais elles y passent — nous préférons l'écrire plutôt que de
+        laisser entendre le contraire.
+      </p>
+      <p>
+        Ce transfert, comme celui vers l'assistant IA lorsqu'il est activé et comme l'hébergement de
+        l'interface, s'effectue sur la base des clauses contractuelles types de la Commission
+        européenne ou d'un mécanisme d'adéquation équivalent. Les liaisons sont chiffrées de bout en
+        bout (HTTPS).
       </p>
 
       <h2>8. Données de vos propres clients</h2>
