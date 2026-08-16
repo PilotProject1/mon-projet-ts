@@ -90,9 +90,7 @@ export default function MentionsLegales() {
           <tr>
             <td>Stockage des documents</td>
             <td>Cloudflare, Inc. (service R2), sous juridiction Union européenne</td>
-            <td>
-              <ARemplir>adresse postale</ARemplir>
-            </td>
+            <td>101 Townsend Street, San Francisco, CA 94107, États-Unis</td>
           </tr>
         </tbody>
       </table>
