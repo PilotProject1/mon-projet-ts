@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import LegalPageShell, { ARemplir } from '../components/LegalPageShell'
+import LegalPageShell from '../components/LegalPageShell'
 
 export default function Confidentialite() {
   return (
@@ -295,8 +295,10 @@ export default function Confidentialite() {
           <strong>Journaux techniques</strong> : 12 mois au maximum.
         </li>
         <li>
-          <strong>Sauvegardes</strong> : les sauvegardes de la base de données peuvent conserver vos
-          données pendant <ARemplir>durée de rétention des sauvegardes</ARemplir> avant rotation.
+          <strong>Sauvegardes</strong> : la base de données conserve un historique de{' '}
+          <strong>6 heures</strong>, qui permet de la restaurer à n'importe quel instant de cette
+          fenêtre. Une donnée que vous supprimez peut donc y subsister jusqu'à six heures ; passé ce
+          délai, elle ne subsiste nulle part.
         </li>
       </ul>
 
