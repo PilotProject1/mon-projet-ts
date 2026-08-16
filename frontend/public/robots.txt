@@ -1,0 +1,20 @@
+# Les pages publiques sont indexables ; l'espace personnel ne l'est pas.
+User-agent: *
+Allow: /$
+Allow: /connexion
+Allow: /inscription
+Allow: /mentions-legales
+Allow: /confidentialite
+Allow: /cgv
+Disallow: /documents
+Disallow: /echeances
+Disallow: /contrats
+Disallow: /partages
+Disallow: /partage/
+Disallow: /entreprise
+Disallow: /clients
+Disallow: /factures
+Disallow: /recherche
+Disallow: /abonnement
+
+Sitemap: https://syneco.pro/sitemap.xml
