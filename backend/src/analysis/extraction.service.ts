@@ -14,6 +14,12 @@ export interface ExtractedFields {
   suggestedDueDate: string | null;
   /** Formule qui a désigné cette date, pour pouvoir la justifier. */
   suggestedDueLabel: string | null;
+  /**
+   * Date portée par le document : émission, établissement, facturation.
+   * C'est elle qui situe une facture dans le temps — le jour du dépôt dans
+   * l'application ne dit rien du mois auquel elle se rapporte.
+   */
+  suggestedDocumentDate: string | null;
 }
 
 const KNOWN_PROVIDERS = [
@@ -111,6 +117,23 @@ const DUE_DATE_PHRASES = [
   'avant le',
 ];
 
+/*
+ * Formules qui annoncent la date du document lui-même. Même principe que
+ * ci-dessus : à défaut, on prendra la première date rencontrée, qu'un
+ * document administratif imprime presque toujours dans son en-tête.
+ */
+const DOCUMENT_DATE_PHRASES = [
+  'date de facturation',
+  'date de facture',
+  'date d’émission',
+  "date d'émission",
+  'date du document',
+  'émis le',
+  'établi le',
+  'facture du',
+  'fait le',
+];
+
 /** Fenêtre de texte suivant la formule dans laquelle chercher la date. */
 const DUE_DATE_WINDOW = 80;
 
@@ -133,18 +156,24 @@ function replier(texte: string): string {
 }
 
 const DUE_DATE_NEEDLES = DUE_DATE_PHRASES.map(replier);
+const DOCUMENT_DATE_NEEDLES = DOCUMENT_DATE_PHRASES.map(replier);
 const AMOUNT_REGEX =
   /(\d{1,3}(?:[ .]\d{3})*(?:,\d{2})?)\s?(?:€|EUR)\b|(?:€|EUR)\s?(\d{1,3}(?:[ .]\d{3})*(?:,\d{2})?)/gi;
 
 @Injectable()
 export class ExtractionService {
   extract(rawText: string): ExtractedFields {
+    const due = this.extractDueDate(rawText);
     return {
       suggestedType: this.guessType(rawText),
       suggestedProvider: this.guessProvider(rawText),
       suggestedDates: this.extractDates(rawText),
       suggestedAmount: this.extractAmount(rawText),
-      ...this.extractDueDate(rawText),
+      suggestedDocumentDate: this.extractDocumentDate(
+        rawText,
+        due.suggestedDueDate,
+      ),
+      ...due,
     };
   }
 
@@ -156,9 +185,38 @@ export class ExtractionService {
     suggestedDueDate: string | null;
     suggestedDueLabel: string | null;
   } {
+    const trouvee = this.dateAfterPhrase(text, DUE_DATE_NEEDLES);
+    return {
+      suggestedDueDate: trouvee?.iso ?? null,
+      suggestedDueLabel: trouvee?.label ?? null,
+    };
+  }
+
+  /**
+   * Date du document. À défaut de formule explicite, la première date du
+   * texte : les documents administratifs la portent dans leur en-tête. Cette
+   * approximation est écartée lorsqu'elle retomberait sur l'échéance, qui est
+   * tout ce qu'elle n'est pas.
+   */
+  private extractDocumentDate(text: string, dueDate: string | null) {
+    const trouvee = this.dateAfterPhrase(text, DOCUMENT_DATE_NEEDLES);
+    if (trouvee) return trouvee.iso;
+
+    const premiere = this.firstDate(text);
+    return premiere && premiere !== dueDate ? premiere : null;
+  }
+
+  /**
+   * Première date qui suit l'une des formules données, dans l'ordre où elles
+   * sont listées — cet ordre traduit leur fiabilité.
+   */
+  private dateAfterPhrase(
+    text: string,
+    needles: string[],
+  ): { iso: string; label: string } | null {
     const repere = replier(text);
 
-    for (const phrase of DUE_DATE_NEEDLES) {
+    for (const phrase of needles) {
       let from = 0;
       for (;;) {
         const at = repere.indexOf(phrase, from);
@@ -172,16 +230,13 @@ export class ExtractionService {
         if (iso) {
           // L'intitulé est repris tel qu'il figure dans le document, pour que
           // l'utilisateur retrouve la ligne d'origine d'un coup d'œil.
-          return {
-            suggestedDueDate: iso,
-            suggestedDueLabel: text.slice(at, at + phrase.length).trim(),
-          };
+          return { iso, label: text.slice(at, at + phrase.length).trim() };
         }
         from = at + phrase.length;
       }
     }
 
-    return { suggestedDueDate: null, suggestedDueLabel: null };
+    return null;
   }
 
   /** Première date valide d'un fragment de texte. */

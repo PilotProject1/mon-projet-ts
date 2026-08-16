@@ -3,7 +3,7 @@ import LegalPageShell, { ARemplir } from '../components/LegalPageShell'
 
 export default function Confidentialite() {
   return (
-    <LegalPageShell title="Politique de confidentialité" lastUpdated="14 août 2026">
+    <LegalPageShell title="Politique de confidentialité" lastUpdated="16 août 2026">
       <p>
         SYNeco sert à centraliser des documents personnels (contrats, factures, assurances) et à en
         suivre les échéances. Ces documents sont sensibles par nature : cette page décrit précisément
@@ -44,7 +44,9 @@ export default function Confidentialite() {
             <td>Documents</td>
             <td>
               Le fichier lui-même et son contenu, son nom, son type, son format, sa taille et sa date
-              d'ajout
+              d'ajout. À la lecture automatique s'ajoutent, enregistrés dans la base de données, le
+              texte lu dans le document (tronqué à 20 000 caractères) ainsi que l'émetteur, le
+              montant et la date qui y ont été reconnus
             </td>
           </tr>
           <tr>
@@ -129,8 +131,11 @@ export default function Confidentialite() {
         </li>
         <li>
           <strong>Recherche en langage naturel</strong> : votre question ainsi qu'un catalogue de vos
-          données (noms de documents, intitulés d'échéances, fournisseurs et montants de contrats,
-          numéros de factures et noms de clients) sont transmis pour produire une réponse.
+          données (noms de documents, émetteurs, montants et dates lus dans vos documents, intitulés
+          d'échéances, fournisseurs et montants de contrats, numéros de factures et noms de clients)
+          sont transmis pour produire une réponse. Lorsque les mots de votre question figurent dans
+          le texte lu d'un document, le passage correspondant — environ quatre cents caractères
+          autour de ces mots — est joint à la demande.
         </li>
       </ul>
       <p>

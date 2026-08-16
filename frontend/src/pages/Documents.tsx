@@ -11,6 +11,7 @@ import type {
 } from '../types'
 import { ApiError, documentsApi } from '../services/api'
 import { formatDate } from '../utils/formatDate'
+import { formatAmount } from '../utils/formatAmount'
 import PlanUsageCard from '../components/PlanUsageCard'
 import DocumentScanner from '../components/DocumentScanner'
 import SuggestedDeadline from '../components/SuggestedDeadline'
@@ -59,6 +60,21 @@ function formatSize(bytes: number) {
   if (bytes < 1024) return `${bytes} o`
   if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} Ko`
   return `${(bytes / (1024 * 1024)).toFixed(1)} Mo`
+}
+
+/**
+ * Ce que la lecture du document a reconnu : émetteur, montant, date portée
+ * par le document. Chaîne vide quand rien n'a été trouvé — il n'y a alors
+ * rien à afficher, et surtout pas une ligne de tirets.
+ */
+function resumeLu(doc: Document): string {
+  return [
+    doc.provider,
+    doc.amount !== null ? formatAmount(doc.amount) : null,
+    doc.documentDate ? `document du ${formatDate(doc.documentDate)}` : null,
+  ]
+    .filter(Boolean)
+    .join(' · ')
 }
 
 export default function Documents({
@@ -455,6 +471,12 @@ export default function Documents({
                       {typeLabels[doc.type]} · {formatSize(doc.sizeBytes)} · Ajouté le{' '}
                       {formatDate(doc.createdAt)}
                     </p>
+                    {/* Ce que la lecture a reconnu dans le document. Ligne
+                        distincte et tronquée : un nom de fournisseur long ne
+                        doit pas repousser le reste hors de l'écran. */}
+                    {resumeLu(doc) && (
+                      <p className="truncate text-xs text-brand-green">{resumeLu(doc)}</p>
+                    )}
                   </div>
                   <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 sm:shrink-0">
                     <span
@@ -526,10 +548,18 @@ export default function Documents({
                             <p className="text-brand-ink">{analysis.suggestedProvider ?? '—'}</p>
                           </div>
                           <div>
+                            <p className="text-xs font-medium text-brand-muted">Date du document</p>
+                            <p className="text-brand-ink">
+                              {analysis.suggestedDocumentDate
+                                ? formatDate(analysis.suggestedDocumentDate)
+                                : '—'}
+                            </p>
+                          </div>
+                          <div>
                             <p className="text-xs font-medium text-brand-muted">Dates trouvées</p>
                             <p className="text-brand-ink">
                               {analysis.suggestedDates.length > 0
-                                ? analysis.suggestedDates.join(', ')
+                                ? analysis.suggestedDates.map(formatDate).join(', ')
                                 : '—'}
                             </p>
                           </div>
@@ -537,7 +567,7 @@ export default function Documents({
                             <p className="text-xs font-medium text-brand-muted">Montant</p>
                             <p className="text-brand-ink">
                               {analysis.suggestedAmount !== null
-                                ? `${analysis.suggestedAmount.toFixed(2)} €`
+                                ? formatAmount(analysis.suggestedAmount)
                                 : '—'}
                             </p>
                           </div>
@@ -555,8 +585,9 @@ export default function Documents({
                         )}
 
                         <p className="text-xs text-brand-muted">
-                          Ces suggestions ne sont pas enregistrées automatiquement — vérifie-les
-                          avant de créer une échéance ou un contrat.
+                          L'émetteur, le montant, la date et le texte lu sont conservés pour la
+                          recherche. Aucune échéance ni aucun contrat n'est créé sans toi :
+                          vérifie ces valeurs avant de les reprendre.
                         </p>
 
                         <div className="flex flex-wrap gap-2">

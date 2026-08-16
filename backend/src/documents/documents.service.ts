@@ -20,6 +20,9 @@ import { PlansService } from '../plans/plans.service';
 /** Au-delà, la reconnaissance du type est abandonnée. */
 const DETECTION_TIMEOUT_MS = 90_000;
 
+/** Longueur de texte conservée par document. */
+const MAX_TEXT_CHARS = 20_000;
+
 @Injectable()
 export class DocumentsService {
   private readonly logger = new Logger(DocumentsService.name);
@@ -96,7 +99,7 @@ export class DocumentsService {
       // Aucune lecture ne doit pouvoir laisser un document « en analyse »
       // indéfiniment : passé ce délai, on renonce au type et on libère la
       // ligne, quitte à ce que l'utilisateur le choisisse lui-même.
-      const { fields } = await this.withTimeout(
+      const { fields, text } = await this.withTimeout(
         this.runExtraction(document, userId),
         DETECTION_TIMEOUT_MS,
       );
@@ -119,6 +122,7 @@ export class DocumentsService {
           ...(fields.suggestedType ? { type: fields.suggestedType } : {}),
           suggestedDueDate: futureDueDate,
           suggestedDueLabel: futureDueDate ? fields.suggestedDueLabel : null,
+          ...this.factsFrom(fields, text),
         },
       });
       this.logger.log(
@@ -143,6 +147,9 @@ export class DocumentsService {
   findAll(userId: string) {
     return this.prisma.document.findMany({
       where: { userId },
+      // Le texte lu ne sort pas de la base : il pèse jusqu'à vingt mille
+      // caractères par document et n'est utile qu'à la recherche.
+      omit: { extractedText: true },
       orderBy: { createdAt: 'desc' },
     });
   }
@@ -207,12 +214,47 @@ export class DocumentsService {
     return { fields, text, warning };
   }
 
+  /**
+   * Ce que la lecture a appris du document, sous la forme attendue par la
+   * base. Ces champs étaient jusqu'ici calculés puis jetés : les conserver
+   * est ce qui rend possible une recherche sur le contenu, et un jour le
+   * repérage des dépenses récurrentes.
+   */
+  private factsFrom(fields: ExtractedFields, text: string) {
+    const documentDate = fields.suggestedDocumentDate
+      ? new Date(`${fields.suggestedDocumentDate}T00:00:00.000Z`)
+      : null;
+    const nettoye = text.trim();
+
+    return {
+      provider: fields.suggestedProvider,
+      amount: fields.suggestedAmount,
+      documentDate:
+        documentDate && !Number.isNaN(documentDate.getTime())
+          ? documentDate
+          : null,
+      // Tronqué : au-delà, une ligne de base de données porterait le poids
+      // d'un fichier entier sans que la recherche y gagne quoi que ce soit.
+      extractedText: nettoye ? nettoye.slice(0, MAX_TEXT_CHARS) : null,
+      analyzedAt: new Date(),
+    };
+  }
+
   async analyze(id: string, userId: string) {
     const document = await this.findOne(id, userId);
     const { fields, text, warning } = await this.runExtraction(
       document,
       userId,
     );
+
+    // L'analyse à la demande enregistre elle aussi ce qu'elle a lu : c'est
+    // par elle qu'un document déposé avant cette version rejoint la
+    // recherche par le contenu. Le type, lui, n'est pas touché — il a pu
+    // être choisi à la main, et ce choix prime.
+    await this.prisma.document.update({
+      where: { id },
+      data: this.factsFrom(fields, text),
+    });
 
     return {
       warning,

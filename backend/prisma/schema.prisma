@@ -102,12 +102,29 @@ model Document {
   suggestedDueDate  DateTime?
   suggestedDueLabel String?
 
+  /// Ce que la lecture du document a appris de lui. Ces champs étaient déjà
+  /// calculés à chaque analyse puis jetés ; les conserver est ce qui permet
+  /// de répondre à « combien ai-je payé chez X », « où est ma facture de
+  /// février » sans relire tous les fichiers.
+  provider     String?
+  amount       Float?
+  /// Date portée par le document lui-même — émission, établissement — par
+  /// opposition à createdAt, qui n'est que le jour du dépôt.
+  documentDate DateTime?
+  /// Texte lu dans le document, tronqué. Sert la recherche par le contenu.
+  extractedText String?
+  /// Dernière lecture réussie. Distingue « rien trouvé » de « jamais lu »,
+  /// et permet de rattraper les documents déposés avant cette version.
+  analyzedAt    DateTime?
+
   userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   deadlines  Deadline[]
   contracts  Contract[]
   shareLinks ShareLink[]
+
+  @@index([userId, analyzedAt])
 }
 
 model Deadline {
