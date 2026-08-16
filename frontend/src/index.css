@@ -29,6 +29,21 @@
   --ink: #132420;
   --muted: #5b6b65;
   --border: #e3e9e6;
+
+  /* Zones sûres de l'appareil.
+     Le site déclare viewport-fit=cover et, sur iOS, une barre d'état
+     translucide : ajouté à l'écran d'accueil, le contenu commence donc au
+     pixel 0, sous l'heure et le niveau de batterie. Tout en-tête doit
+     descendre d'autant, et tout bas de page remonter au-dessus de la barre
+     de navigation gestuelle.
+     Ces alias valent zéro dans un navigateur ordinaire : ils n'ajoutent rien
+     là où il n'y a rien à contourner. Les passer par des variables plutôt que
+     d'appeler env() sur place permet de les forcer à la vérification, pour
+     observer le rendu d'un téléphone à encoche. */
+  --zone-sure-haut: env(safe-area-inset-top, 0px);
+  --zone-sure-bas: env(safe-area-inset-bottom, 0px);
+  --zone-sure-gauche: env(safe-area-inset-left, 0px);
+  --zone-sure-droite: env(safe-area-inset-right, 0px);
 }
 
 body {
