@@ -3,7 +3,7 @@ import { FileText, Clock, CheckCircle2, CalendarClock, Plus } from 'lucide-react
 import type { ComponentType } from 'react'
 import type { Document, Deadline } from '../types'
 import PriorityBadge from '../components/PriorityBadge'
-import { formatDate } from '../utils/formatDate'
+import { daysUntil, formatDate, formatRelative } from '../utils/formatDate'
 
 interface DashboardProps {
   documents: Document[]
@@ -106,7 +106,19 @@ export default function Dashboard({ documents, deadlines }: DashboardProps) {
               <li key={d.id} className="flex items-center justify-between py-3.5">
                 <div>
                   <p className="text-sm font-medium text-brand-ink">{d.title}</p>
-                  <p className="text-xs text-brand-muted">Échéance : {formatDate(d.dueDate)}</p>
+                  <p className="text-xs text-brand-muted">
+                    {formatDate(d.dueDate)}
+                    <span
+                      className={
+                        (daysUntil(d.dueDate) ?? 0) < 0
+                          ? ' font-semibold text-brand-danger'
+                          : ''
+                      }
+                    >
+                      {' · '}
+                      {formatRelative(d.dueDate)}
+                    </span>
+                  </p>
                 </div>
                 <PriorityBadge priority={d.priority} />
               </li>

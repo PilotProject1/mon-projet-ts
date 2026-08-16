@@ -96,6 +96,12 @@ model Document {
   status    DocumentStatus @default(en_attente)
   createdAt DateTime       @default(now())
 
+  /// Échéance repérée dans le texte du document et proposée à l'utilisateur.
+  /// Effacée dès qu'il l'accepte ou l'écarte : une proposition n'a de sens
+  /// que tant qu'elle n'a pas été tranchée.
+  suggestedDueDate  DateTime?
+  suggestedDueLabel String?
+
   userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 

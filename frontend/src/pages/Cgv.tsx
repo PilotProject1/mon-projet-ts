@@ -3,7 +3,7 @@ import LegalPageShell, { ARemplir } from '../components/LegalPageShell'
 
 export default function Cgv() {
   return (
-    <LegalPageShell title="Conditions générales de vente" lastUpdated="14 août 2026">
+    <LegalPageShell title="Conditions générales de vente" lastUpdated="16 août 2026">
       <p>
         Les présentes conditions régissent la souscription aux offres payantes de SYNeco. Elles
         s'appliquent à compter de leur acceptation lors de la commande, et complètent les{' '}
@@ -44,7 +44,7 @@ export default function Cgv() {
           <tr>
             <td>Gratuit</td>
             <td>0 €</td>
-            <td>Jusqu'à 50 documents, échéances et rappels</td>
+            <td>Jusqu'à 10 documents, échéances et rappels</td>
           </tr>
           <tr>
             <td>Particulier Premium</td>

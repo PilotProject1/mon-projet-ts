@@ -1,6 +1,6 @@
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
-import { createTestApp, cleanupUsers } from './utils/test-app';
+import { createTestApp, cleanupUsers, setPlan } from './utils/test-app';
 
 async function registerUser(app: INestApplication, label: string) {
   const email = `e2e-${label}-${Date.now()}-${Math.random().toString(36).slice(2)}@syneco.test`;
@@ -59,6 +59,10 @@ describe('Cross-user permissions (e2e)', () => {
       userA = await registerUser(app, 'docs-a');
       userB = await registerUser(app, 'docs-b');
       createdUserIds.push(userA.userId, userB.userId);
+      // Les deux comptes, y compris celui dont on attend des refus : ce que
+      // ce test vérifie est le cloisonnement, pas la barrière d'abonnement.
+      await setPlan(app, userA.userId, 'pro');
+      await setPlan(app, userB.userId, 'pro');
 
       const docRes = await authed(app, userA.accessToken)
         .post('/documents')
@@ -203,6 +207,9 @@ describe('Cross-user permissions (e2e)', () => {
       userA = await registerUser(app, 'biz-a');
       userB = await registerUser(app, 'biz-b');
       createdUserIds.push(userA.userId, userB.userId);
+      // Le module de facturation est réservé aux plans professionnels.
+      await setPlan(app, userA.userId, 'pro');
+      await setPlan(app, userB.userId, 'pro');
 
       await authed(app, userA.accessToken)
         .post('/company')
@@ -263,6 +270,9 @@ describe('Cross-user permissions (e2e)', () => {
     it('a user with no company yet gets a clear 404 instead of a crash', async () => {
       const fresh = await registerUser(app, 'no-company');
       createdUserIds.push(fresh.userId);
+      // Le compte a le droit d'accéder au module ; il n'a simplement pas
+      // encore créé son entreprise. C'est bien un 404 qui est attendu.
+      await setPlan(app, fresh.userId, 'pro');
 
       await authed(app, fresh.accessToken).get('/company').expect(404);
       await authed(app, fresh.accessToken)

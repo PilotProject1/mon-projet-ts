@@ -5,7 +5,7 @@ import PriorityBadge from '../components/PriorityBadge'
 import DeadlineCalendar from '../components/DeadlineCalendar'
 import ReminderSettings from '../components/ReminderSettings'
 import { ApiError } from '../services/api'
-import { formatDate } from '../utils/formatDate'
+import { daysUntil, formatDate, formatRelative } from '../utils/formatDate'
 
 interface DeadlinesProps {
   deadlines: Deadline[]
@@ -14,6 +14,12 @@ interface DeadlinesProps {
   onDelete: (id: string) => Promise<void>
   onToggleStatus: (id: string) => Promise<void>
   onRemind: (id: string) => Promise<void>
+}
+
+/** Une échéance dont le jour est passé et qui reste à faire. */
+function isOverdue(dueDate: string) {
+  const jours = daysUntil(dueDate)
+  return jours !== null && jours < 0
 }
 
 export default function Deadlines({
@@ -244,7 +250,22 @@ export default function Deadlines({
                         {d.title}
                       </p>
                       <p className="text-xs text-brand-muted">
-                        Échéance : {formatDate(d.dueDate)}
+                        {formatDate(d.dueDate)}
+                        {d.status !== 'terminee' && (
+                          // Le délai restant prime sur la date : c'est ce qu'on
+                          // cherche en lisant une échéance. En retard, il passe
+                          // au rouge et devient l'information la plus visible.
+                          <span
+                            className={
+                              isOverdue(d.dueDate)
+                                ? ' font-semibold text-brand-danger'
+                                : ' text-brand-muted'
+                            }
+                          >
+                            {' · '}
+                            {formatRelative(d.dueDate)}
+                          </span>
+                        )}
                         {linkedDoc ? ` · ${linkedDoc.name}` : ''}
                       </p>
                     </div>

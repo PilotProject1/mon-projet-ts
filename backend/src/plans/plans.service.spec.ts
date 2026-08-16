@@ -20,19 +20,19 @@ describe('PlansService', () => {
 
   describe('assertCanAddDocument', () => {
     it('allows an upload below the free-plan limit', async () => {
-      onPlan('gratuit', 49);
+      onPlan('gratuit', 9);
       await expect(service.assertCanAddDocument('u1')).resolves.toBeUndefined();
     });
 
     it('refuses the upload once the free-plan limit is reached', async () => {
-      onPlan('gratuit', 50);
+      onPlan('gratuit', 10);
       await expect(service.assertCanAddDocument('u1')).rejects.toBeInstanceOf(
         ForbiddenException,
       );
     });
 
     it('refuses when the count somehow exceeded the limit', async () => {
-      onPlan('gratuit', 62);
+      onPlan('gratuit', 14);
       await expect(service.assertCanAddDocument('u1')).rejects.toBeInstanceOf(
         ForbiddenException,
       );
@@ -80,10 +80,10 @@ describe('PlansService', () => {
 
   describe('getUsage', () => {
     it('reports the remaining quota on the free plan', async () => {
-      onPlan('gratuit', 12);
+      onPlan('gratuit', 4);
       await expect(service.getUsage('u1')).resolves.toMatchObject({
         plan: 'gratuit',
-        documents: { used: 12, max: 50, remaining: 38 },
+        documents: { used: 4, max: 10, remaining: 6 },
       });
     });
 

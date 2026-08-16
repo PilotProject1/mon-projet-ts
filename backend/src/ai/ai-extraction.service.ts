@@ -31,18 +31,40 @@ const EXTRACTION_SCHEMA = {
     suggestedAmount: {
       anyOf: [{ type: 'number' }, { type: 'null' }],
     },
+    suggestedDueDate: {
+      anyOf: [
+        {
+          type: 'string',
+          description:
+            "Date d'échéance au format AAAA-MM-JJ : celle avant laquelle le destinataire doit agir (payer, renouveler), et non la date d'émission du document.",
+        },
+        { type: 'null' },
+      ],
+    },
+    suggestedDueLabel: {
+      anyOf: [
+        {
+          type: 'string',
+          description:
+            'Formule du document qui désigne cette échéance, reprise telle quelle (par exemple « Échéance de paiement »).',
+        },
+        { type: 'null' },
+      ],
+    },
   },
   required: [
     'suggestedType',
     'suggestedProvider',
     'suggestedDates',
     'suggestedAmount',
+    'suggestedDueDate',
+    'suggestedDueLabel',
   ],
   additionalProperties: false,
 };
 
 const SYSTEM_PROMPT =
-  "Tu extrais des champs structurés à partir du texte de documents administratifs français (factures, contrats, assurances, garanties, courriers). Réponds uniquement à partir du texte fourni. Si une information est absente ou incertaine, renvoie null plutôt que d'inventer une valeur.";
+  "Tu extrais des champs structurés à partir du texte de documents administratifs français (factures, contrats, assurances, garanties, courriers). Réponds uniquement à partir du texte fourni. Si une information est absente ou incertaine, renvoie null plutôt que d'inventer une valeur. Pour l'échéance, ne retiens une date que si le document indique explicitement qu'une action est attendue avant elle : une date d'émission, de naissance ou de signature n'est pas une échéance.";
 
 @Injectable()
 export class AiExtractionService {

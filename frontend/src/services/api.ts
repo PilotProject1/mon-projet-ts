@@ -162,6 +162,13 @@ export const documentsApi = {
   analyze: (id: string) =>
     request<DocumentAnalysis>(`/documents/${id}/analyze`, { method: 'POST' }),
 
+  /** Transforme l'échéance repérée automatiquement en échéance suivie. */
+  acceptSuggestion: (id: string) =>
+    request<Deadline>(`/documents/${id}/echeance-suggeree`, { method: 'POST' }),
+
+  dismissSuggestion: (id: string) =>
+    request<Document>(`/documents/${id}/echeance-suggeree`, { method: 'DELETE' }),
+
   async getFileBlob(id: string, retry = true): Promise<Blob> {
     const res = await rawRequest(`/documents/${id}/file`)
     if (res.status === 401 && retry && (await tryRefresh())) {

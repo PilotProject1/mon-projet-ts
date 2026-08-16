@@ -13,6 +13,7 @@ import { ApiError, documentsApi } from '../services/api'
 import { formatDate } from '../utils/formatDate'
 import PlanUsageCard from '../components/PlanUsageCard'
 import DocumentScanner from '../components/DocumentScanner'
+import SuggestedDeadline from '../components/SuggestedDeadline'
 
 interface DocumentsProps {
   documents: Document[]
@@ -32,6 +33,8 @@ interface DocumentsProps {
     documentId: string
     expiresInHours: 24 | 168 | 720
   }) => Promise<ShareLink>
+  /** Relit documents et échéances après acceptation d'une proposition. */
+  onRefresh: () => Promise<void>
 }
 
 const shareDurationLabels: Record<24 | 168 | 720, string> = {
@@ -66,6 +69,7 @@ export default function Documents({
   onCreateDeadline,
   onCreateContract,
   onCreateShare,
+  onRefresh,
 }: DocumentsProps) {
   const quotaReached =
     planUsage !== null &&
@@ -489,6 +493,8 @@ export default function Documents({
                     </button>
                   </div>
                 </div>
+
+                <SuggestedDeadline document={doc} onSettled={onRefresh} />
 
                 {expandedId === doc.id && (
                   <div className="mt-3 rounded-lg border border-brand-border bg-brand-mint/40 p-4">

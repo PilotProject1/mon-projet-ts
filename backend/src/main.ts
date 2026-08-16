@@ -40,7 +40,9 @@ async function bootstrap() {
 
   app.use(helmet());
 
-  const allowedOrigins = (process.env.FRONTEND_ORIGIN ?? 'http://localhost:5173')
+  const allowedOrigins = (
+    process.env.FRONTEND_ORIGIN ?? 'http://localhost:5173'
+  )
     .split(',')
     .map((origin) => origin.trim().replace(/\/+$/, ''))
     .filter((origin) => origin.length > 0);

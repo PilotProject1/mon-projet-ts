@@ -100,18 +100,14 @@ export class BillingService {
     // substitue alors au vendeur et ajoute la TVA. Incompatible avec la
     // franchise en base (art. 293 B), qui suppose des prix nets et un vendeur
     // unique — celui désigné par les CGV.
-    //
-    // Le paramètre n'est pas encore typé par le SDK v22 bien que Stripe le
-    // documente ; le `satisfies` ci-dessus préserve la vérification de type
-    // sur tout le reste de la requête.
     const session = await this.stripe.checkout.sessions.create({
       ...params,
       managed_payments: { enabled: false },
-    } as unknown as Stripe.Checkout.SessionCreateParams);
+    });
 
     if (!session.url) {
       throw new ServiceUnavailableException(
-        'Stripe n\'a pas renvoyé d\'URL de paiement',
+        "Stripe n'a pas renvoyé d'URL de paiement",
       );
     }
     return { url: session.url };
@@ -121,7 +117,9 @@ export class BillingService {
   async createPortalSession(userId: string): Promise<{ url: string }> {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user?.stripeCustomerId) {
-      throw new BadRequestException("Aucun abonnement n'est rattaché à ce compte");
+      throw new BadRequestException(
+        "Aucun abonnement n'est rattaché à ce compte",
+      );
     }
 
     const session = await this.stripe.billingPortal.sessions.create({
@@ -218,7 +216,8 @@ export class BillingService {
     const priceId = item?.price?.id;
     const planFromPrice = priceId ? planForStripePriceId(priceId) : null;
 
-    const plan: Plan = grantsAccess && planFromPrice ? planFromPrice : 'gratuit';
+    const plan: Plan =
+      grantsAccess && planFromPrice ? planFromPrice : 'gratuit';
 
     const periodEnd = item?.current_period_end;
     await this.prisma.user.update({
