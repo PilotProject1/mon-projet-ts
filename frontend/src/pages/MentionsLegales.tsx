@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import LegalPageShell, { ARemplir } from '../components/LegalPageShell'
+import LegalPageShell from '../components/LegalPageShell'
 
 export default function MentionsLegales() {
   return (
@@ -77,7 +77,9 @@ export default function MentionsLegales() {
             <td>Hébergement du serveur applicatif</td>
             <td>Render Services, Inc. — service hébergé en Virginie (États-Unis)</td>
             <td>
-              <ARemplir>adresse postale</ARemplir>
+              Représentant dans l'Union européenne : Osano International Compliance Services
+              Limited (ATTN : 9UOQ), 3 Dublin Landings, North Wall Quay, Dublin 1, D01 C4E0,
+              Irlande
             </td>
           </tr>
           <tr>
