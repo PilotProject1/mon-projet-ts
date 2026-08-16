@@ -4,6 +4,7 @@ import Layout from './components/Layout'
 import Login from './pages/Login'
 import Register from './pages/Register'
 import Dashboard from './pages/Dashboard'
+import Accueil from './pages/Accueil'
 import Documents from './pages/Documents'
 import Deadlines from './pages/Deadlines'
 import Contracts from './pages/Contracts'
@@ -303,6 +304,9 @@ function App() {
             isAuthenticated ? <Navigate to="/" replace /> : <Register onLogin={handleLogin} />
           }
         />
+        {/* Sans compte, l'adresse du site présente le service au lieu de
+            renvoyer aussitôt vers un écran de connexion. */}
+        {!isAuthenticated && <Route path="/" element={<Accueil />} />}
         <Route
           element={
             user ? (

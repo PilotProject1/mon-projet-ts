@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import BrandLogo from './BrandLogo'
+import { useTitrePage } from '../utils/useTitrePage'
 
 /**
  * Champ que l'éditeur doit renseigner avant la mise en ligne publique.
@@ -21,6 +22,7 @@ interface LegalPageShellProps {
 }
 
 export default function LegalPageShell({ title, lastUpdated, children }: LegalPageShellProps) {
+  useTitrePage(`${title} — SYNeco`)
   return (
     <div className="min-h-screen bg-brand-mint">
       <header className="border-b border-brand-border bg-white">

@@ -5,12 +5,17 @@ import { authApi, ApiError } from '../services/api'
 import type { User } from '../types'
 import BrandLogo from '../components/BrandLogo'
 import AmbientBackground from '../components/AmbientBackground'
+import { useTitrePage } from '../utils/useTitrePage'
 
 interface LoginProps {
   onLogin: (user: User) => void
 }
 
 export default function Login({ onLogin }: LoginProps) {
+  useTitrePage(
+    'Connexion — SYNeco',
+    'Accédez à vos documents administratifs, vos échéances et vos rappels SYNeco.',
+  )
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
