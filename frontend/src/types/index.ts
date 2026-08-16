@@ -177,6 +177,10 @@ export interface Recurrences {
   /** Séries dont le dernier montant a sensiblement augmenté. */
   hausses: RecurringSeries[]
   yearlyTotal: number
+  /** Documents lus dont l'émetteur n'a pas été reconnu. */
+  unrecognized: number
+  /** true si le plan donne droit à la lecture par IA. */
+  aiReading: boolean
 }
 
 export type Plan = 'gratuit' | 'premium' | 'pro' | 'pme'

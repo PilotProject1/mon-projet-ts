@@ -35,7 +35,12 @@ export default function RecurringExpenses() {
     return () => { vivant = false }
   }, [])
 
-  if (!data || data.series.length === 0) return null
+  // Sans modèle, l'émetteur n'est reconnu que s'il figure dans une liste : des
+  // factures restent alors hors de toute série. Le dire ne vaut qu'à partir de
+  // quelques-unes, et seulement à qui n'a pas déjà la lecture par IA.
+  const manques = !data?.aiReading && (data?.unrecognized ?? 0) >= 2
+
+  if (!data || (data.series.length === 0 && !manques)) return null
 
   return (
     <div className="brand-card-shadow mt-5.5 rounded-[14px] border border-brand-border bg-white px-5.5 py-5">
@@ -55,11 +60,32 @@ export default function RecurringExpenses() {
         Reconstituées à partir de vos factures. Rien n&apos;est prélevé ni suivi par SYNeco.
       </p>
 
-      <ul className="divide-y divide-brand-border">
-        {data.series.map((serie) => (
-          <Serie key={serie.provider} serie={serie} />
-        ))}
-      </ul>
+      {data.series.length > 0 && (
+        <ul className="divide-y divide-brand-border">
+          {data.series.map((serie) => (
+            <Serie key={serie.provider} serie={serie} />
+          ))}
+        </ul>
+      )}
+
+      {manques && (
+        <div className="mt-3 rounded-lg border border-brand-border bg-brand-mint/50 px-3.5 py-3">
+          <p className="text-[12.5px] text-brand-ink">
+            {/* Le seuil d'affichage étant de deux, le pluriel est acquis. */}
+            {data.unrecognized} documents lus sans émetteur reconnu
+            {data.series.length > 0 ? ' n’apparaissent pas ici' : ' : rien n’a pu être regroupé'}.
+            La lecture sans abonnement s&apos;appuie sur une liste d&apos;organismes courants ;
+            l&apos;analyse par intelligence artificielle, elle, reconnaît n&apos;importe quel
+            émetteur.
+          </p>
+          <Link
+            to="/abonnement"
+            className="mt-1.5 inline-block text-[12.5px] font-semibold text-brand-green hover:underline"
+          >
+            Voir les offres
+          </Link>
+        </div>
+      )}
 
       <Link
         to="/documents"

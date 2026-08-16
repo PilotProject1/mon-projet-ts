@@ -10,7 +10,7 @@ interface AbonnementProps {
 }
 
 const featureLabels: Record<PlanFeature, string> = {
-  ia: 'Assistant IA : extraction et recherche',
+  ia: 'Assistant IA : reconnaît n’importe quel émetteur, extraction et recherche',
   partage: 'Partage sécurisé de documents',
   facturation: 'Facturation, clients et entreprise',
   equipes: 'Plusieurs utilisateurs et droits d’accès',
