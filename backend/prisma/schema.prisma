@@ -77,6 +77,14 @@ model User {
   // les rappels restent alors visibles dans l'application.
   reminderEmails Boolean @default(true)
 
+  /// Point hebdomadaire par e-mail : ce qui demande une décision. Distinct
+  /// des rappels d'échéance, et refusable séparément — les deux ne rendent
+  /// pas le même service et ne s'acceptent pas ensemble.
+  weeklyDigest Boolean @default(true)
+  /// Dernier point parti. Garantit qu'il ne part qu'une fois par semaine, et
+  /// rattrape une semaine où la tournée n'a pas eu lieu.
+  lastWeeklyDigestAt DateTime?
+
   documents         Document[]
   deadlines         Deadline[]
   contracts         Contract[]

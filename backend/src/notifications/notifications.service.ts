@@ -149,26 +149,39 @@ export class NotificationsService {
   async getPreferences(userId: string) {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
-      select: { reminderEmails: true },
+      select: { reminderEmails: true, weeklyDigest: true },
     });
     if (!user) {
       throw new NotFoundException('Utilisateur introuvable');
     }
     return {
       emailReminders: user.reminderEmails,
+      weeklyDigest: user.weeklyDigest,
       // L'interface doit pouvoir dire la vérité : sans serveur SMTP
       // configuré, activer l'option ne ferait rien partir.
       emailConfigured: this.mail.available,
     };
   }
 
-  async updatePreferences(userId: string, emailReminders: boolean) {
+  async updatePreferences(
+    userId: string,
+    emailReminders: boolean,
+    weeklyDigest?: boolean,
+  ) {
     await this.prisma.user.update({
       where: { id: userId },
-      data: { reminderEmails: emailReminders },
+      data: {
+        reminderEmails: emailReminders,
+        // Omis par un client qui ignore l'option : sa valeur est conservée.
+        ...(weeklyDigest === undefined ? {} : { weeklyDigest }),
+      },
     });
     this.logger.log(
-      `Rappels par e-mail ${emailReminders ? 'activés' : 'désactivés'} pour le compte ${userId}`,
+      `Rappels par e-mail ${emailReminders ? 'activés' : 'désactivés'}` +
+        (weeklyDigest === undefined
+          ? ''
+          : `, point hebdomadaire ${weeklyDigest ? 'activé' : 'désactivé'}`) +
+        ` pour le compte ${userId}`,
     );
     return this.getPreferences(userId);
   }

@@ -11,6 +11,7 @@ import {
 import { Throttle } from '@nestjs/throttler';
 import { timingSafeEqual } from 'crypto';
 import { RemindersService } from './reminders.service';
+import { WeeklyDigestService } from '../briefing/weekly-digest.service';
 
 /**
  * Déclenchement de la tournée des rappels depuis l'extérieur.
@@ -29,7 +30,10 @@ import { RemindersService } from './reminders.service';
 export class RemindersController {
   private readonly logger = new Logger(RemindersController.name);
 
-  constructor(private readonly reminders: RemindersService) {}
+  constructor(
+    private readonly reminders: RemindersService,
+    private readonly digest: WeeklyDigestService,
+  ) {}
 
   @Post('executer')
   @HttpCode(HttpStatus.OK)
@@ -56,7 +60,18 @@ export class RemindersController {
       `Tournée déclenchée de l'extérieur : ${summary.sent} envoyé(s), ` +
         `${summary.alreadySent} déjà notifié(s), ${summary.failed} en erreur`,
     );
-    return summary;
+
+    // Le point hebdomadaire suit le même chemin : c'est cet appel qui réveille
+    // l'instance, et le planificateur interne ne s'exécute pas quand elle
+    // dort. Le service décide lui-même s'il y a lieu d'envoyer aujourd'hui.
+    const digest = await this.digest.run();
+    if (digest.sent > 0 || digest.failed > 0) {
+      this.logger.log(
+        `Point hebdomadaire : ${digest.sent} envoyé(s), ${digest.failed} en erreur`,
+      );
+    }
+
+    return { ...summary, digest };
   }
 
   /** Comparaison à durée constante, pour ne rien révéler du jeton attendu. */

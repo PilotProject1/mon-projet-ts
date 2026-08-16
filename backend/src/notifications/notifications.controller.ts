@@ -32,6 +32,7 @@ export class NotificationsController {
     return this.notificationsService.updatePreferences(
       user.userId,
       dto.emailReminders,
+      dto.weeklyDigest,
     );
   }
 
