@@ -46,7 +46,7 @@ const EXTRACTION_SCHEMA = {
         {
           type: 'string',
           description:
-            "Formule du document qui désigne cette échéance, reprise telle quelle (par exemple « Échéance de paiement »).",
+            'Formule du document qui désigne cette échéance, reprise telle quelle (par exemple « Échéance de paiement »).',
         },
         { type: 'null' },
       ],

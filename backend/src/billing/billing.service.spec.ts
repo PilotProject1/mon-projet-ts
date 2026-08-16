@@ -63,7 +63,10 @@ describe('BillingService — synchronisation des abonnements', () => {
 
   it('accorde le plan correspondant au tarif payé', async () => {
     const data = await applySubscription(subscription({ status: 'active' }));
-    expect(data).toMatchObject({ plan: 'premium', stripeSubscriptionId: 'sub_1' });
+    expect(data).toMatchObject({
+      plan: 'premium',
+      stripeSubscriptionId: 'sub_1',
+    });
   });
 
   it('distingue les tarifs premium et professionnel', async () => {
@@ -73,7 +76,7 @@ describe('BillingService — synchronisation des abonnements', () => {
     expect(data.plan).toBe('pro');
   });
 
-  it('accorde aussi les droits pendant une période d\'essai', async () => {
+  it("accorde aussi les droits pendant une période d'essai", async () => {
     const data = await applySubscription(subscription({ status: 'trialing' }));
     expect(data.plan).toBe('premium');
   });
@@ -88,14 +91,17 @@ describe('BillingService — synchronisation des abonnements', () => {
   describe('retrait des droits', () => {
     const statutsSansAcces = ['canceled', 'unpaid', 'past_due', 'incomplete'];
 
-    it.each(statutsSansAcces)('ramène au plan gratuit si statut %s', async (status) => {
-      const data = await applySubscription(subscription({ status }));
-      expect(data).toMatchObject({
-        plan: 'gratuit',
-        stripeSubscriptionId: null,
-        planRenewsAt: null,
-      });
-    });
+    it.each(statutsSansAcces)(
+      'ramène au plan gratuit si statut %s',
+      async (status) => {
+        const data = await applySubscription(subscription({ status }));
+        expect(data).toMatchObject({
+          plan: 'gratuit',
+          stripeSubscriptionId: null,
+          planRenewsAt: null,
+        });
+      },
+    );
   });
 
   it('ne donne aucun droit si le tarif payé est inconnu', async () => {

@@ -14,7 +14,9 @@ describe('ExtractionService — repérage de l’échéance', () => {
     const champs = service.extract(texte);
 
     expect(champs.suggestedDueDate).toBe('2026-09-30');
-    expect(champs.suggestedDueLabel?.toLowerCase()).toBe('échéance de paiement');
+    expect(champs.suggestedDueLabel?.toLowerCase()).toBe(
+      'échéance de paiement',
+    );
   });
 
   it('reconnaît la formule même sans accents ni minuscules', () => {

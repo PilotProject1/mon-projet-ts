@@ -106,7 +106,9 @@ export class DocumentsService {
         ? new Date(`${fields.suggestedDueDate}T00:00:00.000Z`)
         : null;
       const futureDueDate =
-        dueDate && !Number.isNaN(dueDate.getTime()) && dueDate.getTime() > Date.now()
+        dueDate &&
+        !Number.isNaN(dueDate.getTime()) &&
+        dueDate.getTime() > Date.now()
           ? dueDate
           : null;
 
