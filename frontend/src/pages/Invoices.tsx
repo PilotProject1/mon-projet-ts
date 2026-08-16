@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom'
 import type { Client, Company, Invoice, InvoiceStatus } from '../types'
 import { ApiError } from '../services/api'
 import { formatDate } from '../utils/formatDate'
+import { formatAmount } from '../utils/formatAmount'
 
 interface InvoicesProps {
   company: Company | null
@@ -26,10 +27,6 @@ const statusStyles: Record<InvoiceStatus, string> = {
   envoyee: 'bg-amber-100 text-amber-700',
   payee: 'bg-green-100 text-green-700',
   en_retard: 'bg-red-100 text-red-700',
-}
-
-function formatAmount(total: number) {
-  return `${total.toFixed(2)} €`
 }
 
 export default function Invoices({

@@ -51,6 +51,16 @@ const EXTRACTION_SCHEMA = {
         { type: 'null' },
       ],
     },
+    suggestedDocumentDate: {
+      anyOf: [
+        {
+          type: 'string',
+          description:
+            "Date portée par le document lui-même au format AAAA-MM-JJ : émission, établissement, facturation. Ce n'est pas l'échéance.",
+        },
+        { type: 'null' },
+      ],
+    },
   },
   required: [
     'suggestedType',
@@ -59,6 +69,7 @@ const EXTRACTION_SCHEMA = {
     'suggestedAmount',
     'suggestedDueDate',
     'suggestedDueLabel',
+    'suggestedDocumentDate',
   ],
   additionalProperties: false,
 };

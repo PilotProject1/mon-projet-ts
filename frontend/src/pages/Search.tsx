@@ -3,6 +3,7 @@ import type { FormEvent } from 'react'
 import { searchApi, ApiError } from '../services/api'
 import type { SearchAnswer, SearchHit, DocumentType } from '../types'
 import { formatDate } from '../utils/formatDate'
+import { formatAmount } from '../utils/formatAmount'
 
 const typeLabels: Record<DocumentType, string> = {
   contrat: 'Contrat',
@@ -20,11 +21,6 @@ const kindLabels: Record<SearchHit['kind'], string> = {
   invoice: 'Facture',
 }
 
-function formatAmount(value: unknown) {
-  const amount = Number(value)
-  return Number.isFinite(amount) ? `${amount.toFixed(2)} €` : '—'
-}
-
 function safeDate(value: unknown) {
   const text = String(value ?? '')
   return text ? formatDate(text) : '—'
@@ -35,10 +31,18 @@ function describeHit(hit: SearchHit): { title: string; subtitle: string } {
   switch (hit.kind) {
     case 'document': {
       const type = item.type as DocumentType | undefined
-      return {
-        title: String(item.name ?? 'Document'),
-        subtitle: `${type ? typeLabels[type] : 'Document'} · Ajouté le ${safeDate(item.createdAt)}`,
-      }
+      // Ce que la lecture du document a appris de lui prime sur la date de
+      // dépôt : « EDF · 128,40 € · document du 1 août » situe la pièce, là
+      // où « ajouté le 15 août » ne dit rien de son contenu.
+      const faits = [
+        type ? typeLabels[type] : 'Document',
+        item.provider ? String(item.provider) : null,
+        typeof item.amount === 'number' ? formatAmount(item.amount) : null,
+        item.documentDate
+          ? `du ${safeDate(item.documentDate)}`
+          : `ajouté le ${safeDate(item.createdAt)}`,
+      ].filter(Boolean)
+      return { title: String(item.name ?? 'Document'), subtitle: faits.join(' · ') }
     }
     case 'deadline':
       return {

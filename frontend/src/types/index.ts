@@ -14,6 +14,14 @@ export interface Document {
   suggestedDueDate: string | null
   /** Formule du document qui désigne cette échéance. */
   suggestedDueLabel: string | null
+  /** Émetteur reconnu dans le document (EDF, MAIF…), null si non identifié. */
+  provider: string | null
+  /** Montant principal lu dans le document, en euros. */
+  amount: number | null
+  /** Date portée par le document, à distinguer de la date de dépôt. */
+  documentDate: string | null
+  /** Date de la dernière lecture. null tant que le document n'a pas été lu. */
+  analyzedAt: string | null
 }
 
 export type DeadlinePriority = 'basse' | 'moyenne' | 'haute'
@@ -57,6 +65,7 @@ export interface DocumentAnalysis {
   suggestedProvider: string | null
   suggestedDates: string[]
   suggestedAmount: number | null
+  suggestedDocumentDate: string | null
 }
 
 export interface ShareLink {
