@@ -3,6 +3,7 @@ import { FileText, Clock, CheckCircle2, CalendarClock, Plus } from 'lucide-react
 import type { ComponentType } from 'react'
 import type { Document, Deadline } from '../types'
 import PriorityBadge from '../components/PriorityBadge'
+import RecurringExpenses from '../components/RecurringExpenses'
 import { daysUntil, formatDate, formatRelative } from '../utils/formatDate'
 
 interface DashboardProps {
@@ -126,6 +127,8 @@ export default function Dashboard({ documents, deadlines }: DashboardProps) {
           </ul>
         )}
       </div>
+
+      <RecurringExpenses />
     </div>
   )
 }

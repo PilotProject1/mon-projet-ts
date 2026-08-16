@@ -17,6 +17,7 @@ import { CompanyModule } from './company/company.module';
 import { ClientsModule } from './clients/clients.module';
 import { InvoicesModule } from './invoices/invoices.module';
 import { SearchModule } from './search/search.module';
+import { RecurrencesModule } from './recurrences/recurrences.module';
 import { MailModule } from './mail/mail.module';
 import { PushModule } from './push/push.module';
 import { PlansModule } from './plans/plans.module';
@@ -52,6 +53,7 @@ import { AllExceptionsFilter } from './common/all-exceptions.filter';
     ClientsModule,
     InvoicesModule,
     SearchModule,
+    RecurrencesModule,
   ],
   controllers: [AppController],
   providers: [

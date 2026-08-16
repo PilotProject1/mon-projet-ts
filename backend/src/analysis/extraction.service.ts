@@ -22,6 +22,15 @@ export interface ExtractedFields {
   suggestedDocumentDate: string | null;
 }
 
+/*
+ * Émetteurs reconnus par le moteur local, faute de modèle.
+ *
+ * La liste sert surtout aux dépenses qui reviennent : sans émetteur, une
+ * facture ne rejoint aucune série et l'abonnement reste invisible. D'où la
+ * présence des abonnements grand public, et pas seulement des assureurs.
+ * Elle ne prétend pas être exhaustive — l'extraction par le modèle, elle,
+ * reconnaît n'importe quel émetteur.
+ */
 const KNOWN_PROVIDERS = [
   'AXA',
   'MAIF',
@@ -45,6 +54,27 @@ const KNOWN_PROVIDERS = [
   'CAF',
   'Amazon',
   'SNCF',
+  'Sosh',
+  'Red by SFR',
+  'Free Mobile',
+  'Netflix',
+  'Spotify',
+  'Deezer',
+  'Canal+',
+  'Disney+',
+  'Basic-Fit',
+  'Veolia',
+  'Suez',
+  'Ameli',
+  'URSSAF',
+  'Direction générale des finances publiques',
+  'Crédit Agricole',
+  'Banque Populaire',
+  'Caisse d’Épargne',
+  'Société Générale',
+  'BNP Paribas',
+  'Boursorama',
+  'Fortuneo',
 ];
 
 const TYPE_KEYWORDS: Record<DocumentType, string[]> = {
@@ -153,6 +183,19 @@ function replier(texte: string): string {
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '');
   return sansAccents.length === texte.length ? sansAccents : minuscules;
+}
+
+/**
+ * Forme comparable d'un nom d'émetteur : minuscules, sans accents, et
+ * apostrophe unifiée — un document imprime « Caisse d'Épargne » aussi
+ * volontiers avec l'apostrophe droite qu'avec la courbe.
+ */
+function normaliser(texte: string): string {
+  return texte
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/['\u2018\u2019`]/g, "'");
 }
 
 const DUE_DATE_NEEDLES = DUE_DATE_PHRASES.map(replier);
@@ -281,12 +324,22 @@ export class ExtractionService {
     return max;
   }
 
+  /**
+   * Émetteur reconnu le plus tôt dans le texte — un document annonce le sien
+   * en en-tête. À position égale, le nom le plus long l'emporte : « Free
+   * Mobile » désigne mieux que « Free », qu'il contient.
+   */
   private guessProvider(text: string): string | null {
-    const lower = text.toLowerCase();
+    const repere = normaliser(text);
     let best: { provider: string; index: number } | null = null;
     for (const provider of KNOWN_PROVIDERS) {
-      const index = lower.indexOf(provider.toLowerCase());
-      if (index !== -1 && (best === null || index < best.index)) {
+      const index = repere.indexOf(normaliser(provider));
+      if (index === -1) continue;
+      if (
+        best === null ||
+        index < best.index ||
+        (index === best.index && provider.length > best.provider.length)
+      ) {
         best = { provider, index };
       }
     }
