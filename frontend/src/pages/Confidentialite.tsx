@@ -219,7 +219,7 @@ export default function Confidentialite() {
             <td>États-Unis — Virginie (US East)</td>
           </tr>
           <tr>
-            <td>Neon Inc.</td>
+            <td>Neon (Databricks, Inc.)</td>
             <td>Base de données (comptes, échéances, contrats, métadonnées)</td>
             <td>Union européenne — Francfort (AWS eu-central-1)</td>
           </tr>

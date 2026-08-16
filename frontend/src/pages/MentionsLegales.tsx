@@ -84,10 +84,8 @@ export default function MentionsLegales() {
           </tr>
           <tr>
             <td>Base de données</td>
-            <td>Neon Inc., données hébergées à Francfort (Union européenne)</td>
-            <td>
-              <ARemplir>adresse postale</ARemplir>
-            </td>
+            <td>Neon (Databricks, Inc.), données hébergées à Francfort (Union européenne)</td>
+            <td>160 Spear Street, 15th Floor, San Francisco, CA 94105, États-Unis</td>
           </tr>
           <tr>
             <td>Stockage des documents</td>
