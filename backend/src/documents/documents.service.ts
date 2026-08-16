@@ -100,15 +100,30 @@ export class DocumentsService {
         this.runExtraction(document, userId),
         DETECTION_TIMEOUT_MS,
       );
+      // Une échéance déjà passée ne mérite pas d'être proposée : elle
+      // n'appelle plus aucune action et polluerait l'écran.
+      const dueDate = fields.suggestedDueDate
+        ? new Date(`${fields.suggestedDueDate}T00:00:00.000Z`)
+        : null;
+      const futureDueDate =
+        dueDate && !Number.isNaN(dueDate.getTime()) && dueDate.getTime() > Date.now()
+          ? dueDate
+          : null;
+
       await this.prisma.document.update({
         where: { id: documentId },
         data: {
           status: 'traite',
           ...(fields.suggestedType ? { type: fields.suggestedType } : {}),
+          suggestedDueDate: futureDueDate,
+          suggestedDueLabel: futureDueDate ? fields.suggestedDueLabel : null,
         },
       });
       this.logger.log(
-        `Document ${documentId} reconnu comme « ${fields.suggestedType ?? 'indéterminé'} »`,
+        `Document ${documentId} reconnu comme « ${fields.suggestedType ?? 'indéterminé'} »` +
+          (futureDueDate
+            ? `, échéance proposée le ${fields.suggestedDueDate}`
+            : ''),
       );
     } catch (error) {
       this.logger.warn(
@@ -202,6 +217,46 @@ export class DocumentsService {
       rawTextPreview: text.slice(0, 500),
       ...fields,
     };
+  }
+
+  /**
+   * Transforme l'échéance repérée en véritable échéance suivie.
+   *
+   * C'est le geste central du service : l'utilisateur photographie un
+   * document, l'application lit sa date limite, et un seul appui suffit à
+   * déclencher les rappels. La suggestion est effacée dans le même
+   * mouvement, pour qu'elle ne soit pas acceptée deux fois.
+   */
+  async acceptSuggestedDeadline(id: string, userId: string) {
+    const document = await this.findOne(id, userId);
+    if (!document.suggestedDueDate) {
+      throw new NotFoundException('Aucune échéance proposée pour ce document');
+    }
+
+    const deadline = await this.prisma.deadline.create({
+      data: {
+        title: document.name,
+        dueDate: document.suggestedDueDate,
+        userId,
+        documentId: document.id,
+      },
+    });
+
+    await this.prisma.document.update({
+      where: { id: document.id },
+      data: { suggestedDueDate: null, suggestedDueLabel: null },
+    });
+
+    return deadline;
+  }
+
+  /** Écarte la proposition sans rien créer. */
+  async dismissSuggestedDeadline(id: string, userId: string) {
+    await this.findOne(id, userId);
+    return this.prisma.document.update({
+      where: { id },
+      data: { suggestedDueDate: null, suggestedDueLabel: null },
+    });
   }
 
   async remove(id: string, userId: string) {

@@ -10,6 +10,10 @@ export interface Document {
   sizeBytes: number
   status: 'traite' | 'en_attente'
   createdAt: string
+  /** Échéance repérée dans le document, tant qu'elle n'a pas été tranchée. */
+  suggestedDueDate: string | null
+  /** Formule du document qui désigne cette échéance. */
+  suggestedDueLabel: string | null
 }
 
 export type DeadlinePriority = 'basse' | 'moyenne' | 'haute'

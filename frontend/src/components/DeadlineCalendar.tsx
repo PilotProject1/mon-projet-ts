@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import type { Deadline, Document } from '../types'
-import { formatDate } from '../utils/formatDate'
+import { toDayKey } from '../utils/formatDate'
 import PriorityBadge from './PriorityBadge'
 import { ApiError } from '../services/api'
 
@@ -65,7 +65,7 @@ export default function DeadlineCalendar({
 
   const byDay = new Map<string, Deadline[]>()
   for (const d of deadlines) {
-    const key = formatDate(d.dueDate)
+    const key = toDayKey(d.dueDate)
     if (!byDay.has(key)) byDay.set(key, [])
     byDay.get(key)!.push(d)
   }

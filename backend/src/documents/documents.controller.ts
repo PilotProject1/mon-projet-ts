@@ -90,6 +90,23 @@ export class DocumentsController {
     return this.documentsService.analyze(id, user.userId);
   }
 
+  /** Accepte l'échéance repérée automatiquement dans le document. */
+  @Post(':id/echeance-suggeree')
+  acceptSuggestion(
+    @Param('id') id: string,
+    @CurrentUser() user: CurrentUserPayload,
+  ) {
+    return this.documentsService.acceptSuggestedDeadline(id, user.userId);
+  }
+
+  @Delete(':id/echeance-suggeree')
+  dismissSuggestion(
+    @Param('id') id: string,
+    @CurrentUser() user: CurrentUserPayload,
+  ) {
+    return this.documentsService.dismissSuggestedDeadline(id, user.userId);
+  }
+
   @Patch(':id')
   update(
     @Param('id') id: string,

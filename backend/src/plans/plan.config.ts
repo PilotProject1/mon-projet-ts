@@ -22,7 +22,7 @@ export const PLANS: Record<Plan, PlanDefinition> = {
   gratuit: {
     label: 'Gratuit',
     monthlyPrice: 0,
-    maxDocuments: 50,
+    maxDocuments: 10,
     features: [],
   },
   premium: {

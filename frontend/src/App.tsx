@@ -155,6 +155,13 @@ function App() {
     }
   }
 
+  /** Relecture ciblée, après qu'une échéance proposée a été acceptée. */
+  async function reloadDocumentsAndDeadlines() {
+    const [docs, dls] = await Promise.all([documentsApi.list(), deadlinesApi.list()])
+    setDocuments(docs)
+    setDeadlines(dls)
+  }
+
   async function addDocument(data: { name: string; type?: DocumentType; file: File }) {
     const doc = await documentsApi.create(data)
     setDocuments((prev) => [doc, ...prev])
@@ -328,6 +335,7 @@ function App() {
                 onCreateDeadline={addDeadline}
                 onCreateContract={addContract}
                 onCreateShare={createShare}
+                onRefresh={reloadDocumentsAndDeadlines}
               />
             }
           />
