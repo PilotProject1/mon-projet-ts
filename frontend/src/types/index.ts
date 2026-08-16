@@ -100,6 +100,8 @@ export interface Notification {
 export interface NotificationPreferences {
   /** Rappels d'échéance envoyés par e-mail. */
   emailReminders: boolean
+  /** Point hebdomadaire par e-mail : ce qui demande une décision. */
+  weeklyDigest: boolean
   /** false si le serveur n'a pas de serveur SMTP configuré. */
   emailConfigured: boolean
 }

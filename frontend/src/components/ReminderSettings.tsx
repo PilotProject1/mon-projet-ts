@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { BellRing, Loader2, Smartphone } from 'lucide-react'
+import { BellRing, CalendarCheck, Loader2, Smartphone } from 'lucide-react'
 import type { NotificationPreferences } from '../types'
 import { ApiError, notificationsApi } from '../services/api'
 import {
@@ -18,6 +18,7 @@ import {
 export default function ReminderSettings() {
   const [preferences, setPreferences] = useState<NotificationPreferences | null>(null)
   const [savingEmail, setSavingEmail] = useState(false)
+  const [savingDigest, setSavingDigest] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const [pushState, setPushState] = useState<PushState | null>(null)
@@ -53,11 +54,29 @@ export default function ReminderSettings() {
     setSavingEmail(true)
     setError(null)
     try {
-      setPreferences(await notificationsApi.updatePreferences(next))
+      setPreferences(
+        await notificationsApi.updatePreferences(next, preferences.weeklyDigest),
+      )
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Réglage non enregistré')
     } finally {
       setSavingEmail(false)
+    }
+  }
+
+  async function handleToggleDigest() {
+    if (!preferences) return
+    const next = !preferences.weeklyDigest
+    setSavingDigest(true)
+    setError(null)
+    try {
+      setPreferences(
+        await notificationsApi.updatePreferences(preferences.emailReminders, next),
+      )
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Réglage non enregistré')
+    } finally {
+      setSavingDigest(false)
     }
   }
 
@@ -103,6 +122,16 @@ export default function ReminderSettings() {
           </p>
         )}
       </Row>
+
+      <Row
+        icon={<CalendarCheck size={16} className="shrink-0 text-brand-green" />}
+        title="Point hebdomadaire par e-mail"
+        description="Le lundi, ce qui demande une décision : échéances dépassées ou proches, propositions en attente, hausses constatées. Rien n'est envoyé les semaines où il n'y a rien à signaler."
+        checked={preferences.weeklyDigest}
+        onToggle={handleToggleDigest}
+        saving={savingDigest}
+        disabled={false}
+      />
 
       {pushOffered && (
         <Row

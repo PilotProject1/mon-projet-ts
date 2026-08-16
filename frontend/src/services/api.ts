@@ -222,10 +222,10 @@ export const notificationsApi = {
 
   getPreferences: () => request<NotificationPreferences>('/notifications/preferences'),
 
-  updatePreferences: (emailReminders: boolean) =>
+  updatePreferences: (emailReminders: boolean, weeklyDigest?: boolean) =>
     request<NotificationPreferences>('/notifications/preferences', {
       method: 'PATCH',
-      body: JSON.stringify({ emailReminders }),
+      body: JSON.stringify({ emailReminders, weeklyDigest }),
     }),
 }
 

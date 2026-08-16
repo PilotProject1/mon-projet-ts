@@ -185,6 +185,14 @@ export default function Confidentialite() {
         Le contenu de ces notifications est <strong>chiffré</strong> : le service de notification de
         votre navigateur l'achemine sans pouvoir le lire.
       </p>
+      <p>
+        Un <strong>point hebdomadaire</strong> peut par ailleurs vous être adressé le lundi. Il
+        rassemble ce qui appelle une décision : échéances dépassées ou proches, échéances repérées
+        dans un document et non tranchées, hausses constatées sur une dépense récurrente, offre
+        bientôt pleine. Il ne contient aucun document et n'est envoyé que les semaines où l'un de
+        ces points existe. Ce message se refuse indépendamment des rappels, depuis la page
+        Échéances ou par le lien figurant à son pied.
+      </p>
 
       <h2>7. Destinataires et sous-traitants</h2>
       <p>
@@ -231,7 +239,7 @@ export default function Confidentialite() {
             <td>
               <ARemplir>expéditeur d'e-mails retenu</ARemplir>
             </td>
-            <td>Acheminement des rappels d'échéance par e-mail</td>
+            <td>Acheminement des rappels d'échéance et du point hebdomadaire par e-mail</td>
             <td>
               <ARemplir>localisation de l'expéditeur d'e-mails</ARemplir>
             </td>
