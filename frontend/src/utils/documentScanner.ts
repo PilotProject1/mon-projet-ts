@@ -32,7 +32,16 @@ export interface ScanResult {
   cropped: boolean
   width: number
   height: number
+  /**
+   * Cadre retenu, en coordonnées relatives (0 à 1) sur la photo d'origine.
+   * null si aucun n'a été reconnu. Sert d'amorce au réglage manuel, pour que
+   * l'utilisateur reprenne la proposition plutôt que de repartir de rien.
+   */
+  quad: RelativeQuad | null
 }
+
+/** Quadrilatère exprimé en fractions de la largeur et de la hauteur. */
+export type RelativeQuad = [Point, Point, Point, Point]
 
 /** Côté long de l'image utilisée pour la détection des bords. */
 const ANALYSIS_SIZE = 480
@@ -456,7 +465,10 @@ function isPlausibleDocument(
   const imageArea = imageWidth * imageHeight
   const area = polygonArea(quad)
   if (area < imageArea * 0.18) return false
-  if (area > imageArea * 0.995) return false
+  // Une feuille qui remplit la quasi-totalité du cadre n'a rien à gagner d'un
+  // recadrage ; et un contour qui longe les bords de la photo est le signe
+  // que la feuille n'a pas été distinguée de ce qui l'entoure.
+  if (area > imageArea * 0.92) return false
 
   // Le quadrilatère doit épouser la zone détectée : si celle-ci déborde
   // largement, ce n'est pas une feuille rectangulaire.
@@ -496,8 +508,25 @@ function shrinkQuad(quad: Quad, factor: number): Quad {
   })) as Quad
 }
 
+/**
+ * Part de la photo qu'il faut avoir reconnue comme fond pour se fier au reste.
+ *
+ * Sur un plaid pelucheux, les mèches présentent d'un pixel au suivant des
+ * écarts plus grands que celui qui sépare le papier de la laine : la
+ * propagation s'arrête après quelques pixels, et tout le reste de l'image —
+ * la feuille comme le tissu — se retrouve d'un seul tenant. Le « document »
+ * détecté était alors la photo entière, bords compris, ce qui donnait un
+ * recadrage inutile plutôt qu'un refus franc.
+ */
+const MIN_BACKGROUND_SHARE = 0.12
+
 function detectDocumentQuad(image: ImageData): Quad | null {
   const mask = backgroundMask(image)
+
+  let fond = 0
+  for (let i = 0; i < mask.length; i++) fond += mask[i]
+  if (fond < mask.length * MIN_BACKGROUND_SHARE) return null
+
   const foreground = largestForegroundBoundary(mask, image.width, image.height)
   if (!foreground || foreground.boundary.length < 8) return null
 
@@ -836,6 +865,12 @@ export async function scanDocument(file: File): Promise<ScanResult> {
 
   let working = fullImage
   let cropped = false
+  let quadRelatif: RelativeQuad | null = quad
+    ? (quad.map((p) => ({
+        x: p.x / analysisSize.width,
+        y: p.y / analysisSize.height,
+      })) as RelativeQuad)
+    : null
 
   if (quad) {
     const ratio = full.width / analysisSize.width
@@ -858,10 +893,61 @@ export async function scanDocument(file: File): Promise<ScanResult> {
       if (warped) {
         working = warped
         cropped = true
+      } else {
+        quadRelatif = null
       }
     }
   }
 
+  return finish(file, source, working, cropped, quadRelatif)
+}
+
+/**
+ * Applique un cadre choisi à la main.
+ *
+ * Aucune détection n'est retentée : les coins fournis font foi, y compris
+ * lorsqu'ils débordent un peu de la feuille — c'est l'utilisateur qui voit.
+ * Le cadre n'est pas non plus resserré, contrairement à la détection
+ * automatique, dont les coins sont relevés sur une image réduite.
+ */
+export async function applyQuad(file: File, quad: RelativeQuad): Promise<ScanResult> {
+  const source = await loadImage(file)
+  const sourceWidth = 'naturalWidth' in source ? source.naturalWidth : source.width
+  const sourceHeight = 'naturalHeight' in source ? source.naturalHeight : source.height
+  if (!sourceWidth || !sourceHeight) throw new Error('Image illisible')
+
+  const full = fitWithin(sourceWidth, sourceHeight, OUTPUT_SIZE)
+  const fullImage = drawTo(source, full.width, full.height)
+
+  const enPixels = quad.map((p) => ({
+    x: p.x * full.width,
+    y: p.y * full.height,
+  })) as Quad
+
+  const targetWidth = Math.round(
+    Math.max(distance(enPixels[0], enPixels[1]), distance(enPixels[3], enPixels[2])),
+  )
+  const targetHeight = Math.round(
+    Math.max(distance(enPixels[0], enPixels[3]), distance(enPixels[1], enPixels[2])),
+  )
+  if (targetWidth <= 80 || targetHeight <= 80) {
+    throw new Error('Cadre trop petit')
+  }
+
+  const warped = warp(fullImage, enPixels, targetWidth, targetHeight)
+  if (!warped) throw new Error('Redressement impossible')
+
+  return finish(file, source, warped, true, quad)
+}
+
+/** Nettoyage, encodage et construction du résultat, communs aux deux chemins. */
+async function finish(
+  file: File,
+  source: ImageBitmap | HTMLImageElement,
+  working: ImageData,
+  cropped: boolean,
+  quad: RelativeQuad | null,
+): Promise<ScanResult> {
   const cleaned = enhance(working)
   const canvas = toCanvas(cleaned)
 
@@ -878,5 +964,6 @@ export async function scanDocument(file: File): Promise<ScanResult> {
     cropped,
     width: cleaned.width,
     height: cleaned.height,
+    quad,
   }
 }

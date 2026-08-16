@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import type { ChangeEvent } from 'react'
-import { Camera, Loader2, RefreshCw, ScanLine } from 'lucide-react'
+import { Camera, Crop, Loader2, RefreshCw, ScanLine } from 'lucide-react'
 import { scanDocument, type ScanResult } from '../utils/documentScanner'
+import CornerAdjuster from './CornerAdjuster'
 
 interface DocumentScannerProps {
   /** Appelé dès que l'image nettoyée est prête : rien à valider. */
@@ -21,6 +22,10 @@ export default function DocumentScanner({
   const [processing, setProcessing] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [showOriginal, setShowOriginal] = useState(false)
+  // Photo d'origine conservée : le réglage manuel repart d'elle, jamais de
+  // l'image déjà recadrée, qu'on ne pourrait plus élargir.
+  const [photo, setPhoto] = useState<File | null>(null)
+  const [reglage, setReglage] = useState(false)
 
   // Les URL d'aperçu retiennent l'image en mémoire tant qu'elles existent.
   useEffect(() => {
@@ -41,6 +46,8 @@ export default function DocumentScanner({
 
     setError(null)
     setShowOriginal(false)
+    setReglage(false)
+    setPhoto(photo)
     setProcessing(true)
     onProcessingChange?.(true)
     try {
@@ -70,7 +77,8 @@ export default function DocumentScanner({
             Photographier le document
           </p>
           <p className="mt-0.5 text-xs text-brand-muted">
-            Les bords sont détectés, l'image redressée et l'éclairage corrigé automatiquement.
+            Les bords sont détectés, l'image redressée et l'éclairage corrigé. Le cadrage reste
+            ajustable à la main.
           </p>
         </div>
         <button
@@ -122,7 +130,7 @@ export default function DocumentScanner({
             <p className="min-w-0 text-xs text-brand-muted">
               {result.cropped
                 ? `Bords détectés, document redressé (${result.width} × ${result.height} px).`
-                : 'Bords non détectés : image nettoyée sans recadrage.'}
+                : 'Bords non reconnus : image nettoyée, mais pas recadrée.'}
             </p>
             <button
               type="button"
@@ -132,6 +140,43 @@ export default function DocumentScanner({
               {showOriginal ? 'Voir le résultat' : 'Voir la photo d’origine'}
             </button>
           </div>
+
+          {/* Toujours proposé, pas seulement en cas d'échec : la détection peut
+              aussi se tromper de quelques millimètres, et c'est l'œil qui
+              tranche. Mis en avant lorsqu'elle a renoncé. */}
+          {!reglage && photo && (
+            <button
+              type="button"
+              onClick={() => setReglage(true)}
+              className={`flex w-full items-center justify-center gap-2 rounded-md px-3 py-2 text-sm font-semibold ${
+                result.cropped
+                  ? 'border border-brand-border bg-white text-brand-deep hover:bg-brand-mint'
+                  : 'brand-gradient text-white'
+              }`}
+            >
+              <Crop size={15} />
+              {result.cropped ? 'Ajuster les bords' : 'Cadrer le document moi-même'}
+            </button>
+          )}
+
+          {reglage && photo && (
+            <CornerAdjuster
+              photo={photo}
+              photoUrl={result.originalUrl}
+              initialQuad={result.quad}
+              onApply={(ajuste) => {
+                // Le nouveau résultat crée ses propres URL d'aperçu : celles
+                // du précédent retiendraient l'image en mémoire pour rien.
+                URL.revokeObjectURL(result.previewUrl)
+                URL.revokeObjectURL(result.originalUrl)
+                setResult(ajuste)
+                onScanned(ajuste.file)
+                setReglage(false)
+                setShowOriginal(false)
+              }}
+              onCancel={() => setReglage(false)}
+            />
+          )}
         </div>
       )}
     </div>
