@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import LegalPageShell, { ARemplir } from '../components/LegalPageShell'
+import LegalPageShell from '../components/LegalPageShell'
 
 export default function Confidentialite() {
   return (
@@ -216,12 +216,10 @@ export default function Confidentialite() {
           <tr>
             <td>Render Services, Inc.</td>
             <td>Hébergement du serveur applicatif</td>
-            <td>
-              <ARemplir>région du service Render</ARemplir>
-            </td>
+            <td>États-Unis — Virginie (US East)</td>
           </tr>
           <tr>
-            <td>Neon Inc.</td>
+            <td>Neon (Databricks, Inc.)</td>
             <td>Base de données (comptes, échéances, contrats, métadonnées)</td>
             <td>Union européenne — Francfort (AWS eu-central-1)</td>
           </tr>
@@ -236,13 +234,9 @@ export default function Confidentialite() {
             <td>États-Unis</td>
           </tr>
           <tr>
-            <td>
-              <ARemplir>expéditeur d'e-mails retenu</ARemplir>
-            </td>
+            <td>Brevo (Sendinblue SAS)</td>
             <td>Acheminement des rappels d'échéance et du point hebdomadaire par e-mail</td>
-            <td>
-              <ARemplir>localisation de l'expéditeur d'e-mails</ARemplir>
-            </td>
+            <td>France (Union européenne)</td>
           </tr>
           <tr>
             <td>Éditeur de votre navigateur (Google, Mozilla, Apple, Microsoft)</td>
@@ -265,9 +259,17 @@ export default function Confidentialite() {
         dans des centres de données situés sur ce territoire.
       </p>
       <p>
-        Certains prestataires restent toutefois établis aux États-Unis, et l'assistant IA y transmet
-        des données lorsqu'il est activé. Ces transferts s'effectuent sur la base des clauses
-        contractuelles types de la Commission européenne ou d'un mécanisme d'adéquation équivalent.
+        <strong>Le serveur applicatif, lui, est hébergé aux États-Unis</strong>, en Virginie. C'est
+        lui qui reçoit et traite chaque demande : vos données y transitent en clair le temps du
+        traitement, avant d'être écrites dans la base européenne ou renvoyées à votre navigateur.
+        Elles n'y sont pas conservées, mais elles y passent — nous préférons l'écrire plutôt que de
+        laisser entendre le contraire.
+      </p>
+      <p>
+        Ce transfert, comme celui vers l'assistant IA lorsqu'il est activé et comme l'hébergement de
+        l'interface, s'effectue sur la base des clauses contractuelles types de la Commission
+        européenne ou d'un mécanisme d'adéquation équivalent. Les liaisons sont chiffrées de bout en
+        bout (HTTPS).
       </p>
 
       <h2>8. Données de vos propres clients</h2>
@@ -293,8 +295,10 @@ export default function Confidentialite() {
           <strong>Journaux techniques</strong> : 12 mois au maximum.
         </li>
         <li>
-          <strong>Sauvegardes</strong> : les sauvegardes de la base de données peuvent conserver vos
-          données pendant <ARemplir>durée de rétention des sauvegardes</ARemplir> avant rotation.
+          <strong>Sauvegardes</strong> : la base de données conserve un historique de{' '}
+          <strong>6 heures</strong>, qui permet de la restaurer à n'importe quel instant de cette
+          fenêtre. Une donnée que vous supprimez peut donc y subsister jusqu'à six heures ; passé ce
+          délai, elle ne subsiste nulle part.
         </li>
       </ul>
 
