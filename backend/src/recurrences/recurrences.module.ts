@@ -7,5 +7,6 @@ import { PlansModule } from '../plans/plans.module';
   imports: [PlansModule],
   controllers: [RecurrencesController],
   providers: [RecurrencesService],
+  exports: [RecurrencesService],
 })
 export class RecurrencesModule {}

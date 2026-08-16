@@ -4,6 +4,7 @@ import type { ComponentType } from 'react'
 import type { Document, Deadline } from '../types'
 import PriorityBadge from '../components/PriorityBadge'
 import RecurringExpenses from '../components/RecurringExpenses'
+import Briefing from '../components/Briefing'
 import { daysUntil, formatDate, formatRelative } from '../utils/formatDate'
 
 interface DashboardProps {
@@ -52,6 +53,8 @@ export default function Dashboard({ documents, deadlines }: DashboardProps) {
           Bonjour, voici l&apos;état de votre espace aujourd&apos;hui.
         </p>
       </div>
+
+      <Briefing />
 
       <div className="mb-5.5 flex flex-wrap gap-4">
         <StatCard icon={FileText} label="Documents" value={documents.length} tint="#12514F" />

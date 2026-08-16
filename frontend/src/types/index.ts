@@ -147,6 +147,26 @@ export interface SearchAnswer {
   results: SearchHit[]
 }
 
+export type Urgence = 'urgent' | 'attention' | 'information'
+
+/** Un point du briefing : ce qui demande une décision, et où la prendre. */
+export interface PointBriefing {
+  kind:
+    | 'echeances_depassees'
+    | 'echeances_proches'
+    | 'echeances_proposees'
+    | 'hausses'
+    | 'quota'
+  urgence: Urgence
+  message: string
+  actionLabel: string
+  actionTo: string
+}
+
+export interface Briefing {
+  points: PointBriefing[]
+}
+
 export type Cadence = 'mensuelle' | 'trimestrielle' | 'semestrielle' | 'annuelle'
 
 export interface RecurrenceOccurrence {
