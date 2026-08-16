@@ -236,13 +236,9 @@ export default function Confidentialite() {
             <td>États-Unis</td>
           </tr>
           <tr>
-            <td>
-              <ARemplir>expéditeur d'e-mails retenu</ARemplir>
-            </td>
+            <td>Brevo (Sendinblue SAS)</td>
             <td>Acheminement des rappels d'échéance et du point hebdomadaire par e-mail</td>
-            <td>
-              <ARemplir>localisation de l'expéditeur d'e-mails</ARemplir>
-            </td>
+            <td>France (Union européenne)</td>
           </tr>
           <tr>
             <td>Éditeur de votre navigateur (Google, Mozilla, Apple, Microsoft)</td>
