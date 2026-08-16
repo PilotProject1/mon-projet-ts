@@ -30,6 +30,12 @@ export default function Cgv() {
         indicatives et ne dispensent pas de consulter les documents d'origine ; les rappels ne
         garantissent pas qu'une échéance sera respectée.
       </p>
+      <p>
+        Les dépenses présentées comme récurrentes, leur périodicité et les montants annuels associés
+        sont des estimations calculées à partir des seuls documents déposés par l'utilisateur.
+        SYNeco n'a accès à aucun compte bancaire et ne constate aucun prélèvement : ces indications
+        ne remplacent ni un relevé bancaire ni un décompte du fournisseur.
+      </p>
 
       <h2>3. Offres et tarifs</h2>
       <table>
@@ -44,7 +50,7 @@ export default function Cgv() {
           <tr>
             <td>Gratuit</td>
             <td>0 €</td>
-            <td>Jusqu'à 10 documents, échéances et rappels</td>
+            <td>Jusqu'à 10 documents, échéances, rappels et dépenses récurrentes</td>
           </tr>
           <tr>
             <td>Particulier Premium</td>

@@ -99,3 +99,27 @@ describe('ExtractionService — repérage de l’échéance', () => {
     expect(champs.suggestedDueDate).toBeNull();
   });
 });
+
+describe('ExtractionService — émetteur', () => {
+  const service = new ExtractionService();
+
+  it('préfère le nom le plus précis à position égale', () => {
+    // « Free » est contenu dans « Free Mobile » : c'est le second qui désigne.
+    expect(
+      service.extract('Facture Free Mobile du 03/07/2026').suggestedProvider,
+    ).toBe('Free Mobile');
+  });
+
+  it('retient l’émetteur annoncé en premier', () => {
+    const champs = service.extract(
+      'EDF\nVotre facture\nPrélèvement sur votre compte Boursorama.',
+    );
+    expect(champs.suggestedProvider).toBe('EDF');
+  });
+
+  it('reconnaît un nom écrit sans accents ni apostrophe courbe', () => {
+    expect(service.extract("CAISSE D'EPARGNE - releve").suggestedProvider).toBe(
+      'Caisse d’Épargne',
+    );
+  });
+});

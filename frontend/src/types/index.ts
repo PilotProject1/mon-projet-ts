@@ -147,6 +147,42 @@ export interface SearchAnswer {
   results: SearchHit[]
 }
 
+export type Cadence = 'mensuelle' | 'trimestrielle' | 'semestrielle' | 'annuelle'
+
+export interface RecurrenceOccurrence {
+  documentId: string
+  name: string
+  date: string
+  amount: number
+}
+
+/** Dépense qui revient chez un même émetteur, reconstituée à partir des documents. */
+export interface RecurringSeries {
+  provider: string
+  /** null quand les intervalles sont trop irréguliers pour conclure. */
+  cadence: Cadence | null
+  occurrences: RecurrenceOccurrence[]
+  lastAmount: number
+  previousAmount: number
+  variation: number
+  variationPercent: number
+  /** Ce que la dépense représente sur douze mois. */
+  yearlyTotal: number
+  /** Prochaine échéance attendue, si la cadence est reconnue. */
+  nextExpected: string | null
+}
+
+export interface Recurrences {
+  series: RecurringSeries[]
+  /** Séries dont le dernier montant a sensiblement augmenté. */
+  hausses: RecurringSeries[]
+  yearlyTotal: number
+  /** Documents lus dont l'émetteur n'a pas été reconnu. */
+  unrecognized: number
+  /** true si le plan donne droit à la lecture par IA. */
+  aiReading: boolean
+}
+
 export type Plan = 'gratuit' | 'premium' | 'pro' | 'pme'
 export type PlanFeature = 'ia' | 'partage' | 'facturation' | 'equipes'
 
