@@ -71,9 +71,7 @@ export default function MentionsLegales() {
           <tr>
             <td>Hébergement du site</td>
             <td>Vercel Inc. (États-Unis)</td>
-            <td>
-              <ARemplir>adresse postale</ARemplir>
-            </td>
+            <td>440 N Barranca Ave #4133, Covina, CA 91723, États-Unis</td>
           </tr>
           <tr>
             <td>Hébergement du serveur applicatif</td>
