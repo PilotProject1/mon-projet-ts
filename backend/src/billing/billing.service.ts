@@ -113,6 +113,38 @@ export class BillingService {
     return { url: session.url };
   }
 
+  /**
+   * Met fin immédiatement à l'abonnement d'un compte sur le point d'être
+   * supprimé.
+   *
+   * Appelée avant la suppression, et non après : un compte effacé dont
+   * l'abonnement courrait encore continuerait d'être prélevé, sans que
+   * personne puisse plus l'arrêter depuis l'application.
+   *
+   * Lève si l'annulation échoue. Refuser la suppression est préférable à la
+   * mener en laissant un prélèvement mensuel derrière soi.
+   */
+  async annulerAbonnementAvantSuppression(userId: string): Promise<void> {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user?.stripeSubscriptionId) return;
+
+    try {
+      await this.stripe.subscriptions.cancel(user.stripeSubscriptionId);
+    } catch (error) {
+      // Un abonnement déjà résilié chez Stripe n'est pas une erreur : il n'y
+      // a simplement plus rien à annuler.
+      const message = error instanceof Error ? error.message : String(error);
+      if (
+        !/No such subscription|resource_missing|already canceled/i.test(message)
+      ) {
+        throw new ServiceUnavailableException(
+          "L'abonnement n'a pas pu être résilié : la suppression est interrompue " +
+            'pour éviter un prélèvement sans compte. Réessayez dans un moment.',
+        );
+      }
+    }
+  }
+
   /** Portail Stripe : changement de moyen de paiement, factures, résiliation. */
   async createPortalSession(userId: string): Promise<{ url: string }> {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });

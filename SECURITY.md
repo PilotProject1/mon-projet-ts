@@ -105,9 +105,24 @@ saisie a lieu chez Stripe.
 
 ### Effacement
 
-Quatorze relations sont déclarées en suppression en cascade : effacer un
-compte efface documents, échéances, contrats, partages, factures, clients,
-notifications et abonnements aux notifications.
+L'utilisateur supprime son compte depuis la page Abonnement. Trois obstacles
+protègent ce geste irréversible : dépliage explicite du bloc, saisie du mot
+« SUPPRIMER », puis **du mot de passe** — un jeton volé ne suffit donc pas à
+effacer les documents de quelqu'un.
+
+La suppression enchaîne, dans cet ordre : résiliation de l'abonnement Stripe
+— sans quoi un compte effacé continuerait d'être prélevé —, retrait des
+fichiers du stockage tant que la base sait encore où ils sont, puis
+suppression du compte. Si la résiliation échoue, **la suppression est
+interrompue** plutôt que de laisser un prélèvement sans compte.
+
+Quatorze relations sont déclarées en suppression en cascade : documents,
+échéances, contrats, partages, factures, clients, notifications et
+abonnements aux notifications partent avec le compte.
+
+Six tests de bout en bout le vérifient, dont le refus d'un mot de passe
+erroné sans rien effacer, l'inutilisabilité du jeton ensuite, et la
+libération de l'adresse e-mail pour une nouvelle inscription.
 
 L'historique de restauration de la base est de **6 heures**. Passé ce délai,
 une donnée supprimée ne subsiste nulle part.
@@ -129,7 +144,6 @@ la même exigence que la précédente.
 
 | Manque | Portée | Priorité |
 |---|---|---|
-| **Suppression de compte par l'utilisateur** | Aucune route ne l'expose. Les cascades existent mais rien ne les déclenche. **La politique de confidentialité et la page d'accueil promettent pourtant cette suppression.** | **Critique** |
 | **Export de ses données** | Article 20 du RGPD, portabilité. Absent. | Haute |
 | **Double authentification** | Mot de passe seul. | Haute |
 | **Analyse antivirale des fichiers** | Aucune. Le contrôle de signature écarte les exécutables, pas un PDF piégé. | Moyenne |

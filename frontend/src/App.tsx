@@ -330,7 +330,11 @@ function App() {
           <Route path="/administration" element={<Administration />} />
           <Route
             path="/abonnement"
-            element={<Abonnement planUsage={planUsage} onPlanChanged={refreshPlanUsage} />}
+            element={<Abonnement
+                planUsage={planUsage}
+                onPlanChanged={refreshPlanUsage}
+                onCompteSupprime={handleLogout}
+              />}
           />
           <Route
             path="/documents"

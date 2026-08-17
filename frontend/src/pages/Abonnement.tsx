@@ -3,10 +3,13 @@ import { Link, useSearchParams } from 'react-router-dom'
 import { Check } from 'lucide-react'
 import type { PlanCatalogueEntry, PlanFeature, PlanUsage } from '../types'
 import { ApiError, billingApi, planApi } from '../services/api'
+import SupprimerCompte from '../components/SupprimerCompte'
 
 interface AbonnementProps {
   planUsage: PlanUsage | null
   onPlanChanged: () => Promise<void>
+  /** Appelé après la suppression du compte : la session n'a plus d'objet. */
+  onCompteSupprime: () => void
 }
 
 const featureLabels: Record<PlanFeature, string> = {
@@ -26,7 +29,11 @@ const DATE_LONGUE = new Intl.DateTimeFormat('fr-FR', {
   year: 'numeric',
 })
 
-export default function Abonnement({ planUsage, onPlanChanged }: AbonnementProps) {
+export default function Abonnement({
+  planUsage,
+  onPlanChanged,
+  onCompteSupprime,
+}: AbonnementProps) {
   const [catalogue, setCatalogue] = useState<PlanCatalogueEntry[]>([])
   const [error, setError] = useState<string | null>(null)
   const [pendingPlan, setPendingPlan] = useState<string | null>(null)
@@ -247,6 +254,12 @@ export default function Abonnement({ planUsage, onPlanChanged }: AbonnementProps
         </div>
       )}
 
+      {/* La suppression figure ici, sous la gestion de l'abonnement : c'est
+          la page où l'on vient quand on veut partir, et l'ordre évite qu'on
+          la rencontre par hasard. */}
+      <div className="mt-6">
+        <SupprimerCompte onSupprime={onCompteSupprime} />
+      </div>
 
       {offreAConfirmer && (
         <div

@@ -325,6 +325,15 @@ export const recurrencesApi = {
   get: () => request<Recurrences>('/recurrences'),
 }
 
+export const usersApi = {
+  /** Suppression définitive de son propre compte. Aucun retour en arrière. */
+  supprimerMonCompte: (password: string) =>
+    request<void>('/users/moi', {
+      method: 'DELETE',
+      body: JSON.stringify({ password }),
+    }),
+}
+
 export const adminApi = {
   statistiques: () => request<StatistiquesAdmin>('/admin/statistiques'),
 }
