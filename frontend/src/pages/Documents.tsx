@@ -63,6 +63,27 @@ function formatSize(bytes: number) {
 }
 
 /**
+ * Nom donné à un document déposé en lot.
+ *
+ * On repart du nom du fichier, sans son extension : c'est ce que
+ * l'utilisateur reconnaîtra, et lui demander de saisir vingt intitulés
+ * annulerait tout l'intérêt du dépôt groupé. Les séparateurs techniques
+ * deviennent des espaces, faute de quoi la liste afficherait des
+ * « facture_edf_2026-08 » peu lisibles.
+ */
+function nomDepuisFichier(fichier: File): string {
+  const sansExtension = fichier.name.replace(/\.[^.]+$/, '')
+  const lisible = sansExtension.replace(/[_-]+/g, ' ').replace(/\s+/g, ' ').trim()
+  return lisible.slice(0, 120) || fichier.name
+}
+
+/** Ce qu'un dépôt groupé a produit, une fois tous les fichiers traités. */
+interface BilanDepot {
+  reussis: number
+  echecs: { nom: string; message: string }[]
+}
+
+/**
  * Ce que la lecture du document a reconnu : émetteur, montant, date portée
  * par le document. Chaîne vide quand rien n'a été trouvé — il n'y a alors
  * rien à afficher, et surtout pas une ligne de tirets.
@@ -98,9 +119,14 @@ export default function Documents({
   const [name, setName] = useState('')
   // Chaîne vide : le serveur reconnaît le type à partir du contenu.
   const [type, setType] = useState<DocumentType | ''>('')
-  const [file, setFile] = useState<File | null>(null)
+  // Plusieurs fichiers peuvent être choisis d'un coup : c'est le cas du
+  // tiroir qu'on vide. Un seul fichier reste le cas courant, et garde son
+  // formulaire nommé.
+  const [files, setFiles] = useState<File[]>([])
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
+  const [progression, setProgression] = useState<{ fait: number; total: number } | null>(null)
+  const [bilan, setBilan] = useState<BilanDepot | null>(null)
   const [scanning, setScanning] = useState(false)
   const [openingId, setOpeningId] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -131,28 +157,52 @@ export default function Documents({
   const [createdShareUrl, setCreatedShareUrl] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
 
+  /** Plusieurs fichiers choisis : le formulaire bascule en dépôt groupé. */
+  const depotGroupe = files.length > 1
+
   const filtered = documents.filter((doc) => {
     const matchesSearch = doc.name.toLowerCase().includes(search.toLowerCase())
     const matchesType = typeFilter === 'tous' || doc.type === typeFilter
     return matchesSearch && matchesType
   })
 
+  /**
+   * Trie la sélection en fichiers retenus et fichiers écartés.
+   *
+   * Un lot n'est pas rejeté en bloc parce qu'un seul fichier est trop lourd :
+   * on garde les autres et on nomme précisément ceux qui manquent, sans quoi
+   * l'utilisateur devrait recommencer sa sélection à l'aveugle.
+   */
   function handleFileChange(e: ChangeEvent<HTMLInputElement>) {
-    const selected = e.target.files?.[0] ?? null
+    const selection = Array.from(e.target.files ?? [])
     setError(null)
-    if (selected && !ALLOWED_MIME_TYPES.includes(selected.type)) {
-      setError('Type de fichier non autorisé (PDF, JPG, PNG ou WEBP uniquement)')
-      setFile(null)
-      e.target.value = ''
+    setBilan(null)
+    if (selection.length === 0) {
+      setFiles([])
       return
     }
-    if (selected && selected.size > MAX_FILE_SIZE_BYTES) {
-      setError('Fichier trop volumineux (10 Mo maximum)')
-      setFile(null)
-      e.target.value = ''
-      return
+
+    const retenus: File[] = []
+    const ecartes: string[] = []
+    for (const fichier of selection) {
+      if (!ALLOWED_MIME_TYPES.includes(fichier.type)) {
+        ecartes.push(`${fichier.name} (format non accepté)`)
+      } else if (fichier.size > MAX_FILE_SIZE_BYTES) {
+        ecartes.push(`${fichier.name} (${formatSize(fichier.size)}, maximum 10 Mo)`)
+      } else {
+        retenus.push(fichier)
+      }
     }
-    setFile(selected)
+
+    if (ecartes.length > 0) {
+      setError(
+        ecartes.length === selection.length
+          ? `Aucun fichier retenu : ${ecartes.join(', ')}.`
+          : `${ecartes.length} fichier(s) écarté(s) : ${ecartes.join(', ')}. Les autres restent sélectionnés.`,
+      )
+    }
+    setFiles(retenus)
+    if (retenus.length === 0) e.target.value = ''
   }
 
   /**
@@ -161,29 +211,88 @@ export default function Documents({
    */
   function handleScanned(scanned: File) {
     setError(null)
-    setFile(scanned)
+    setBilan(null)
+    setFiles([scanned])
     if (fileInputRef.current) fileInputRef.current.value = ''
     setName((current) =>
       current.trim() ? current : `Document photographié du ${formatDate(new Date().toISOString())}`,
     )
   }
 
+  function reinitialiserFormulaire() {
+    setName('')
+    setType('')
+    setFiles([])
+    if (fileInputRef.current) fileInputRef.current.value = ''
+  }
+
+  /**
+   * Dépose les fichiers un par un.
+   *
+   * Séquentiel à dessein : le serveur tourne sur une instance modeste et
+   * lance une reconnaissance par document. Vingt envois simultanés la
+   * saturerait, et l'utilisateur n'y gagnerait que quelques secondes.
+   *
+   * Un échec n'interrompt pas le lot — le fichier fautif est nommé dans le
+   * bilan, les suivants sont quand même déposés.
+   */
+  async function deposerLot(lot: File[]) {
+    const echecs: BilanDepot['echecs'] = []
+    let reussis = 0
+
+    for (const [index, fichier] of lot.entries()) {
+      setProgression({ fait: index, total: lot.length })
+      try {
+        // Aucun type transmis : le serveur le déduit du contenu, ce qui est
+        // tout l'intérêt du dépôt groupé.
+        await onAdd({ name: nomDepuisFichier(fichier), file: fichier })
+        reussis += 1
+      } catch (err) {
+        echecs.push({
+          nom: fichier.name,
+          message: err instanceof ApiError ? err.message : 'envoi impossible',
+        })
+      }
+    }
+
+    setProgression(null)
+    setBilan({ reussis, echecs })
+  }
+
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
-    if (!name.trim()) return
-    if (!file) {
-      setError('Photographiez le document ou choisissez un fichier.')
+    if (files.length === 0) {
+      setError('Photographiez le document ou choisissez un ou plusieurs fichiers.')
       return
     }
+
+    // Le quota est vérifié avant le premier envoi : prévenir après le
+    // dixième document reviendrait à laisser un lot à moitié déposé.
+    const restants = planUsage?.documents.remaining ?? null
+    if (restants !== null && files.length > restants) {
+      setError(
+        `Il vous reste ${restants} document${restants > 1 ? 's' : ''} sur votre offre ${planUsage?.label ?? 'actuelle'}, ` +
+          `et vous en avez sélectionné ${files.length}. Retirez-en de la sélection, ou passez à une offre supérieure pour un dépôt sans limite.`,
+      )
+      return
+    }
+
     setError(null)
+    setBilan(null)
     setSubmitting(true)
     try {
-      await onAdd({ name: name.trim(), ...(type ? { type } : {}), file })
-      setName('')
-      setType('')
-      setFile(null)
-      if (fileInputRef.current) fileInputRef.current.value = ''
-      setShowForm(false)
+      if (files.length === 1) {
+        if (!name.trim()) {
+          setError('Donnez un nom au document.')
+          return
+        }
+        await onAdd({ name: name.trim(), ...(type ? { type } : {}), file: files[0] })
+        reinitialiserFormulaire()
+        setShowForm(false)
+      } else {
+        await deposerLot(files)
+        reinitialiserFormulaire()
+      }
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Impossible d'ajouter le document")
     } finally {
@@ -339,49 +448,101 @@ export default function Documents({
         <div className="mb-4 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>
       )}
 
+      {/* Bilan d'un dépôt groupé. Les échecs sont nommés un par un : savoir
+          que « 3 documents n'ont pas été déposés » sans savoir lesquels
+          obligerait à comparer la liste à la main. */}
+      {bilan && (
+        <div className="mb-4 rounded-md border border-brand-border bg-white px-3 py-2.5">
+          <p className="text-sm font-medium text-brand-deep">
+            {bilan.reussis > 0
+              ? `${bilan.reussis} document${bilan.reussis > 1 ? 's' : ''} déposé${bilan.reussis > 1 ? 's' : ''}.`
+              : 'Aucun document déposé.'}{' '}
+            {bilan.reussis > 0 && (
+              <span className="font-normal text-brand-muted">
+                Leur classement se précise à mesure que chacun est lu.
+              </span>
+            )}
+          </p>
+          {bilan.echecs.length > 0 && (
+            <ul className="mt-1.5 space-y-0.5">
+              {bilan.echecs.map((echec) => (
+                <li key={echec.nom} className="text-xs text-brand-danger">
+                  <span className="font-medium">{echec.nom}</span> — {echec.message}
+                </li>
+              ))}
+            </ul>
+          )}
+          <button
+            type="button"
+            onClick={() => setBilan(null)}
+            className="mt-2 text-xs font-medium text-brand-green underline-offset-2 hover:underline"
+          >
+            Fermer
+          </button>
+        </div>
+      )}
+
       {showForm && (
         <form
           onSubmit={handleSubmit}
           className="mb-6 space-y-3 rounded-lg border border-brand-border bg-white p-4"
         >
-          <div>
-            <label htmlFor="doc-name" className="mb-1 block text-sm font-medium text-brand-deep">
-              Nom du document
-            </label>
-            <input
-              id="doc-name"
-              type="text"
-              required
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="w-full rounded-md border border-brand-border px-3 py-2 text-sm focus:border-brand-green focus:outline-none"
-              placeholder="Ex : Facture électricité août"
-            />
-          </div>
-          <div>
-            <label htmlFor="doc-type" className="mb-1 block text-sm font-medium text-brand-deep">
-              Type
-            </label>
-            <select
-              id="doc-type"
-              value={type}
-              onChange={(e) => setType(e.target.value as DocumentType | '')}
-              className="w-full rounded-md border border-brand-border px-3 py-2 text-sm focus:border-brand-green focus:outline-none"
-            >
-              <option value="">Détecter automatiquement</option>
-              {Object.entries(typeLabels).map(([value, label]) => (
-                <option key={value} value={value}>
-                  {label}
-                </option>
-              ))}
-            </select>
-            {type === '' && (
-              <p className="mt-1 text-xs text-brand-muted">
-                Le type est déduit du texte du document (« facture », « assuré », « garantie »…),
-                juste après le dépôt.
+          {/* Nommer et typer n'a de sens que pour un document isolé. Sur un
+              lot, ces deux champs disparaissent : le nom vient du fichier et
+              le type de la lecture. */}
+          {depotGroupe ? (
+            <div className="rounded-md border border-brand-green/30 bg-brand-green-soft/50 px-3 py-2.5">
+              <p className="text-sm font-medium text-brand-deep">
+                {files.length} documents seront classés automatiquement
               </p>
-            )}
-          </div>
+              <p className="mt-0.5 text-xs text-brand-muted">
+                Chacun est lu après son dépôt, puis rangé en facture, contrat, assurance, garantie
+                ou courrier. Le nom reprend celui du fichier. Vous pourrez corriger un classement
+                depuis la liste.
+              </p>
+            </div>
+          ) : (
+            <>
+              <div>
+                <label htmlFor="doc-name" className="mb-1 block text-sm font-medium text-brand-deep">
+                  Nom du document
+                </label>
+                <input
+                  id="doc-name"
+                  type="text"
+                  required
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  className="w-full rounded-md border border-brand-border px-3 py-2 text-sm focus:border-brand-green focus:outline-none"
+                  placeholder="Ex : Facture électricité août"
+                />
+              </div>
+              <div>
+                <label htmlFor="doc-type" className="mb-1 block text-sm font-medium text-brand-deep">
+                  Type
+                </label>
+                <select
+                  id="doc-type"
+                  value={type}
+                  onChange={(e) => setType(e.target.value as DocumentType | '')}
+                  className="w-full rounded-md border border-brand-border px-3 py-2 text-sm focus:border-brand-green focus:outline-none"
+                >
+                  <option value="">Détecter automatiquement</option>
+                  {Object.entries(typeLabels).map(([value, label]) => (
+                    <option key={value} value={value}>
+                      {label}
+                    </option>
+                  ))}
+                </select>
+                {type === '' && (
+                  <p className="mt-1 text-xs text-brand-muted">
+                    Le type est déduit du texte du document (« facture », « assuré », « garantie »…),
+                    juste après le dépôt.
+                  </p>
+                )}
+              </div>
+            </>
+          )}
           <DocumentScanner onScanned={handleScanned} onProcessingChange={setScanning} />
 
           <div className="flex items-center gap-3">
@@ -392,30 +553,62 @@ export default function Documents({
 
           <div>
             <label htmlFor="doc-file" className="mb-1 block text-sm font-medium text-brand-deep">
-              Choisir un fichier (PDF, JPG, PNG ou WEBP, 10 Mo max)
+              Choisir des fichiers (PDF, JPG, PNG ou WEBP, 10 Mo chacun)
             </label>
             <input
               id="doc-file"
               ref={fileInputRef}
               type="file"
+              multiple
               accept={ALLOWED_MIME_TYPES.join(',')}
               onChange={handleFileChange}
               className="w-full text-sm text-brand-ink file:mr-3 file:rounded-md file:border-0 file:bg-brand-mint file:px-3 file:py-2 file:text-sm file:font-medium file:text-brand-deep hover:file:bg-brand-border"
             />
+            <p className="mt-1 text-xs text-brand-muted">
+              Vous pouvez en sélectionner plusieurs d'un coup : ils seront classés pour vous.
+            </p>
           </div>
 
-          {file && (
-            <p className="min-w-0 truncate text-xs text-brand-muted">
-              Fichier retenu : {file.name} · {formatSize(file.size)}
-            </p>
+          {files.length > 0 && (
+            <ul className="max-h-40 space-y-1 overflow-y-auto rounded-md border border-brand-border bg-brand-mint/50 px-3 py-2">
+              {files.map((fichier, index) => (
+                // Le nom et la taille se disputent la largeur d'un téléphone :
+                // le nom se tronque, la taille garde la sienne.
+                <li
+                  key={`${fichier.name}-${index}`}
+                  className="flex items-center justify-between gap-2 text-xs text-brand-muted"
+                >
+                  <span className="min-w-0 truncate">{fichier.name}</span>
+                  <span className="shrink-0">{formatSize(fichier.size)}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+
+          {progression && (
+            <div>
+              <div className="h-1.5 w-full overflow-hidden rounded-full bg-brand-border">
+                <div
+                  className="h-full bg-brand-green transition-all duration-300"
+                  style={{ width: `${Math.round((progression.fait / progression.total) * 100)}%` }}
+                />
+              </div>
+              <p className="mt-1 text-xs text-brand-muted">
+                Dépôt en cours : {progression.fait} sur {progression.total}
+              </p>
+            </div>
           )}
 
           <button
             type="submit"
-            disabled={submitting || scanning || !file}
+            disabled={submitting || scanning || files.length === 0}
             className="brand-gradient rounded-md px-3 py-2 text-sm font-semibold text-white disabled:opacity-60"
           >
-            {submitting ? 'Envoi...' : 'Enregistrer'}
+            {submitting
+              ? 'Envoi...'
+              : depotGroupe
+                ? `Déposer et classer les ${files.length} documents`
+                : 'Enregistrer'}
           </button>
         </form>
       )}

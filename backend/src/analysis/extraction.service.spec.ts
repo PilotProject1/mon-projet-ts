@@ -122,4 +122,123 @@ describe('ExtractionService — émetteur', () => {
       'Caisse d’Épargne',
     );
   });
+
+  describe('facture OVH signalée par un utilisateur', () => {
+    const facture = [
+      'OVHcloud',
+      'Référence de la facture : FR79815011',
+      "Date d'émission : 13 Août 2026",
+      'Commande : BC248381185',
+      'Total de la facture HT 5,00 €',
+      'TVA (20%) 1,00 €',
+      'Total de la facture TTC 6,00 €',
+      'OVH - 2 rue Kellermann 59100 Roubaix (France)',
+      'SAS au capital de 50 000 000,00 € - RCS LILLE METROPOLE',
+    ].join('\n');
+
+    it('reconnaît OVHcloud, et non un assureur caché dans « Commande »', () => {
+      // « MMA » se lit dans « Commande » : sans frontière de mot, la facture
+      // était attribuée à un assureur.
+      expect(service.extract(facture).suggestedProvider).toBe('OVHcloud');
+    });
+
+    it('lit la date écrite en toutes lettres', () => {
+      expect(service.extract(facture).suggestedDocumentDate).toBe('2026-08-13');
+      expect(service.extract(facture).suggestedDates).toContain('2026-08-13');
+    });
+
+    it('retient le TTC, ni le HT ni le capital social', () => {
+      expect(service.extract(facture).suggestedAmount).toBe(6);
+    });
+  });
+
+  describe('montants', () => {
+    it('reconnaît un montant en fin de ligne', () => {
+      // Le motif exigeait une lettre après « € » : aucun montant ainsi écrit
+      // n'était vu.
+      expect(service.extract('Total TTC 42,50 €').suggestedAmount).toBe(42.5);
+    });
+
+    it('ne prend pas le nombre de la colonne voisine', () => {
+      expect(
+        service.extract('Total TTC 12,00 €\nLigne 5,00 € 5,00 €')
+          .suggestedAmount,
+      ).toBe(12);
+    });
+
+    it('lit les espaces insécables des milliers', () => {
+      expect(
+        service.extract('Net à payer 1\u00a0234,56 €').suggestedAmount,
+      ).toBe(1234.56);
+    });
+
+    it('retombe sur le plus grand montant sans formule explicite', () => {
+      expect(service.extract('Divers 3,00 € et 9,00 €').suggestedAmount).toBe(
+        9,
+      );
+    });
+  });
+
+  describe('dates écrites en toutes lettres', () => {
+    it('lit « 1er septembre 2026 »', () => {
+      expect(
+        service.extract('Fait le 1er septembre 2026').suggestedDocumentDate,
+      ).toBe('2026-09-01');
+    });
+
+    it('lit une échéance annoncée en toutes lettres', () => {
+      expect(
+        service.extract('À régler avant le 5 décembre 2026').suggestedDueDate,
+      ).toBe('2026-12-05');
+    });
+
+    it('ignore un mois inexistant', () => {
+      expect(service.extract('Le 13 brumaire 2026').suggestedDates).toEqual([]);
+    });
+  });
+
+  describe('nature du document', () => {
+    it('classe un bon de garantie en garantie, non en assurance', () => {
+      // « garantie » figure dans les deux listes de mots-clés. C'est la
+      // tournure la plus longue qui doit trancher, sans quoi tout bon de
+      // garantie partait en assurance.
+      expect(
+        service.extract(
+          'Bon de garantie\nAppareil : lave-linge\nGarantie constructeur de deux ans',
+        ).suggestedType,
+      ).toBe('garantie');
+    });
+
+    it('classe une attestation d’assurance en assurance malgré le mot garantie', () => {
+      expect(
+        service.extract(
+          "Attestation d'assurance habitation\nL'assuré : Monsieur Vincent\n" +
+            'Étendue des garanties et déclaration de sinistre',
+        ).suggestedType,
+      ).toBe('assurance');
+    });
+
+    it('classe une facture, un contrat et un courrier', () => {
+      expect(
+        service.extract('Facture d’électricité\nTotal TTC : 84,30 EUR')
+          .suggestedType,
+      ).toBe('facture');
+      expect(
+        service.extract(
+          'Contrat de bail\nDurée du contrat : trois ans\nConditions générales',
+        ).suggestedType,
+      ).toBe('contrat');
+      expect(
+        service.extract(
+          'Madame, Monsieur,\nNous vous informons...\nVeuillez agréer nos salutations.',
+        ).suggestedType,
+      ).toBe('courrier');
+    });
+
+    it('ne devine aucune nature sur un texte qui n’en porte pas', () => {
+      expect(
+        service.extract('Notes de courses\npain, lait').suggestedType,
+      ).toBe(null);
+    });
+  });
 });

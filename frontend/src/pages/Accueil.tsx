@@ -1,17 +1,16 @@
 import { Link } from 'react-router-dom'
-import {
-  Camera,
-  ScanLine,
-  BellRing,
-  Repeat,
-  ShieldCheck,
-  Check,
-  ArrowRight,
-} from 'lucide-react'
+import { ShieldCheck, Check, ArrowRight } from 'lucide-react'
 import type { ComponentType } from 'react'
 import BrandLogo from '../components/BrandLogo'
+import {
+  IllustrationCadrage,
+  IllustrationLecture,
+  IllustrationRappels,
+  IllustrationHausse,
+} from '../components/IllustrationsAtouts'
 import AmbientBackground from '../components/AmbientBackground'
 import { useTitrePage } from '../utils/useTitrePage'
+import { useApparition } from '../utils/useApparition'
 
 /*
  * Page vue par un visiteur qui n'a pas de compte.
@@ -26,32 +25,33 @@ import { useTitrePage } from '../utils/useTitrePage'
  */
 
 interface AtoutProps {
-  icone: ComponentType<{ size?: number; className?: string }>
+  /** Illustration du geste décrit, affichée en tête de la case. */
+  illustration: ComponentType
   titre: string
   texte: string
 }
 
 const ATOUTS: AtoutProps[] = [
   {
-    icone: Camera,
+    illustration: IllustrationCadrage,
     titre: 'Photographiez, c’est rangé',
     texte:
       'Le document est cadré, redressé et éclairci automatiquement. Aucune retouche à faire, aucun scanner à sortir.',
   },
   {
-    icone: ScanLine,
+    illustration: IllustrationLecture,
     titre: 'Le document est lu',
     texte:
       'Son type, son émetteur, son montant et sa date sont reconnus dans le texte. Vous n’avez rien à saisir.',
   },
   {
-    icone: BellRing,
+    illustration: IllustrationRappels,
     titre: 'Vous êtes prévenu à temps',
     texte:
       'L’échéance repérée devient un rappel : trente jours, sept jours et un jour avant, puis le jour même — par notification et par e-mail.',
   },
   {
-    icone: Repeat,
+    illustration: IllustrationHausse,
     titre: 'Les hausses ne passent plus',
     texte:
       'Vos dépenses qui reviennent sont reconstituées à partir de vos factures, et une augmentation vous est signalée en euros.',
@@ -85,6 +85,24 @@ const OFFRES = [
     inclus: ['Tout Premium', 'Entreprise et clients', 'Factures émises et suivies'],
   },
 ]
+
+/** Une case d'atout, qui rejoue son illustration en entrant dans l'écran. */
+function CaseAtout({ illustration: Illustration, titre, texte }: AtoutProps) {
+  const { ref, classe } = useApparition<HTMLDivElement>()
+  return (
+    <div className="brand-card-shadow overflow-hidden rounded-[14px] border border-brand-border bg-white">
+      {/* L'illustration occupe toute la largeur de la case : à cette taille,
+          un dessin encadré perdrait sa lisibilité. */}
+      <div ref={ref} className={`border-b border-brand-border bg-brand-mint/60 px-5 pt-4 pb-2 ${classe}`}>
+        <Illustration />
+      </div>
+      <div className="px-5 pt-4 pb-5">
+        <h2 className="font-heading text-[15.5px] font-semibold text-brand-ink">{titre}</h2>
+        <p className="mt-1.5 text-[13.5px] leading-relaxed text-brand-muted">{texte}</p>
+      </div>
+    </div>
+  )
+}
 
 export default function Accueil() {
   useTitrePage(
@@ -151,17 +169,8 @@ export default function Accueil() {
 
       <section className="mx-auto max-w-5xl px-5 pb-16 sm:px-8">
         <div className="grid gap-4 sm:grid-cols-2">
-          {ATOUTS.map(({ icone: Icone, titre, texte }) => (
-            <div
-              key={titre}
-              className="brand-card-shadow rounded-[14px] border border-brand-border bg-white px-5 py-5"
-            >
-              <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-[10px] bg-brand-green-soft">
-                <Icone size={18} className="text-brand-green-deep" />
-              </div>
-              <h2 className="font-heading text-[15.5px] font-semibold text-brand-ink">{titre}</h2>
-              <p className="mt-1.5 text-[13.5px] leading-relaxed text-brand-muted">{texte}</p>
-            </div>
+          {ATOUTS.map((atout) => (
+            <CaseAtout key={atout.titre} {...atout} />
           ))}
         </div>
       </section>
