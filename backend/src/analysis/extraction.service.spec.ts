@@ -122,4 +122,49 @@ describe('ExtractionService — émetteur', () => {
       'Caisse d’Épargne',
     );
   });
+
+  describe('nature du document', () => {
+    it('classe un bon de garantie en garantie, non en assurance', () => {
+      // « garantie » figure dans les deux listes de mots-clés. C'est la
+      // tournure la plus longue qui doit trancher, sans quoi tout bon de
+      // garantie partait en assurance.
+      expect(
+        service.extract(
+          'Bon de garantie\nAppareil : lave-linge\nGarantie constructeur de deux ans',
+        ).suggestedType,
+      ).toBe('garantie');
+    });
+
+    it('classe une attestation d’assurance en assurance malgré le mot garantie', () => {
+      expect(
+        service.extract(
+          "Attestation d'assurance habitation\nL'assuré : Monsieur Vincent\n" +
+            'Étendue des garanties et déclaration de sinistre',
+        ).suggestedType,
+      ).toBe('assurance');
+    });
+
+    it('classe une facture, un contrat et un courrier', () => {
+      expect(
+        service.extract('Facture d’électricité\nTotal TTC : 84,30 EUR')
+          .suggestedType,
+      ).toBe('facture');
+      expect(
+        service.extract(
+          'Contrat de bail\nDurée du contrat : trois ans\nConditions générales',
+        ).suggestedType,
+      ).toBe('contrat');
+      expect(
+        service.extract(
+          'Madame, Monsieur,\nNous vous informons...\nVeuillez agréer nos salutations.',
+        ).suggestedType,
+      ).toBe('courrier');
+    });
+
+    it('ne devine aucune nature sur un texte qui n’en porte pas', () => {
+      expect(
+        service.extract('Notes de courses\npain, lait').suggestedType,
+      ).toBe(null);
+    });
+  });
 });

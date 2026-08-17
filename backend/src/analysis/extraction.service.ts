@@ -346,6 +346,16 @@ export class ExtractionService {
     return best?.provider ?? null;
   }
 
+  /**
+   * Reconnaît la nature du document à ses mots-clés.
+   *
+   * Chaque mot-clé pèse son nombre de mots. Sans cela, un bon de garantie
+   * partait en assurance : « garantie » figure dans les deux listes, et à
+   * égalité de score c'est l'ordre de déclaration qui l'emportait. Or une
+   * tournure longue désigne toujours mieux qu'un mot isolé — « garantie
+   * constructeur » ne se lit que sur une garantie, quand « garantie » seul
+   * se lit aussi sur un contrat d'assurance.
+   */
   private guessType(text: string): DocumentType | null {
     const lower = text.toLowerCase();
     let bestType: DocumentType | null = null;
@@ -355,7 +365,8 @@ export class ExtractionService {
       string[],
     ][]) {
       const score = keywords.reduce(
-        (acc, kw) => acc + (lower.includes(kw) ? 1 : 0),
+        (acc, kw) =>
+          acc + (lower.includes(kw) ? kw.trim().split(/\s+/).length : 0),
         0,
       );
       if (score > bestScore) {
