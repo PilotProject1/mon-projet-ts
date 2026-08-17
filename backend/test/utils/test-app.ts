@@ -2,7 +2,7 @@ import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { AppModule } from '../../src/app.module';
 import { PrismaService } from '../../src/prisma/prisma.service';
-import type { Plan } from '@prisma/client';
+import type { Plan, Role } from '@prisma/client';
 
 export async function createTestApp(): Promise<INestApplication> {
   const moduleFixture = await Test.createTestingModule({
@@ -42,4 +42,14 @@ export async function setPlan(
 export async function cleanupUsers(app: INestApplication, userIds: string[]) {
   const prisma = app.get(PrismaService);
   await prisma.user.deleteMany({ where: { id: { in: userIds } } });
+}
+
+/** Élève un compte au rôle d'administration, le temps d'un test. */
+export async function setRole(
+  app: INestApplication,
+  userId: string,
+  role: Role,
+) {
+  const prisma = app.get(PrismaService);
+  await prisma.user.update({ where: { id: userId }, data: { role } });
 }

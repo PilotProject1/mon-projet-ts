@@ -11,6 +11,7 @@ import {
   Users,
   Receipt,
   CreditCard,
+  BarChart3,
   ChevronDown,
   LogOut,
   Menu,
@@ -20,9 +21,21 @@ import NotificationBell from './NotificationBell'
 import BrandLogo from './BrandLogo'
 import PlanUsageCard from './PlanUsageCard'
 import AmbientBackground from './AmbientBackground'
+import type { ComponentType } from 'react'
 import type { Notification, PlanUsage, User } from '../types'
 
-const navGroups = [
+interface GroupeNav {
+  label: string
+  items: {
+    to: string
+    label: string
+    /** Correspondance exacte, pour que « / » ne s'active pas partout. */
+    end?: boolean
+    icon: ComponentType<{ size?: number; strokeWidth?: number; className?: string }>
+  }[]
+}
+
+const navGroups: GroupeNav[] = [
   {
     label: 'Aperçu',
     items: [
@@ -53,6 +66,16 @@ const navGroups = [
   },
 ]
 
+/*
+ * Suivi du service, réservé à l'éditeur. Le lien n'apparaît que pour un
+ * compte d'administration — et le serveur refuse la route de toute façon :
+ * masquer un lien ne protège rien, c'est la garde qui protège.
+ */
+const groupeAdmin: GroupeNav = {
+  label: 'Éditeur',
+  items: [{ to: '/administration', label: 'Suivi', icon: BarChart3 }],
+}
+
 interface LayoutProps {
   user: User
   planUsage: PlanUsage | null
@@ -70,6 +93,7 @@ export default function Layout({
 }: LayoutProps) {
   const [menuOpen, setMenuOpen] = useState(false)
   const [navOpen, setNavOpen] = useState(false)
+  const groupes = user.role === 'admin' ? [...navGroups, groupeAdmin] : navGroups
 
   return (
     <div className="flex min-h-screen bg-brand-mint">
@@ -97,7 +121,7 @@ export default function Layout({
         </div>
 
         <nav className="flex flex-1 flex-col gap-5.5 overflow-y-auto">
-          {navGroups.map((group) => (
+          {groupes.map((group) => (
             <div key={group.label}>
               <div className="mb-2 px-2.5 text-[10.5px] font-semibold tracking-[0.08em] text-white/40 uppercase">
                 {group.label}

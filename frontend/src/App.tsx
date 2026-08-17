@@ -14,6 +14,7 @@ import CompanyPage from './pages/Company'
 import Clients from './pages/Clients'
 import Invoices from './pages/Invoices'
 import Search from './pages/Search'
+import Administration from './pages/Administration'
 import Abonnement from './pages/Abonnement'
 import MentionsLegales from './pages/MentionsLegales'
 import Confidentialite from './pages/Confidentialite'
@@ -324,6 +325,9 @@ function App() {
         >
           <Route path="/" element={<Dashboard documents={documents} deadlines={deadlines} />} />
           <Route path="/recherche" element={<Search />} />
+          {/* Route déclarée pour tous : le serveur refuse la donnée à qui
+              n'est pas administrateur, et la page affiche alors son refus. */}
+          <Route path="/administration" element={<Administration />} />
           <Route
             path="/abonnement"
             element={<Abonnement planUsage={planUsage} onPlanChanged={refreshPlanUsage} />}

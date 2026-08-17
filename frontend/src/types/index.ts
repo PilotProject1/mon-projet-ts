@@ -245,3 +245,14 @@ export interface PlanCatalogueEntry {
   features: PlanFeature[]
   purchasable: boolean
 }
+
+/** Compteurs de suivi du service, réservés à l'éditeur. */
+export interface StatistiquesAdmin {
+  comptes: { total: number; aujourdhui: number; septDerniersJours: number }
+  /** Nombre de comptes par offre. */
+  plans: Record<string, number>
+  documents: { total: number; aujourdhui: number; analyses: number }
+  echeances: { total: number; aFaire: number }
+  /** Inscriptions jour par jour, du plus ancien au plus récent. */
+  inscriptionsParJour: { jour: string; nombre: number }[]
+}

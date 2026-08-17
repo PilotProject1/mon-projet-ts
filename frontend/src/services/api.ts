@@ -20,6 +20,7 @@ import type {
   Briefing,
   PlanUsage,
   PlanCatalogueEntry,
+  StatistiquesAdmin,
 } from '../types'
 
 const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:3000'
@@ -322,6 +323,10 @@ export const briefingApi = {
 
 export const recurrencesApi = {
   get: () => request<Recurrences>('/recurrences'),
+}
+
+export const adminApi = {
+  statistiques: () => request<StatistiquesAdmin>('/admin/statistiques'),
 }
 
 export const planApi = {
