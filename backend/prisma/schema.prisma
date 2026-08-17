@@ -119,6 +119,17 @@ model Document {
   /// Date portée par le document lui-même — émission, établissement — par
   /// opposition à createdAt, qui n'est que le jour du dépôt.
   documentDate DateTime?
+  /// Référence propre au document — numéro de facture, de contrat, de police,
+  /// ou identifiant client. C'est ce qu'un service client réclame au
+  /// téléphone, et ce qu'on ne retrouve jamais dans une pile de papiers.
+  reference      String?
+  /// Intitulé qui a désigné cette référence, pour qu'on sache de laquelle il
+  /// s'agit : un numéro de facture ne vaut pas un identifiant client.
+  referenceLabel String?
+  /// Vrai si le document se déclare acquitté, faux s'il annonce un règlement
+  /// à venir, null si rien ne tranche. Une facture déjà prélevée n'appelle
+  /// aucun rappel : proposer une échéance dessus ne ferait qu'agacer.
+  paid Boolean?
   /// Texte lu dans le document, tronqué. Sert la recherche par le contenu.
   extractedText String?
   /// Dernière lecture réussie. Distingue « rien trouvé » de « jamais lu »,

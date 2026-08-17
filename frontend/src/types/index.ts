@@ -20,6 +20,12 @@ export interface Document {
   amount: number | null
   /** Date portée par le document, à distinguer de la date de dépôt. */
   documentDate: string | null
+  /** Numéro de facture, de contrat ou de police porté par le document. */
+  reference: string | null
+  /** Intitulé qui l'annonce, pour savoir de quelle référence il s'agit. */
+  referenceLabel: string | null
+  /** true réglé, false encore dû, null si le document ne tranche pas. */
+  paid: boolean | null
   /** Date de la dernière lecture. null tant que le document n'a pas été lu. */
   analyzedAt: string | null
 }
@@ -66,6 +72,12 @@ export interface DocumentAnalysis {
   suggestedDates: string[]
   suggestedAmount: number | null
   suggestedDocumentDate: string | null
+  /** Numéro de facture, de contrat ou de police porté par le document. */
+  suggestedReference: string | null
+  /** Intitulé qui l'annonce, pour savoir de quelle référence il s'agit. */
+  suggestedReferenceLabel: string | null
+  /** true réglé, false encore dû, null si le document ne tranche pas. */
+  suggestedPaid: boolean | null
 }
 
 export interface ShareLink {
