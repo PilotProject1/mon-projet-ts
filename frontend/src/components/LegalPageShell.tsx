@@ -26,7 +26,7 @@ export default function LegalPageShell({ title, lastUpdated, children }: LegalPa
   return (
     <div className="min-h-screen bg-brand-mint">
       <header className="border-b border-brand-border bg-white">
-        <div className="mx-auto flex max-w-3xl items-center justify-between gap-4 px-5 py-4 sm:px-8">
+        <div className="mx-auto flex max-w-3xl items-center justify-between gap-4 px-5 pt-[calc(1rem+var(--zone-sure-haut))] pb-4 sm:px-8">
           <Link to="/">
             <BrandLogo iconSize={32} wordmarkClassName="text-base" />
           </Link>

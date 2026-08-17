@@ -81,7 +81,7 @@ export default function Layout({
       )}
 
       <aside
-        className={`fixed inset-y-0 left-0 z-40 flex w-[232px] shrink-0 flex-col bg-brand-deep px-4 py-5.5 transition-transform duration-200 md:relative md:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-40 flex w-[232px] shrink-0 flex-col bg-brand-deep pt-[calc(1.375rem+var(--zone-sure-haut))] pr-4 pb-[calc(1.375rem+var(--zone-sure-bas))] pl-[calc(1rem+var(--zone-sure-gauche))] transition-transform duration-200 md:relative md:translate-x-0 ${
           navOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
@@ -165,7 +165,9 @@ export default function Layout({
           <AmbientBackground variant="app" />
         </div>
 
-        <div className="relative z-20 flex items-center justify-between gap-3.5 px-4 pt-6 md:justify-end md:px-8">
+        {/* La barre supérieure descend sous l'heure et la batterie ; sans
+            zone sûre, le bouton de menu les chevauche sur iPhone. */}
+        <div className="relative z-20 flex items-center justify-between gap-3.5 px-4 pt-[calc(1.5rem+var(--zone-sure-haut))] md:justify-end md:px-8">
           <button
             onClick={() => setNavOpen(true)}
             className="flex h-9 w-9 items-center justify-center rounded-[10px] border border-brand-border bg-white text-brand-deep md:hidden"
@@ -204,7 +206,7 @@ export default function Layout({
           </div>
         </div>
 
-        <main className="relative z-10 mx-auto max-w-6xl px-4 pt-4 pb-8 md:px-8">
+        <main className="relative z-10 mx-auto max-w-6xl px-4 pt-4 pb-[calc(2rem+var(--zone-sure-bas))] md:px-8">
           <Outlet />
         </main>
       </div>

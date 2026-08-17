@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import LegalPageShell, { ARemplir } from '../components/LegalPageShell'
+import LegalPageShell from '../components/LegalPageShell'
 
 export default function Cgv() {
   return (
@@ -202,7 +202,12 @@ export default function Cgv() {
         consommation :
       </p>
       <p>
-        <ARemplir>nom, adresse et site du médiateur de la consommation adhéré</ARemplir>
+        L'éditeur procède actuellement à son adhésion auprès du CM2C (Centre de la médiation de la
+        consommation de conciliateurs de justice). Les coordonnées du médiateur seront publiées ici
+        dès qu'elle sera effective, courant septembre 2026. Dans l'intervalle, toute réclamation
+        restée sans solution peut être adressée à{' '}
+        <a href="mailto:syneco.pro@outlook.fr">syneco.pro@outlook.fr</a>, et vous conservez
+        l'intégralité des voies de recours ci-dessous.
       </p>
       <p>
         La plateforme européenne de règlement en ligne des litiges est également accessible à

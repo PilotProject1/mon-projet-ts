@@ -95,7 +95,7 @@ export default function Accueil() {
   return (
     <div className="min-h-screen bg-brand-mint">
       <header className="relative z-10 border-b border-brand-border/70 bg-white/80 backdrop-blur">
-        <div className="mx-auto flex max-w-5xl items-center justify-between gap-4 px-5 py-3.5 sm:px-8">
+        <div className="mx-auto flex max-w-5xl items-center justify-between gap-4 px-5 pt-[calc(0.875rem+var(--zone-sure-haut))] pb-3.5 sm:px-8">
           <BrandLogo iconSize={32} wordmarkClassName="text-base" />
           <div className="flex shrink-0 items-center gap-3">
             <Link
