@@ -75,6 +75,28 @@ const KNOWN_PROVIDERS = [
   'BNP Paribas',
   'Boursorama',
   'Fortuneo',
+  'OVHcloud',
+  'OVH',
+  'Ionos',
+  'Scaleway',
+  'Leroy Merlin',
+  'Darty',
+  'Fnac',
+  'Decathlon',
+  'Boulanger',
+  'Enedis',
+  'GRDF',
+  'Eau de Paris',
+  'Bouygues',
+  'La Banque Postale',
+  'Hello bank!',
+  'Revolut',
+  'N26',
+  'Harmonie Mutuelle',
+  'Malakoff Humanis',
+  'AG2R',
+  'Swisslife',
+  'April',
 ];
 
 const TYPE_KEYWORDS: Record<DocumentType, string[]> = {
@@ -198,10 +220,98 @@ function normaliser(texte: string): string {
     .replace(/['\u2018\u2019`]/g, "'");
 }
 
+/**
+ * Position d'un nom pris comme mot entier, et non comme simple suite de
+ * lettres. Sans cette précaution, « MMA » se lisait dans « Commande » : une
+ * facture OVH était attribuée à un assureur, avec l'aplomb d'une certitude.
+ *
+ * Le voisinage est jugé sur les lettres et les chiffres seulement, pour que
+ * « Canal+ » ou « Free Mobile » restent reconnaissables.
+ */
+function positionMot(texte: string, nom: string): number {
+  const estLettre = (c: string | undefined) =>
+    c !== undefined && /[a-z0-9]/.test(c);
+  let depuis = 0;
+  for (;;) {
+    const index = texte.indexOf(nom, depuis);
+    if (index === -1) return -1;
+    const avant = texte[index - 1];
+    const apres = texte[index + nom.length];
+    const debuteMot = !estLettre(avant) || !/[a-z0-9]/.test(nom[0]);
+    const finitMot = !estLettre(apres) || !/[a-z0-9]/.test(nom[nom.length - 1]);
+    if (debuteMot && finitMot) return index;
+    depuis = index + 1;
+  }
+}
+
 const DUE_DATE_NEEDLES = DUE_DATE_PHRASES.map(replier);
 const DOCUMENT_DATE_NEEDLES = DOCUMENT_DATE_PHRASES.map(replier);
-const AMOUNT_REGEX =
-  /(\d{1,3}(?:[ .]\d{3})*(?:,\d{2})?)\s?(?:€|EUR)\b|(?:€|EUR)\s?(\d{1,3}(?:[ .]\d{3})*(?:,\d{2})?)/gi;
+
+/*
+ * Montants en euros.
+ *
+ * La version précédente exigeait une frontière de mot après « € ». Or « € »
+ * n'est pas un caractère de mot : la frontière n'était satisfaite que suivie
+ * d'une lettre, donc jamais en fin de ligne ni devant une espace. Aucun
+ * montant écrit « 6,00 € » n'était reconnu, et seul le motif inverse tirait —
+ * en attrapant, sur une ligne de tableau, le nombre de la colonne suivante.
+ *
+ * Les espaces de groupement d'un PDF français sont souvent insécables
+ * (U+00A0) ou fines insécables (U+202F) : les ignorer revenait à lire
+ * « 50 000 000,00 » comme « 000,00 ».
+ */
+const ESPACES = '   ';
+const AMOUNT_REGEX = new RegExp(
+  String.raw`(?<![\d,.])(\d{1,3}(?:[${ESPACES}.]\d{3})*(?:,\d{1,2})?)[${ESPACES}]?(?:€|EUR\b)`,
+  'gi',
+);
+
+/*
+ * Formules qui désignent la somme réellement due, par ordre de fiabilité.
+ * Sans elles, prendre le plus grand montant du document revient à retenir le
+ * capital social imprimé en pied de page.
+ */
+const AMOUNT_PHRASES = [
+  'net à payer',
+  'montant à payer',
+  'reste à payer',
+  'total à payer',
+  'total de la facture ttc',
+  'montant total ttc',
+  'total ttc',
+  'montant ttc',
+  'montant prélevé',
+  'a été prélevé',
+  'montant de',
+];
+const AMOUNT_NEEDLES = AMOUNT_PHRASES.map(replier);
+
+/** Fenêtre de texte suivant la formule dans laquelle chercher le montant. */
+const AMOUNT_WINDOW = 60;
+
+/*
+ * Dates écrites en toutes lettres : « 13 Août 2026 », « 1er septembre 2026 ».
+ * Les documents français les impriment au moins aussi souvent qu'en chiffres,
+ * et l'ancien motif, purement numérique, les ignorait entièrement.
+ */
+const MOIS = [
+  'janvier',
+  'fevrier',
+  'mars',
+  'avril',
+  'mai',
+  'juin',
+  'juillet',
+  'aout',
+  'septembre',
+  'octobre',
+  'novembre',
+  'decembre',
+];
+const TEXT_DATE_REGEX = new RegExp(
+  String.raw`\b(\d{1,2})(?:er)?\s+(${MOIS.join('|')})\s+(\d{4})\b`,
+  'gi',
+);
 
 @Injectable()
 export class ExtractionService {
@@ -282,19 +392,46 @@ export class ExtractionService {
     return null;
   }
 
-  /** Première date valide d'un fragment de texte. */
-  private firstDate(fragment: string): string | null {
+  /**
+   * Toutes les dates d'un fragment, dans l'ordre où elles y figurent.
+   *
+   * Deux écritures cohabitent dans un même document français : « 05/09/2026 »
+   * et « 13 Août 2026 ». Ne lire que la première revenait à ne rien trouver
+   * sur une facture qui n'emploie que la seconde — le cas d'OVH.
+   */
+  private datesDe(fragment: string): { iso: string; index: number }[] {
+    const trouvees: { iso: string; index: number }[] = [];
+
     for (const match of fragment.matchAll(DATE_REGEX)) {
-      const iso = this.toIsoDate(match);
-      if (iso) return iso;
+      const iso = this.toIsoDate(
+        Number(match[1]),
+        Number(match[2]),
+        Number(match[3]),
+      );
+      if (iso) trouvees.push({ iso, index: match.index ?? 0 });
     }
-    return null;
+
+    // Le repli conserve les positions ; s'il ne le peut pas, les minuscules
+    // suffisent puisque les noms de mois sont cherchés sans accents.
+    const replie = replier(fragment);
+    const source =
+      replie.length === fragment.length ? replie : fragment.toLowerCase();
+    for (const match of source.matchAll(TEXT_DATE_REGEX)) {
+      const mois = MOIS.indexOf(match[2].toLowerCase()) + 1;
+      const iso = this.toIsoDate(Number(match[1]), mois, Number(match[3]));
+      if (iso) trouvees.push({ iso, index: match.index ?? 0 });
+    }
+
+    return trouvees.sort((a, b) => a.index - b.index);
   }
 
-  private toIsoDate(match: RegExpMatchArray): string | null {
-    const day = Number(match[1]);
-    const month = Number(match[2]);
-    let year = Number(match[3]);
+  /** Première date valide d'un fragment de texte. */
+  private firstDate(fragment: string): string | null {
+    return this.datesDe(fragment)[0]?.iso ?? null;
+  }
+
+  private toIsoDate(day: number, month: number, annee: number): string | null {
+    let year = annee;
     if (year < 100) year += 2000;
     if (day < 1 || day > 31 || month < 1 || month > 12) return null;
     if (year < 2000 || year > 2100) return null;
@@ -302,23 +439,46 @@ export class ExtractionService {
   }
 
   private extractDates(text: string): string[] {
-    const dates = new Set<string>();
-    for (const match of text.matchAll(DATE_REGEX)) {
-      const iso = this.toIsoDate(match);
-      if (iso) dates.add(iso);
-    }
+    const dates = new Set(this.datesDe(text).map((d) => d.iso));
     return [...dates].sort().slice(0, 5);
   }
 
+  /** Convertit « 1 234,50 » en 1234.5, quelles que soient les espaces. */
+  private static enNombre(brut: string): number {
+    const valeur = Number(
+      brut.replace(new RegExp(`[${ESPACES}.]`, 'g'), '').replace(',', '.'),
+    );
+    return Number.isNaN(valeur) ? NaN : valeur;
+  }
+
+  /**
+   * Somme due par le document.
+   *
+   * Une formule explicite prime — « total TTC », « net à payer », « a été
+   * prélevé ». À défaut seulement, le plus grand montant rencontré : c'est
+   * une approximation, et elle se trompe sur une facture qui imprime le
+   * capital social de son émetteur en pied de page, d'où l'ordre.
+   */
   private extractAmount(text: string): number | null {
+    const repere = replier(text);
+    if (repere.length === text.length) {
+      for (const formule of AMOUNT_NEEDLES) {
+        const position = repere.indexOf(formule);
+        if (position === -1) continue;
+        const debut = position + formule.length;
+        const fenetre = text.slice(debut, debut + AMOUNT_WINDOW);
+        for (const trouve of fenetre.matchAll(AMOUNT_REGEX)) {
+          const valeur = ExtractionService.enNombre(trouve[1]);
+          if (!Number.isNaN(valeur)) return valeur;
+        }
+      }
+    }
+
     let max: number | null = null;
     for (const match of text.matchAll(AMOUNT_REGEX)) {
-      const raw = (match[1] ?? match[2] ?? '')
-        .replace(/[ .]/g, '')
-        .replace(',', '.');
-      const value = Number(raw);
-      if (!Number.isNaN(value) && (max === null || value > max)) {
-        max = value;
+      const valeur = ExtractionService.enNombre(match[1]);
+      if (!Number.isNaN(valeur) && (max === null || valeur > max)) {
+        max = valeur;
       }
     }
     return max;
@@ -333,7 +493,7 @@ export class ExtractionService {
     const repere = normaliser(text);
     let best: { provider: string; index: number } | null = null;
     for (const provider of KNOWN_PROVIDERS) {
-      const index = repere.indexOf(normaliser(provider));
+      const index = positionMot(repere, normaliser(provider));
       if (index === -1) continue;
       if (
         best === null ||
