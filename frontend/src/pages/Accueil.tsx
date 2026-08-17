@@ -10,6 +10,7 @@ import {
 } from '../components/IllustrationsAtouts'
 import AmbientBackground from '../components/AmbientBackground'
 import { useTitrePage } from '../utils/useTitrePage'
+import { useApparition } from '../utils/useApparition'
 
 /*
  * Page vue par un visiteur qui n'a pas de compte.
@@ -85,6 +86,24 @@ const OFFRES = [
   },
 ]
 
+/** Une case d'atout, qui rejoue son illustration en entrant dans l'écran. */
+function CaseAtout({ illustration: Illustration, titre, texte }: AtoutProps) {
+  const { ref, classe } = useApparition<HTMLDivElement>()
+  return (
+    <div className="brand-card-shadow overflow-hidden rounded-[14px] border border-brand-border bg-white">
+      {/* L'illustration occupe toute la largeur de la case : à cette taille,
+          un dessin encadré perdrait sa lisibilité. */}
+      <div ref={ref} className={`border-b border-brand-border bg-brand-mint/60 px-5 pt-4 pb-2 ${classe}`}>
+        <Illustration />
+      </div>
+      <div className="px-5 pt-4 pb-5">
+        <h2 className="font-heading text-[15.5px] font-semibold text-brand-ink">{titre}</h2>
+        <p className="mt-1.5 text-[13.5px] leading-relaxed text-brand-muted">{texte}</p>
+      </div>
+    </div>
+  )
+}
+
 export default function Accueil() {
   useTitrePage(
     'SYNeco — Le coffre-fort administratif du particulier et de l’indépendant',
@@ -150,21 +169,8 @@ export default function Accueil() {
 
       <section className="mx-auto max-w-5xl px-5 pb-16 sm:px-8">
         <div className="grid gap-4 sm:grid-cols-2">
-          {ATOUTS.map(({ illustration: Illustration, titre, texte }) => (
-            <div
-              key={titre}
-              className="brand-card-shadow overflow-hidden rounded-[14px] border border-brand-border bg-white"
-            >
-              {/* L'illustration occupe toute la largeur de la case : à cette
-                  taille, un dessin encadré perdrait sa lisibilité. */}
-              <div className="border-b border-brand-border bg-brand-mint/60 px-5 pt-4 pb-2">
-                <Illustration />
-              </div>
-              <div className="px-5 pt-4 pb-5">
-              <h2 className="font-heading text-[15.5px] font-semibold text-brand-ink">{titre}</h2>
-              <p className="mt-1.5 text-[13.5px] leading-relaxed text-brand-muted">{texte}</p>
-              </div>
-            </div>
+          {ATOUTS.map((atout) => (
+            <CaseAtout key={atout.titre} {...atout} />
           ))}
         </div>
       </section>

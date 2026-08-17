@@ -146,3 +146,152 @@ body {
   font-weight: 600;
   color: var(--color-brand-deep);
 }
+
+/*
+ * Animations des illustrations de la page d'accueil.
+ *
+ * Chaque case rejoue son geste lorsqu'elle entre dans l'écran : la feuille se
+ * redresse, les informations sont reconnues une à une, les rappels s'égrènent,
+ * la dernière facture décroche. Le mouvement n'est pas décoratif — il montre
+ * un enchaînement que le dessin fixe ne peut que suggérer.
+ *
+ * Rien ne s'anime tant que la classe atout-anime n'est pas posée, et elle ne
+ * l'est que par le script, après vérification que le visiteur n'a pas demandé
+ * à réduire les animations. Sans elle, l'illustration s'affiche telle quelle :
+ * un dessin invisible vaudrait moins qu'un dessin immobile.
+ */
+
+@media (prefers-reduced-motion: no-preference) {
+  /* transform-box : sans lui, les origines de transformation d'un élément SVG
+     se calculent sur le repère entier et non sur la forme elle-même. */
+  .atout-anime .at-anim {
+    transform-box: fill-box;
+  }
+
+  .atout-anime .at-fondu,
+  .atout-anime .at-pastille,
+  .atout-anime .at-cloche,
+  .atout-anime .at-badge,
+  .atout-anime .at-page {
+    opacity: 0;
+  }
+
+  .atout-anime .at-coin,
+  .atout-anime .at-jalon {
+    opacity: 0;
+    transform: scale(0.2);
+    transform-box: fill-box;
+    transform-origin: center;
+  }
+
+  .atout-anime .at-barre {
+    transform: scaleY(0.04);
+    transform-box: fill-box;
+    transform-origin: bottom;
+  }
+
+  .atout-anime .at-trace {
+    stroke-dasharray: var(--longueur, 320);
+    stroke-dashoffset: var(--longueur, 320);
+  }
+
+  .atout-anime .at-photo {
+    transform: rotate(-4deg) translateY(6px);
+    transform-box: fill-box;
+    transform-origin: center;
+  }
+
+  /* ---- Déclenchement ---- */
+
+  .atout-anime.est-visible .at-photo {
+    animation: at-redresser 900ms cubic-bezier(0.22, 1, 0.36, 1) 120ms both;
+  }
+
+  .atout-anime.est-visible .at-coin {
+    animation: at-poser 420ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  }
+
+  .atout-anime.est-visible .at-page {
+    animation: at-entrer 620ms cubic-bezier(0.22, 1, 0.36, 1) 760ms both;
+  }
+
+  .atout-anime.est-visible .at-fondu {
+    animation: at-paraitre 500ms ease-out 620ms both;
+  }
+
+  .atout-anime.est-visible .at-pastille {
+    animation: at-glisser 560ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  .atout-anime.est-visible .at-trace {
+    animation: at-tracer 700ms ease-out both;
+  }
+
+  .atout-anime.est-visible .at-jalon {
+    animation: at-poser 460ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  }
+
+  .atout-anime.est-visible .at-cloche {
+    animation: at-sonner 620ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  }
+
+  .atout-anime.est-visible .at-barre {
+    animation: at-pousser 620ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  .atout-anime.est-visible .at-badge {
+    animation: at-surgir 520ms cubic-bezier(0.34, 1.56, 0.64, 1) 900ms both;
+  }
+
+  /* Les retards en cascade : l'œil suit un enchaînement, pas un bloc. */
+  .atout-anime.est-visible .at-d1 { animation-delay: 120ms; }
+  .atout-anime.est-visible .at-d2 { animation-delay: 240ms; }
+  .atout-anime.est-visible .at-d3 { animation-delay: 360ms; }
+  .atout-anime.est-visible .at-d4 { animation-delay: 480ms; }
+  .atout-anime.est-visible .at-d5 { animation-delay: 600ms; }
+
+  @keyframes at-redresser {
+    from { transform: rotate(-4deg) translateY(6px); }
+    to { transform: rotate(0deg) translateY(0); }
+  }
+
+  @keyframes at-poser {
+    from { opacity: 0; transform: scale(0.2); }
+    to { opacity: 1; transform: scale(1); }
+  }
+
+  @keyframes at-entrer {
+    from { opacity: 0; transform: translateX(10px) scale(0.96); }
+    to { opacity: 1; transform: translateX(0) scale(1); }
+  }
+
+  @keyframes at-paraitre {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  @keyframes at-glisser {
+    from { opacity: 0; transform: translateX(-14px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+
+  @keyframes at-tracer {
+    to { stroke-dashoffset: 0; }
+  }
+
+  @keyframes at-sonner {
+    0% { opacity: 0; transform: translateY(-8px) rotate(-12deg); }
+    60% { opacity: 1; transform: translateY(0) rotate(8deg); }
+    100% { opacity: 1; transform: translateY(0) rotate(0deg); }
+  }
+
+  @keyframes at-pousser {
+    from { transform: scaleY(0.04); }
+    to { transform: scaleY(1); }
+  }
+
+  @keyframes at-surgir {
+    from { opacity: 0; transform: translateY(6px) scale(0.85); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+  }
+}
