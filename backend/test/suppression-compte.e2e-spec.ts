@@ -142,3 +142,80 @@ describe('Suppression de compte (e2e)', () => {
     restes.push(res.body.user.id as string);
   });
 });
+
+describe('Export de ses données (e2e)', () => {
+  let app: INestApplication;
+  const crees: string[] = [];
+
+  beforeAll(async () => {
+    app = await createTestApp();
+  });
+
+  afterAll(async () => {
+    await cleanupUsers(app, crees);
+    await app.close();
+  });
+
+  it('refuse sans jeton', async () => {
+    await request(app.getHttpServer()).get('/users/moi/export').expect(401);
+  });
+
+  it('rend les données du compte, sans secret ni détail interne', async () => {
+    const u = await registerUser(app, 'export');
+    crees.push(u.userId);
+
+    await request(app.getHttpServer())
+      .post('/documents')
+      .set('Authorization', `Bearer ${u.accessToken}`)
+      .field('name', 'Facture exportable')
+      .field('type', 'facture')
+      .attach('file', Buffer.from('%PDF-1.4 contenu'), {
+        filename: 'f.pdf',
+        contentType: 'application/pdf',
+      })
+      .expect(201);
+
+    const res = await request(app.getHttpServer())
+      .get('/users/moi/export')
+      .set('Authorization', `Bearer ${u.accessToken}`)
+      .expect(200);
+
+    expect(res.headers['content-disposition']).toContain('attachment');
+    expect(res.body.compte.email).toBe(u.email);
+    expect(res.body.documents).toHaveLength(1);
+    expect(res.body.documents[0].nom).toBe('Facture exportable');
+
+    // Ni empreinte du mot de passe, ni clé de stockage, ni jeton de partage :
+    // un export circule, il ne doit rien porter d'exploitable.
+    const brut = JSON.stringify(res.body);
+    expect(brut).not.toContain('passwordHash');
+    expect(brut).not.toContain('fileKey');
+    expect(brut).not.toContain('$2a$');
+    expect(brut).not.toContain('$2b$');
+  });
+
+  it('n’expose pas les données d’un autre compte', async () => {
+    const a = await registerUser(app, 'export-a');
+    const b = await registerUser(app, 'export-b');
+    crees.push(a.userId, b.userId);
+
+    await request(app.getHttpServer())
+      .post('/documents')
+      .set('Authorization', `Bearer ${a.accessToken}`)
+      .field('name', 'Document de A')
+      .field('type', 'facture')
+      .attach('file', Buffer.from('%PDF-1.4 contenu'), {
+        filename: 'f.pdf',
+        contentType: 'application/pdf',
+      })
+      .expect(201);
+
+    const res = await request(app.getHttpServer())
+      .get('/users/moi/export')
+      .set('Authorization', `Bearer ${b.accessToken}`)
+      .expect(200);
+
+    expect(res.body.documents).toHaveLength(0);
+    expect(JSON.stringify(res.body)).not.toContain('Document de A');
+  });
+});

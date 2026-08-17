@@ -1,4 +1,12 @@
-import { Body, Controller, Delete, HttpCode, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Header,
+  HttpCode,
+  UseGuards,
+} from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import {
   CurrentUser,
@@ -11,6 +19,20 @@ import { DeleteAccountDto } from './dto/delete-account.dto';
 @Controller('users')
 export class UsersController {
   constructor(private readonly users: UsersService) {}
+
+  /**
+   * Copie de toutes ses données, au format JSON.
+   *
+   * L'en-tête de disposition fait proposer un enregistrement plutôt qu'un
+   * affichage : le fichier a vocation à être conservé, pas lu dans un
+   * onglet.
+   */
+  @Get('moi/export')
+  @Header('Content-Type', 'application/json; charset=utf-8')
+  @Header('Content-Disposition', 'attachment; filename="syneco-mes-donnees.json"')
+  exporterMesDonnees(@CurrentUser() user: CurrentUserPayload) {
+    return this.users.exporterDonnees(user.userId);
+  }
 
   /**
    * Suppression définitive de son propre compte.

@@ -127,6 +127,22 @@ libération de l'adresse e-mail pour une nouvelle inscription.
 L'historique de restauration de la base est de **6 heures**. Passé ce délai,
 une donnée supprimée ne subsiste nulle part.
 
+### Portabilité
+
+Chaque utilisateur télécharge l'intégralité de ses données depuis la page
+Abonnement, au format JSON : compte, documents avec ce qui en a été lu,
+échéances, contrats, partages et leurs consultations, clients et factures.
+
+L'export ne contient **ni empreinte de mot de passe, ni clé de stockage, ni
+jeton de partage encore actif** : un fichier destiné à circuler ne doit rien
+porter d'exploitable. Trois tests le vérifient, dont l'absence de fuite vers
+un autre compte.
+
+Les fichiers eux-mêmes n'y sont pas joints : les rassembler en archive
+demanderait de tout charger en mémoire, ce qu'une instance modeste ne
+supporterait pas. Ils se téléchargent un par un, et l'export en donne
+l'inventaire.
+
 ### Vie privée
 
 Aucun traqueur : ni Google Analytics, ni Meta, ni outil de mesure tiers.
@@ -144,7 +160,6 @@ la même exigence que la précédente.
 
 | Manque | Portée | Priorité |
 |---|---|---|
-| **Export de ses données** | Article 20 du RGPD, portabilité. Absent. | Haute |
 | **Double authentification** | Mot de passe seul. | Haute |
 | **Analyse antivirale des fichiers** | Aucune. Le contrôle de signature écarte les exécutables, pas un PDF piégé. | Moyenne |
 | **Chiffrement applicatif des documents** | Le stockage chiffre au repos, mais l'éditeur et l'hébergeur peuvent techniquement lire les fichiers. **Ne jamais prétendre à un chiffrement de bout en bout.** | Moyenne |
@@ -152,8 +167,8 @@ la même exigence que la précédente.
 | **Environnement de préproduction** | Développement et production seulement. | Moyenne |
 | **Rotation des secrets** | Manuelle, sans calendrier ni procédure écrite. | Moyenne |
 | **Procédure de violation de données** | Non écrite. L'article 33 impose une notification sous 72 heures. | Haute |
-| **Registre des traitements** | Article 30. Absent. | Haute |
-| **Contrat de sous-traitance (DPA)** | Article 28. SYNeco est sous-traitant pour les données clients du module de facturation ; aucun contrat type n'est proposé. | Haute |
+| **Registre des traitements** | Rédigé (`docs/registre-des-traitements.md`), **à faire relire**. | Moyenne |
+| **Contrat de sous-traitance (DPA)** | Modèle rédigé (`docs/contrat-sous-traitance.md`), **à faire relire avant toute signature**. | Moyenne |
 | **Audit externe / test d'intrusion** | Jamais réalisé. | Moyenne |
 
 ### Transferts hors Union européenne

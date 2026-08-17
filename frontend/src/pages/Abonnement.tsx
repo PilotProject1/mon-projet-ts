@@ -3,6 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom'
 import { Check } from 'lucide-react'
 import type { PlanCatalogueEntry, PlanFeature, PlanUsage } from '../types'
 import { ApiError, billingApi, planApi } from '../services/api'
+import ExporterMesDonnees from '../components/ExporterMesDonnees'
 import SupprimerCompte from '../components/SupprimerCompte'
 
 interface AbonnementProps {
@@ -257,7 +258,8 @@ export default function Abonnement({
       {/* La suppression figure ici, sous la gestion de l'abonnement : c'est
           la page où l'on vient quand on veut partir, et l'ordre évite qu'on
           la rencontre par hasard. */}
-      <div className="mt-6">
+      <div className="mt-6 space-y-4">
+        <ExporterMesDonnees />
         <SupprimerCompte onSupprime={onCompteSupprime} />
       </div>
 
