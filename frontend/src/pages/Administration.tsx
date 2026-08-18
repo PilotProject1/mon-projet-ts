@@ -185,8 +185,10 @@ export default function Administration() {
               <li key={plan} className="flex items-center gap-3 text-sm">
                 <span className="w-28 shrink-0 text-brand-ink">{libelle}</span>
                 <span className="h-2 min-w-0 flex-1 overflow-hidden rounded-full bg-brand-border">
+                  {/* mvt-barre : la barre se remplit de la gauche vers la
+                      droite au lieu d'apparaître pleine. */}
                   <span
-                    className="block h-full rounded-full bg-brand-green"
+                    className="mvt-barre mvt-entre block h-full rounded-full bg-brand-green"
                     style={{ width: `${part}%` }}
                   />
                 </span>

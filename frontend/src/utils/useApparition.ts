@@ -13,7 +13,12 @@ import { useEffect, useRef, useState } from 'react'
  *  - le visiteur a demandé à réduire les animations dans son système ;
  *  - le navigateur ne connaît pas IntersectionObserver.
  */
-export function useApparition<T extends HTMLElement>() {
+export function useApparition<T extends HTMLElement>(
+  classes: { arme: string; visible: string } = {
+    arme: 'atout-anime',
+    visible: 'est-visible',
+  },
+) {
   const ref = useRef<T>(null)
   const [anime, setAnime] = useState(false)
   const [visible, setVisible] = useState(false)
@@ -47,5 +52,21 @@ export function useApparition<T extends HTMLElement>() {
     return () => observateur.disconnect()
   }, [])
 
-  return { ref, classe: `${anime ? 'atout-anime' : ''} ${visible ? 'est-visible' : ''}`.trim() }
+  return {
+    ref,
+    classe: `${anime ? classes.arme : ''} ${visible ? classes.visible : ''}`.trim(),
+  }
+}
+
+/**
+ * Même mécanique, pour l'intérieur de l'application.
+ *
+ * Les noms de classes diffèrent de ceux de la page d'accueil parce que les
+ * deux mouvements n'ont pas le même propos : là-bas des illustrations se
+ * dessinent, ici des listes et des cartes se posent. Mêler les deux
+ * reviendrait à ce qu'un réglage fait pour l'un déplace l'autre sans qu'on
+ * s'en aperçoive.
+ */
+export function useEntree<T extends HTMLElement>() {
+  return useApparition<T>({ arme: 'mvt', visible: 'mvt-entre' })
 }

@@ -1,11 +1,12 @@
 import { useRef, useState } from 'react'
-import type { FormEvent } from 'react'
+import type { CSSProperties, FormEvent } from 'react'
 import type { Deadline, Document } from '../types'
 import PriorityBadge from '../components/PriorityBadge'
 import DeadlineCalendar from '../components/DeadlineCalendar'
 import ReminderSettings from '../components/ReminderSettings'
 import { ApiError } from '../services/api'
 import { daysUntil, formatDate, formatRelative } from '../utils/formatDate'
+import { useEntree } from '../utils/useApparition'
 
 interface DeadlinesProps {
   deadlines: Deadline[]
@@ -30,6 +31,7 @@ export default function Deadlines({
   onToggleStatus,
   onRemind,
 }: DeadlinesProps) {
+  const listeEcheances = useEntree<HTMLUListElement>()
   const [view, setView] = useState<'liste' | 'calendrier'>('liste')
   const [statusFilter, setStatusFilter] = useState<'toutes' | 'a_faire' | 'terminee'>('toutes')
   const [showForm, setShowForm] = useState(false)
@@ -236,11 +238,18 @@ export default function Deadlines({
           {filtered.length === 0 ? (
             <p className="px-4 py-6 text-sm text-brand-muted">Aucune échéance.</p>
           ) : (
-            <ul className="divide-y divide-brand-border">
-              {filtered.map((d) => {
+            <ul
+              ref={listeEcheances.ref}
+              className={`mvt-liste divide-y divide-brand-border ${listeEcheances.classe}`}
+            >
+              {filtered.map((d, rang) => {
                 const linkedDoc = documents.find((doc) => doc.id === d.documentId)
                 return (
-                  <li key={d.id} className="flex flex-col items-start gap-2 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+                  <li
+                    key={d.id}
+                    className="mvt-ligne flex flex-col items-start gap-2 px-4 py-3 hover:bg-brand-mint/40 sm:flex-row sm:items-center sm:justify-between"
+                    style={{ '--rang': rang } as CSSProperties}
+                  >
                     <div>
                       <p
                         className={`text-sm font-medium ${

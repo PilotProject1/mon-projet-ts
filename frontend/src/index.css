@@ -295,3 +295,89 @@ body {
     to { opacity: 1; transform: translateY(0) scale(1); }
   }
 }
+
+/* ---------------------------------------------------------------------------
+   Mouvement à l'intérieur de l'application.
+
+   Trois règles ont guidé ce qui suit, parce qu'une animation ratée coûte plus
+   qu'une absence d'animation :
+
+   1. Seuls `opacity` et `transform` sont animés. Ce sont les deux propriétés
+      que le navigateur confie au compositeur : elles ne déclenchent ni calcul
+      de mise en page ni redessin, et tiennent donc à soixante images par
+      seconde sur un téléphone modeste.
+   2. Rien ne se rejoue. L'entrée se déclenche une fois, à l'apparition à
+      l'écran, puis l'observateur se débranche — sans quoi un simple
+      défilement transformerait la page en clignotant.
+   3. Tout est enfermé dans `prefers-reduced-motion: no-preference`. Qui a
+      demandé moins de mouvement dans son système voit la page dans son état
+      final, immédiatement. Ce n'est pas une option de confort : le mouvement
+      déclenche des malaises chez certaines personnes.
+--------------------------------------------------------------------------- */
+
+@media (prefers-reduced-motion: no-preference) {
+  /* Une carte, un bloc : se pose en montant de quelques pixels. */
+  .mvt {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  .mvt.mvt-entre {
+    animation: mvt-poser 0.45s cubic-bezier(0.22, 0.61, 0.36, 1) forwards;
+  }
+
+  /* Une liste : les enfants se posent l'un après l'autre. Le décalage est
+     porté par --rang, que le composant numérote. Il est plafonné : au-delà
+     d'une dizaine d'éléments, attendre son tour devient de l'attente. */
+  .mvt-liste > * {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  .mvt-liste.mvt-entre > * {
+    animation: mvt-poser 0.42s cubic-bezier(0.22, 0.61, 0.36, 1) forwards;
+    animation-delay: calc(min(var(--rang, 0), 10) * 45ms);
+  }
+
+  @keyframes mvt-poser {
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  /* Une barre de progression qui se remplit au lieu d'apparaître remplie :
+     le remplissage dit « voici où vous en êtes », l'état fixe ne dit rien. */
+  .mvt-barre {
+    transform: scaleX(0);
+    transform-origin: left;
+  }
+  .mvt-barre.mvt-entre,
+  .mvt-entre .mvt-barre {
+    animation: mvt-remplir 0.7s cubic-bezier(0.22, 0.61, 0.36, 1) forwards;
+  }
+
+  @keyframes mvt-remplir {
+    to {
+      transform: scaleX(1);
+    }
+  }
+
+  /* Micro-relief au survol, réservé aux appareils qui savent survoler : sur
+     un écran tactile, `hover` reste collé après le toucher et laisse une
+     carte soulevée sans raison. */
+  @media (hover: hover) and (pointer: fine) {
+    .mvt-carte {
+      transition:
+        transform 0.18s ease,
+        box-shadow 0.18s ease;
+    }
+    .mvt-carte:hover {
+      transform: translateY(-2px);
+    }
+  }
+
+  /* Une ligne de liste qui accuse réception du survol, sans bouger la mise
+     en page — seule la couleur change. */
+  .mvt-ligne {
+    transition: background-color 0.15s ease;
+  }
+}

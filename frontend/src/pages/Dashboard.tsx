@@ -1,10 +1,12 @@
 import { Link } from 'react-router-dom'
 import { FileText, Clock, CheckCircle2, CalendarClock, Plus } from 'lucide-react'
-import type { ComponentType } from 'react'
+import type { ComponentType, CSSProperties } from 'react'
 import type { Document, Deadline } from '../types'
 import PriorityBadge from '../components/PriorityBadge'
 import RecurringExpenses from '../components/RecurringExpenses'
 import Briefing from '../components/Briefing'
+import Compteur from '../components/Compteur'
+import { useEntree } from '../utils/useApparition'
 import { daysUntil, formatDate, formatRelative } from '../utils/formatDate'
 
 interface DashboardProps {
@@ -17,11 +19,16 @@ interface StatCardProps {
   label: string
   value: number
   tint: string
+  /** Position dans la rangée : commande le décalage de l'entrée. */
+  rang: number
 }
 
-function StatCard({ icon: Icon, label, value, tint }: StatCardProps) {
+function StatCard({ icon: Icon, label, value, tint, rang }: StatCardProps) {
   return (
-    <div className="brand-card-shadow relative min-w-[200px] flex-1 overflow-hidden rounded-[14px] border border-brand-border bg-white px-5.5 py-5">
+    <div
+      className="brand-card-shadow mvt-carte relative min-w-[200px] flex-1 overflow-hidden rounded-[14px] border border-brand-border bg-white px-5.5 py-5"
+      style={{ '--rang': rang } as CSSProperties}
+    >
       <div className="absolute top-0 left-0 h-full w-1" style={{ background: tint }} />
       <div className="mb-3.5 flex items-center gap-2.5">
         <div
@@ -33,7 +40,7 @@ function StatCard({ icon: Icon, label, value, tint }: StatCardProps) {
         <span className="text-[13.5px] font-medium text-brand-muted">{label}</span>
       </div>
       <div className="font-heading text-[30px] leading-none font-semibold text-brand-ink">
-        {value}
+        <Compteur valeur={value} />
       </div>
     </div>
   )
@@ -44,6 +51,9 @@ export default function Dashboard({ documents, deadlines }: DashboardProps) {
     .filter((d) => d.status === 'a_faire')
     .sort((a, b) => a.dueDate.localeCompare(b.dueDate))
     .slice(0, 5)
+
+  const cartes = useEntree<HTMLDivElement>()
+  const liste = useEntree<HTMLUListElement>()
 
   return (
     <div>
@@ -56,19 +66,27 @@ export default function Dashboard({ documents, deadlines }: DashboardProps) {
 
       <Briefing />
 
-      <div className="mb-5.5 flex flex-wrap gap-4">
-        <StatCard icon={FileText} label="Documents" value={documents.length} tint="#12514F" />
+      <div ref={cartes.ref} className={`mvt-liste mb-5.5 flex flex-wrap gap-4 ${cartes.classe}`}>
+        <StatCard
+          icon={FileText}
+          label="Documents"
+          value={documents.length}
+          tint="#12514F"
+          rang={0}
+        />
         <StatCard
           icon={Clock}
           label="Échéances à faire"
           value={deadlines.filter((d) => d.status === 'a_faire').length}
           tint="#C98A3E"
+          rang={1}
         />
         <StatCard
           icon={CheckCircle2}
           label="Échéances terminées"
           value={deadlines.filter((d) => d.status === 'terminee').length}
           tint="#2F8F6F"
+          rang={2}
         />
       </div>
 
@@ -105,9 +123,13 @@ export default function Dashboard({ documents, deadlines }: DashboardProps) {
             </Link>
           </div>
         ) : (
-          <ul className="divide-y divide-brand-border">
-            {upcoming.map((d) => (
-              <li key={d.id} className="flex items-center justify-between py-3.5">
+          <ul ref={liste.ref} className={`mvt-liste divide-y divide-brand-border ${liste.classe}`}>
+            {upcoming.map((d, rang) => (
+              <li
+                key={d.id}
+                className="flex items-center justify-between py-3.5"
+                style={{ '--rang': rang } as CSSProperties}
+              >
                 <div>
                   <p className="text-sm font-medium text-brand-ink">{d.title}</p>
                   <p className="text-xs text-brand-muted">

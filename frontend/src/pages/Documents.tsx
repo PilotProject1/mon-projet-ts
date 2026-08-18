@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import type { ChangeEvent, FormEvent } from 'react'
+import type { ChangeEvent, CSSProperties, FormEvent } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import type {
   Document,
@@ -15,6 +15,7 @@ import { formatAmount } from '../utils/formatAmount'
 import PlanUsageCard from '../components/PlanUsageCard'
 import DocumentScanner from '../components/DocumentScanner'
 import SuggestedDeadline from '../components/SuggestedDeadline'
+import { useEntree } from '../utils/useApparition'
 
 interface DocumentsProps {
   documents: Document[]
@@ -127,6 +128,7 @@ export default function Documents({
   onCreateShare,
   onRefresh,
 }: DocumentsProps) {
+  const listeDocs = useEntree<HTMLUListElement>()
   const quotaReached =
     planUsage !== null &&
     planUsage.documents.max !== null &&
@@ -677,9 +679,16 @@ export default function Documents({
         {filtered.length === 0 ? (
           <p className="px-4 py-6 text-sm text-brand-muted">Aucun document trouvé.</p>
         ) : (
-          <ul className="divide-y divide-brand-border">
-            {filtered.map((doc) => (
-              <li key={doc.id} className="px-4 py-3">
+          <ul
+            ref={listeDocs.ref}
+            className={`mvt-liste divide-y divide-brand-border ${listeDocs.classe}`}
+          >
+            {filtered.map((doc, rang) => (
+              <li
+                key={doc.id}
+                className="mvt-ligne px-4 py-3 hover:bg-brand-mint/40"
+                style={{ '--rang': rang } as CSSProperties}
+              >
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                   <div className="min-w-0">
                     <p className="truncate text-sm font-medium text-brand-ink">{doc.name}</p>
