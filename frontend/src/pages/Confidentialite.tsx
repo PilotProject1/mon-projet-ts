@@ -36,8 +36,9 @@ export default function Confidentialite() {
           <tr>
             <td>Compte</td>
             <td>
-              Adresse e-mail, nom, mot de passe (stocké uniquement sous forme d'empreinte chiffrée,
-              jamais en clair), date de création
+              Adresse e-mail, nom, mot de passe (conservé uniquement sous forme d'une
+              empreinte cryptographique irréversible, calculée avec bcrypt, et jamais en
+              clair), date de création
             </td>
           </tr>
           <tr>
@@ -196,7 +197,7 @@ export default function Confidentialite() {
 
       <h2>7. Destinataires et sous-traitants</h2>
       <p>
-        Vos données ne sont accessibles qu'à vous. Elles transitent toutefois par les prestataires
+        Aucun autre utilisateur n'accède à vos données : chaque requête vérifie que vous en êtes le propriétaire. Elles restent en revanche accessibles aux prestataires
         techniques nécessaires au fonctionnement du service :
       </p>
       <table>
@@ -255,8 +256,7 @@ export default function Confidentialite() {
       </p>
       <p>
         <strong>Vos documents sont eux aussi conservés dans l'Union européenne.</strong> Le stockage
-        est configuré sous juridiction européenne : notre prestataire s'engage à ne les placer que
-        dans des centres de données situés sur ce territoire.
+        est paramétré pour une juridiction européenne, option prévue par notre prestataire pour restreindre l'emplacement des fichiers à ce territoire. Les journaux techniques et les métadonnées de service peuvent, eux, être traités ailleurs.
       </p>
       <p>
         <strong>Le serveur applicatif, lui, est hébergé aux États-Unis</strong>, en Virginie. C'est

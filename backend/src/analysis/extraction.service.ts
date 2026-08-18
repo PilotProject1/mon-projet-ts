@@ -20,6 +20,20 @@ export interface ExtractedFields {
    * l'application ne dit rien du mois auquel elle se rapporte.
    */
   suggestedDocumentDate: string | null;
+  /**
+   * Référence propre au document : numéro de facture, de contrat, de police,
+   * ou identifiant client. C'est ce qu'un service client réclame au
+   * téléphone, et ce qu'on cherche le plus longtemps dans une pile.
+   */
+  suggestedReference: string | null;
+  /** Intitulé qui a désigné cette référence, pour savoir laquelle c'est. */
+  suggestedReferenceLabel: string | null;
+  /**
+   * Vrai si le document se déclare acquitté, faux s'il annonce un règlement
+   * à venir, null si rien ne tranche. Une facture déjà prélevée n'appelle
+   * aucun rappel.
+   */
+  suggestedPaid: boolean | null;
 }
 
 /*
@@ -290,6 +304,81 @@ const AMOUNT_NEEDLES = AMOUNT_PHRASES.map(replier);
 const AMOUNT_WINDOW = 60;
 
 /*
+ * Intitulés qui annoncent la référence du document, du plus précis au plus
+ * vague. L'ordre compte : une facture porte souvent son propre numéro et
+ * celui du client, et c'est le sien qu'on cite en premier.
+ */
+const REFERENCE_PHRASES = [
+  'référence de la facture',
+  'numéro de facture',
+  'n° de facture',
+  'no de facture',
+  'facture n°',
+  'facture no',
+  // La lecture optique perd souvent le degré : « facture n » doit suffire.
+  // Le risque est nul, la valeur retenue devant contenir un chiffre.
+  'facture n',
+  'numéro de contrat',
+  'n° de contrat',
+  'contrat n°',
+  'contrat n',
+  'numéro de police',
+  'police n°',
+  'police n',
+  'numéro de commande',
+  'commande n°',
+  'commande n',
+  'identifiant client',
+  'numéro client',
+  'n° client',
+  'référence client',
+  'référence',
+  'réf.',
+];
+const REFERENCE_NEEDLES = REFERENCE_PHRASES.map(replier);
+
+/** Fenêtre suivant l'intitulé dans laquelle chercher la référence. */
+const REFERENCE_WINDOW = 48;
+
+/*
+ * Une référence mêle lettres et chiffres, parfois des tirets — « FR79815011 »,
+ * « sh203366-ovh », « 4839201 ». On exige au moins un chiffre et quatre
+ * caractères, faute de quoi le premier mot venu ferait l'affaire.
+ */
+const REFERENCE_REGEX = /[A-Za-z0-9][A-Za-z0-9\-_/]{3,}/;
+
+/*
+ * Formules qui tranchent le règlement. Celles d'acquittement l'emportent :
+ * une facture prélevée porte souvent aussi la mention « net à payer », qui
+ * n'est qu'un intitulé de total.
+ */
+const PAID_PHRASES = [
+  'a été prélevé',
+  'a ete preleve',
+  'a été payée',
+  'a été réglée',
+  'facture acquittée',
+  'acquittée',
+  'payée le',
+  'réglée le',
+  'paiement reçu',
+  'déjà réglé',
+  'ne pas régler',
+  'aucune action de votre part',
+];
+const UNPAID_PHRASES = [
+  'à régler avant',
+  'à payer avant',
+  'date limite de paiement',
+  'reste à payer',
+  'montant à régler',
+  'merci de régler',
+  'à régler sous',
+];
+const PAID_NEEDLES = PAID_PHRASES.map(replier);
+const UNPAID_NEEDLES = UNPAID_PHRASES.map(replier);
+
+/*
  * Dates écrites en toutes lettres : « 13 Août 2026 », « 1er septembre 2026 ».
  * Les documents français les impriment au moins aussi souvent qu'en chiffres,
  * et l'ancien motif, purement numérique, les ignorait entièrement.
@@ -326,6 +415,8 @@ export class ExtractionService {
         rawText,
         due.suggestedDueDate,
       ),
+      ...this.extractReference(rawText),
+      suggestedPaid: this.extractPaid(rawText),
       ...due,
     };
   }
@@ -441,6 +532,67 @@ export class ExtractionService {
   private extractDates(text: string): string[] {
     const dates = new Set(this.datesDe(text).map((d) => d.iso));
     return [...dates].sort().slice(0, 5);
+  }
+
+  /**
+   * Référence propre au document, et l'intitulé qui l'annonce.
+   *
+   * Les intitulés sont essayés du plus précis au plus vague : une facture
+   * porte souvent son propre numéro et celui du client, et c'est le sien
+   * qu'on cite en premier. La valeur retenue doit contenir un chiffre —
+   * sans quoi « Référence : voir ci-dessous » passerait pour une référence.
+   */
+  private extractReference(text: string): {
+    suggestedReference: string | null;
+    suggestedReferenceLabel: string | null;
+  } {
+    const repere = replier(text);
+    if (repere.length !== text.length) {
+      return { suggestedReference: null, suggestedReferenceLabel: null };
+    }
+
+    for (const [rang, formule] of REFERENCE_NEEDLES.entries()) {
+      let depuis = 0;
+      for (;;) {
+        const position = repere.indexOf(formule, depuis);
+        if (position === -1) break;
+        const debut = position + formule.length;
+        // Les deux-points et le « n° » qui suivent parfois l'intitulé ne font
+        // pas partie de la référence.
+        const fenetre = text
+          .slice(debut, debut + REFERENCE_WINDOW)
+          .replace(/^[\s:°n#º.-]*/i, '');
+        const trouve = fenetre.match(REFERENCE_REGEX);
+        if (trouve && /\d/.test(trouve[0])) {
+          return {
+            suggestedReference: trouve[0],
+            suggestedReferenceLabel: text
+              .slice(position, position + REFERENCE_PHRASES[rang].length)
+              .trim(),
+          };
+        }
+        depuis = position + formule.length;
+      }
+    }
+
+    return { suggestedReference: null, suggestedReferenceLabel: null };
+  }
+
+  /**
+   * Le document se déclare-t-il réglé ?
+   *
+   * L'acquittement l'emporte sur l'annonce de règlement : une facture
+   * prélevée porte souvent aussi la mention « net à payer », qui n'est qu'un
+   * intitulé de total. Null quand rien ne tranche — ne rien affirmer vaut
+   * mieux qu'affirmer à tort qu'une facture reste due.
+   */
+  private extractPaid(text: string): boolean | null {
+    const repere = replier(text);
+    const source = repere.length === text.length ? repere : text.toLowerCase();
+    if (PAID_NEEDLES.some((formule) => source.includes(formule))) return true;
+    if (UNPAID_NEEDLES.some((formule) => source.includes(formule)))
+      return false;
+    return null;
   }
 
   /** Convertit « 1 234,50 » en 1234.5, quelles que soient les espaces. */

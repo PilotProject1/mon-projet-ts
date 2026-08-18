@@ -98,6 +98,25 @@ function resumeLu(doc: Document): string {
     .join(' · ')
 }
 
+/**
+ * Pastille de règlement. Rien n'est affiché quand le document ne tranche
+ * pas : « statut inconnu » n'apprendrait rien et encombrerait chaque ligne.
+ */
+function PastillePaiement({ paid }: { paid: boolean | null }) {
+  if (paid === null) return null
+  return (
+    <span
+      className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium ${
+        paid
+          ? 'bg-brand-green-soft text-brand-green-deep'
+          : 'bg-amber-50 text-amber-800'
+      }`}
+    >
+      {paid ? 'Réglée' : 'À régler'}
+    </span>
+  )
+}
+
 export default function Documents({
   documents,
   planUsage,
@@ -161,7 +180,11 @@ export default function Documents({
   const depotGroupe = files.length > 1
 
   const filtered = documents.filter((doc) => {
-    const matchesSearch = doc.name.toLowerCase().includes(search.toLowerCase())
+    const recherche = search.toLowerCase()
+    const matchesSearch =
+      doc.name.toLowerCase().includes(recherche) ||
+      (doc.reference?.toLowerCase().includes(recherche) ?? false) ||
+      (doc.provider?.toLowerCase().includes(recherche) ?? false)
     const matchesType = typeFilter === 'tous' || doc.type === typeFilter
     return matchesSearch && matchesType
   })
@@ -632,7 +655,7 @@ export default function Documents({
               e.currentTarget.blur()
             }
           }}
-          placeholder="Rechercher un document..."
+          placeholder="Nom, émetteur ou référence..."
           aria-label="Rechercher un document"
           className="flex-1 rounded-md border border-brand-border px-3 py-2 text-sm focus:border-brand-green focus:outline-none"
         />
@@ -667,8 +690,13 @@ export default function Documents({
                     {/* Ce que la lecture a reconnu dans le document. Ligne
                         distincte et tronquée : un nom de fournisseur long ne
                         doit pas repousser le reste hors de l'écran. */}
-                    {resumeLu(doc) && (
-                      <p className="truncate text-xs text-brand-green">{resumeLu(doc)}</p>
+                    {(resumeLu(doc) || doc.paid !== null) && (
+                      <div className="flex min-w-0 items-center gap-2">
+                        {resumeLu(doc) && (
+                          <p className="truncate text-xs text-brand-green">{resumeLu(doc)}</p>
+                        )}
+                        <PastillePaiement paid={doc.paid} />
+                      </div>
                     )}
                   </div>
                   <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 sm:shrink-0">
@@ -748,12 +776,16 @@ export default function Documents({
                                 : '—'}
                             </p>
                           </div>
-                          <div>
-                            <p className="text-xs font-medium text-brand-muted">Dates trouvées</p>
-                            <p className="text-brand-ink">
-                              {analysis.suggestedDates.length > 0
-                                ? analysis.suggestedDates.map(formatDate).join(', ')
-                                : '—'}
+                          {/* La liste brute des dates n'apprenait rien : elle
+                              répétait le plus souvent la date du document. La
+                              référence, elle, est ce qu'un service client
+                              réclame au téléphone. */}
+                          <div className="min-w-0">
+                            <p className="text-xs font-medium text-brand-muted">
+                              {analysis.suggestedReferenceLabel ?? 'Référence'}
+                            </p>
+                            <p className="truncate text-brand-ink" title={analysis.suggestedReference ?? undefined}>
+                              {analysis.suggestedReference ?? '—'}
                             </p>
                           </div>
                           <div>

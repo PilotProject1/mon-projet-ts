@@ -197,6 +197,69 @@ describe('ExtractionService — émetteur', () => {
     });
   });
 
+  describe('référence du document', () => {
+    it('retient la référence de la facture plutôt que celle du client', () => {
+      // Les deux figurent sur une facture OVH : c'est la sienne qu'on cite.
+      const r = service.extract(
+        'Référence de la facture : FR79815011\nIdentifiant Client : sh203366-ovh',
+      );
+      expect(r.suggestedReference).toBe('FR79815011');
+      expect(r.suggestedReferenceLabel).toBe('Référence de la facture');
+    });
+
+    it('lit un numéro annoncé par « Facture n° »', () => {
+      expect(service.extract('Facture n° 4839201-08').suggestedReference).toBe(
+        '4839201-08',
+      );
+    });
+
+    it('lit un numéro de police d’assurance', () => {
+      expect(service.extract('Police n° 8830192').suggestedReference).toBe(
+        '8830192',
+      );
+    });
+
+    it('refuse une référence sans chiffre', () => {
+      // « Référence : voir ci-dessous » n'est pas une référence.
+      expect(
+        service.extract('Référence : voir ci-dessous').suggestedReference,
+      ).toBeNull();
+    });
+
+    it('ne propose rien quand le document n’en porte aucune', () => {
+      expect(
+        service.extract('Ticket de caisse 12,90 €').suggestedReference,
+      ).toBeNull();
+    });
+  });
+
+  describe('statut de paiement', () => {
+    it('reconnaît une facture déjà prélevée', () => {
+      expect(
+        service.extract('Le montant de 6,00 € a été prélevé').suggestedPaid,
+      ).toBe(true);
+    });
+
+    it('reconnaît une facture encore due', () => {
+      expect(
+        service.extract('À régler avant le 05/09/2026').suggestedPaid,
+      ).toBe(false);
+    });
+
+    it('fait primer l’acquittement sur l’intitulé du total', () => {
+      // « Net à payer » n'est qu'un libellé de ligne : il ne dit rien du
+      // règlement, contrairement à « a été prélevé ».
+      expect(
+        service.extract('Net à payer 6,00 €\nCe montant a été prélevé.')
+          .suggestedPaid,
+      ).toBe(true);
+    });
+
+    it('ne tranche pas quand rien ne le dit', () => {
+      expect(service.extract('Facture EDF 84,30 €').suggestedPaid).toBeNull();
+    });
+  });
+
   describe('nature du document', () => {
     it('classe un bon de garantie en garantie, non en assurance', () => {
       // « garantie » figure dans les deux listes de mots-clés. C'est la

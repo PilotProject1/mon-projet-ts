@@ -20,6 +20,7 @@ import type {
   Briefing,
   PlanUsage,
   PlanCatalogueEntry,
+  StatistiquesAdmin,
 } from '../types'
 
 const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:3000'
@@ -322,6 +323,35 @@ export const briefingApi = {
 
 export const recurrencesApi = {
   get: () => request<Recurrences>('/recurrences'),
+}
+
+export const usersApi = {
+  /**
+   * Copie de toutes ses données, telle que le serveur la renvoie.
+   *
+   * On passe par le flux brut plutôt que par `request` : c'est un fichier à
+   * enregistrer, pas un objet à interpréter, et l'analyser pour le
+   * re-sérialiser ensuite ne ferait que le déformer.
+   */
+  async exporterMesDonnees(retry = true): Promise<Blob> {
+    const res = await rawRequest('/users/moi/export')
+    if (res.status === 401 && retry && (await tryRefresh())) {
+      return usersApi.exporterMesDonnees(false)
+    }
+    if (!res.ok) throw new ApiError(res.status, await parseError(res))
+    return res.blob()
+  },
+
+  /** Suppression définitive de son propre compte. Aucun retour en arrière. */
+  supprimerMonCompte: (password: string) =>
+    request<void>('/users/moi', {
+      method: 'DELETE',
+      body: JSON.stringify({ password }),
+    }),
+}
+
+export const adminApi = {
+  statistiques: () => request<StatistiquesAdmin>('/admin/statistiques'),
 }
 
 export const planApi = {

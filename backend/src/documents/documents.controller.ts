@@ -30,6 +30,7 @@ import {
   ALLOWED_MIME_TYPES,
   MAX_FILE_SIZE_BYTES,
 } from './file-upload.constants';
+import { typeReel } from './file-signature';
 
 @UseGuards(JwtAuthGuard)
 @Controller('documents')
@@ -51,7 +52,12 @@ export class DocumentsController {
     if (!file) {
       throw new BadRequestException('Fichier requis');
     }
-    if (!ALLOWED_MIME_TYPES.includes(file.mimetype)) {
+    // Le type annoncé vient du client et se change en une ligne : c'est le
+    // contenu qui décide. Les deux doivent concorder, sans quoi un
+    // exécutable renommé « facture.pdf » serait stocké puis resservi sous ce
+    // type.
+    const reel = typeReel(file.buffer);
+    if (!ALLOWED_MIME_TYPES.includes(file.mimetype) || reel !== file.mimetype) {
       throw new BadRequestException(
         'Type de fichier non autorisé (PDF, JPG, PNG ou WEBP uniquement)',
       );

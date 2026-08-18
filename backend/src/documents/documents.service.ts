@@ -108,10 +108,13 @@ export class DocumentsService {
       const dueDate = fields.suggestedDueDate
         ? new Date(`${fields.suggestedDueDate}T00:00:00.000Z`)
         : null;
+      // Une facture qui se déclare acquittée n'appelle aucun rappel :
+      // proposer une échéance dessus ne ferait qu'agacer.
       const futureDueDate =
         dueDate &&
         !Number.isNaN(dueDate.getTime()) &&
-        dueDate.getTime() > Date.now()
+        dueDate.getTime() > Date.now() &&
+        fields.suggestedPaid !== true
           ? dueDate
           : null;
 
@@ -229,6 +232,9 @@ export class DocumentsService {
     return {
       provider: fields.suggestedProvider,
       amount: fields.suggestedAmount,
+      reference: fields.suggestedReference,
+      referenceLabel: fields.suggestedReferenceLabel,
+      paid: fields.suggestedPaid,
       documentDate:
         documentDate && !Number.isNaN(documentDate.getTime())
           ? documentDate

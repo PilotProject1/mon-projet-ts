@@ -61,6 +61,36 @@ const EXTRACTION_SCHEMA = {
         { type: 'null' },
       ],
     },
+    suggestedReference: {
+      anyOf: [
+        {
+          type: 'string',
+          description:
+            'Référence propre au document, reprise telle quelle : numéro de facture, de contrat, de police, de commande, ou identifiant client. Celle du document lui-même prime sur celle du client lorsque les deux figurent.',
+        },
+        { type: 'null' },
+      ],
+    },
+    suggestedReferenceLabel: {
+      anyOf: [
+        {
+          type: 'string',
+          description:
+            'Intitulé du document qui annonce cette référence, repris tel quel (par exemple « Référence de la facture » ou « Identifiant client »).',
+        },
+        { type: 'null' },
+      ],
+    },
+    suggestedPaid: {
+      anyOf: [
+        {
+          type: 'boolean',
+          description:
+            "Vrai si le document indique que la somme a déjà été réglée ou prélevée, faux s'il annonce un règlement encore attendu. Null si rien ne tranche — un simple intitulé « net à payer » ne suffit pas à conclure que la facture reste due.",
+        },
+        { type: 'null' },
+      ],
+    },
   },
   required: [
     'suggestedType',
@@ -70,6 +100,9 @@ const EXTRACTION_SCHEMA = {
     'suggestedDueDate',
     'suggestedDueLabel',
     'suggestedDocumentDate',
+    'suggestedReference',
+    'suggestedReferenceLabel',
+    'suggestedPaid',
   ],
   additionalProperties: false,
 };

@@ -22,6 +22,7 @@ import { BriefingModule } from './briefing/briefing.module';
 import { MailModule } from './mail/mail.module';
 import { PushModule } from './push/push.module';
 import { PlansModule } from './plans/plans.module';
+import { AdminModule } from './admin/admin.module';
 import { BillingModule } from './billing/billing.module';
 import { LoggingInterceptor } from './common/logging.interceptor';
 import { AllExceptionsFilter } from './common/all-exceptions.filter';
@@ -42,6 +43,7 @@ import { AllExceptionsFilter } from './common/all-exceptions.filter';
     MailModule,
     PushModule,
     PlansModule,
+    AdminModule,
     BillingModule,
     UsersModule,
     AuthModule,
