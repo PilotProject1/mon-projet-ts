@@ -120,6 +120,21 @@ Les journaux d'accès contiennent la méthode, la route, le code de réponse et
 la durée. **Aucun corps de requête, aucun mot de passe, aucun jeton, aucun
 contenu de document.**
 
+### Violation de données
+
+Une procédure écrite existe (`docs/procedure-violation-donnees.md`) : ce qui
+compte comme une violation, quoi faire dans les premières heures, quand
+notifier la CNIL (72 heures, article 33) et quand prévenir les personnes
+concernées (article 34), avec les modèles de message.
+
+Elle porte aussi le **registre des violations** qu'impose l'article 33.5 —
+lequel doit consigner même les incidents non notifiés, et la raison de ne pas
+les avoir notifiés.
+
+**Ce qui manque encore à cette procédure :** l'envoi d'un message à tous les
+utilisateurs n'est pas outillé. Prévenir les personnes concernées se ferait
+aujourd'hui à la main.
+
 ### Paiement
 
 Le plan d'un compte ne change **que** dans le gestionnaire de webhooks Stripe,
@@ -191,7 +206,6 @@ la même exigence que la précédente.
 | **Sauvegardes autonomes** | Un script `pg_dump` existe mais n'est ni planifié, ni chiffré, ni déporté. La seule protection réelle est la fenêtre de 6 heures de l'hébergeur — courte pour un incident découvert tardivement. | Haute |
 | **Environnement de préproduction** | Développement et production seulement. | Moyenne |
 | **Rotation des secrets** | Manuelle, sans calendrier ni procédure écrite. | Moyenne |
-| **Procédure de violation de données** | Non écrite. L'article 33 impose une notification sous 72 heures. | Haute |
 | **Registre des traitements** | Rédigé (`docs/registre-des-traitements.md`), **à faire relire**. | Moyenne |
 | **Contrat de sous-traitance (DPA)** | Modèle rédigé (`docs/contrat-sous-traitance.md`), **à faire relire avant toute signature**. | Moyenne |
 | **Audit externe / test d'intrusion** | Jamais réalisé. | Moyenne |
