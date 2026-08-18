@@ -27,7 +27,7 @@ export default function PlanUsageCard({ usage, compact = false }: PlanUsageCardP
         {!unlimited && (
           <div className="h-1 w-full overflow-hidden rounded-full bg-white/15">
             <div
-              className={`h-full rounded-full ${barColor}`}
+              className={`mvt-barre mvt-entre h-full rounded-full ${barColor}`}
               style={{ width: `${Math.max(ratio * 100, 2)}%` }}
             />
           </div>
@@ -65,7 +65,7 @@ export default function PlanUsageCard({ usage, compact = false }: PlanUsageCardP
         <>
           <div className="h-2 w-full overflow-hidden rounded-full bg-brand-mint">
             <div
-              className={`h-full rounded-full transition-all ${barColor}`}
+              className={`mvt-barre mvt-entre h-full rounded-full transition-all ${barColor}`}
               style={{ width: `${Math.max(ratio * 100, 2)}%` }}
             />
           </div>
