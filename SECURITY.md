@@ -120,6 +120,37 @@ Les journaux d'accès contiennent la méthode, la route, le code de réponse et
 la durée. **Aucun corps de requête, aucun mot de passe, aucun jeton, aucun
 contenu de document.**
 
+### Sauvegardes
+
+Une sauvegarde complète de la base est prise **chaque nuit à 3 h** (heure de
+Paris), et peut l'être aussi depuis l'extérieur — même mécanisme que la
+tournée des rappels, parce que le planificateur interne ne s'exécute pas
+quand l'instance dort.
+
+| Point | État |
+|---|---|
+| Chiffrement | **AES-256-GCM**, avant de quitter l'application. Le dépôt ne détient rien de lisible. |
+| Déport | Déposées chez le prestataire de stockage, **qui n'est pas celui de la base** : un incident chez l'un laisse l'autre intact. |
+| Vérification | Chaque sauvegarde est **relue, déchiffrée et recomptée** juste après son écriture. Une sauvegarde jamais relue n'est pas une sauvegarde, c'est une intention. |
+| Conservation | Les 30 dernières. |
+| Restauration | Script `npm run restaurer`, avec un mode lecture seule et un mode réinjection protégé par deux drapeaux distincts. **Exercé de bout en bout** : sauvegarde, effacement total, restauration, données retrouvées. |
+| Suivi | Nombre de sauvegardes et date de la dernière, sur la page d'administration. |
+
+La sauvegarde est **logique** — les lignes sont lues par l'application et
+écrites en JSON — et non un `pg_dump`. Ce dernier supposerait que le binaire
+soit présent sur l'instance et que sa version s'accorde à celle du serveur de
+base : deux conditions qu'on ne découvre pas remplies le jour où l'on
+restaure, mais rompues. Le schéma, lui, vit dans les migrations, en dépôt.
+
+**Ce que les sauvegardes ne contiennent pas :** les fichiers déposés par les
+utilisateurs. Ils restent chez le prestataire de stockage, avec sa propre
+durabilité. La sauvegarde conserve leurs métadonnées et le texte qui en a été
+lu, mais **une perte du stockage resterait une perte des documents.**
+
+Sans `BACKUP_KEY`, aucune sauvegarde n'est prise — plutôt que d'en écrire une
+en clair. Cette clé ne se perd pas : sans elle, les sauvegardes déjà prises
+sont définitivement illisibles.
+
 ### Violation de données
 
 Une procédure écrite existe (`docs/procedure-violation-donnees.md`) : ce qui
@@ -165,8 +196,16 @@ Six tests de bout en bout le vérifient, dont le refus d'un mot de passe
 erroné sans rien effacer, l'inutilisabilité du jeton ensuite, et la
 libération de l'adresse e-mail pour une nouvelle inscription.
 
-L'historique de restauration de la base est de **6 heures**. Passé ce délai,
-une donnée supprimée ne subsiste nulle part.
+Deux traces subsistent au-delà de la suppression, et il faut les nommer :
+l'historique de restauration de l'hébergeur (**6 heures**) et les
+**sauvegardes chiffrées (14 jours)**. Passé quatorze jours, une donnée
+supprimée ne subsiste nulle part.
+
+**Limite connue.** Une restauration réelle — événement exceptionnel, jamais
+survenu à ce jour — ramènerait les comptes supprimés depuis la sauvegarde
+retenue. Rien n'automatise leur réeffacement : il faudrait le refaire à la
+main, en s'appuyant sur les demandes reçues. C'est une faiblesse assumée
+plutôt que tue.
 
 ### Portabilité
 
@@ -203,7 +242,6 @@ la même exigence que la précédente.
 |---|---|---|
 | **Analyse antivirale des fichiers** | Aucune. Le contrôle de signature écarte les exécutables, pas un PDF piégé. | Moyenne |
 | **Chiffrement applicatif des documents** | Le stockage chiffre au repos, mais l'éditeur et l'hébergeur peuvent techniquement lire les fichiers. **Ne jamais prétendre à un chiffrement de bout en bout.** | Moyenne |
-| **Sauvegardes autonomes** | Un script `pg_dump` existe mais n'est ni planifié, ni chiffré, ni déporté. La seule protection réelle est la fenêtre de 6 heures de l'hébergeur — courte pour un incident découvert tardivement. | Haute |
 | **Environnement de préproduction** | Développement et production seulement. | Moyenne |
 | **Rotation des secrets** | Manuelle, sans calendrier ni procédure écrite. | Moyenne |
 | **Registre des traitements** | Rédigé (`docs/registre-des-traitements.md`), **à faire relire**. | Moyenne |

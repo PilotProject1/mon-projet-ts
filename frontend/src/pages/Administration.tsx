@@ -108,6 +108,42 @@ export default function Administration() {
       </div>
 
       <div className="brand-card-shadow mb-6 rounded-[14px] border border-brand-border bg-white px-5 py-5">
+        <h2 className="font-heading text-[15.5px] font-semibold text-brand-ink">Sauvegardes</h2>
+        {!stats.sauvegardes.configuree ? (
+          <p className="mt-1.5 text-[13.5px] leading-relaxed text-brand-danger">
+            Aucune sauvegarde n’est configurée sur ce serveur.
+          </p>
+        ) : (
+          <>
+            {/* Empilé sur téléphone : côte à côte, la clé de la dernière
+                sauvegarde écraserait le reste de la ligne. */}
+            <div className="mt-1.5 flex flex-col gap-1 text-[13.5px] leading-relaxed text-brand-muted sm:flex-row sm:items-baseline sm:gap-2">
+              <span className="shrink-0">
+                {stats.sauvegardes.nombre} conservée
+                {stats.sauvegardes.nombre > 1 ? 's' : ''}
+              </span>
+              {stats.sauvegardes.derniere && (
+                <span className="min-w-0 truncate font-mono text-[12px] text-brand-ink">
+                  {stats.sauvegardes.derniere}
+                </span>
+              )}
+            </div>
+            {stats.sauvegardes.nombre === 0 && (
+              <p className="mt-1.5 text-[13px] text-brand-danger">
+                Aucune sauvegarde n’a encore été prise.
+              </p>
+            )}
+            {!stats.sauvegardes.deporte && (
+              <p className="mt-1.5 text-[13px] text-brand-amber">
+                Elles restent sur le serveur : une panne de l’hébergeur les emporterait
+                avec la base.
+              </p>
+            )}
+          </>
+        )}
+      </div>
+
+      <div className="brand-card-shadow mb-6 rounded-[14px] border border-brand-border bg-white px-5 py-5">
         <h2 className="font-heading text-[15.5px] font-semibold text-brand-ink">
           Inscriptions des 14 derniers jours
         </h2>

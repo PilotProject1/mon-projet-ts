@@ -21,7 +21,8 @@
     "test:e2e": "jest --config ./test/jest-e2e.json --forceExit",
     "backup": "ts-node scripts/backup.ts",
     "rappels": "ts-node scripts/rappels.ts",
-    "vapid": "ts-node scripts/vapid.ts"
+    "vapid": "ts-node scripts/vapid.ts",
+    "restaurer": "ts-node scripts/restaurer.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.116.0",

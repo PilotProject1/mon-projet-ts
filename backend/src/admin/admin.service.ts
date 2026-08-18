@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { BackupService } from '../backup/backup.service';
 
 /** Jours d'historique repris dans la courbe des inscriptions. */
 const JOURS_HISTORIQUE = 14;
@@ -22,6 +23,19 @@ export interface StatistiquesAdmin {
     total: number;
     aFaire: number;
   };
+  /**
+   * État des sauvegardes. Une sauvegarde que personne ne regarde est une
+   * sauvegarde qui s'est arrêtée sans que personne ne s'en aperçoive : d'où
+   * sa place ici, à côté des compteurs qu'on consulte.
+   */
+  sauvegardes: {
+    configuree: boolean;
+    /** false si les sauvegardes restent sur le serveur au lieu d'en partir. */
+    deporte: boolean;
+    emplacement?: string;
+    nombre: number;
+    derniere: string | null;
+  };
   /** Inscriptions jour par jour, du plus ancien au plus récent. */
   inscriptionsParJour: { jour: string; nombre: number }[];
 }
@@ -36,7 +50,10 @@ export interface StatistiquesAdmin {
  */
 @Injectable()
 export class AdminService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly backup: BackupService,
+  ) {}
 
   /** Minuit à Paris, exprimé en instant absolu. */
   private static minuitParis(decalageJours = 0): Date {
@@ -114,6 +131,9 @@ export class AdminService {
         analyses: documentsAnalyses,
       },
       echeances: { total: echeancesTotal, aFaire: echeancesAFaire },
+      // Une sauvegarde que personne ne regarde est une sauvegarde qui s'est
+      // arrêtée sans que personne ne s'en aperçoive.
+      sauvegardes: await this.backup.etat(),
       inscriptionsParJour: [...parJour].map(([jour, nombre]) => ({
         jour,
         nombre,

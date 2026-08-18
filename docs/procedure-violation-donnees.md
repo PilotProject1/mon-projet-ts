@@ -24,7 +24,7 @@ accidentelle. Trois formes, et la troisième est celle qu'on oublie :
 |---|---|---|
 | **Confidentialité** | Des données ont été vues par qui ne devait pas | Un défaut de cloisonnement laisse lire les documents d'un autre compte |
 | **Intégrité** | Des données ont été altérées | Une migration fautive écrase des échéances |
-| **Disponibilité** | Des données sont perdues ou inaccessibles | Une suppression accidentelle en base, au-delà de la fenêtre de restauration de 6 heures |
+| **Disponibilité** | Des données sont perdues ou inaccessibles | Une suppression accidentelle que ni la fenêtre de 6 heures de l'hébergeur ni les sauvegardes de 14 jours ne rattrapent |
 
 **Une perte définitive est une violation, même si personne n'a rien vu.**
 C'est le point le plus souvent manqué.
