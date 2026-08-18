@@ -28,6 +28,7 @@ jobs:
       JWT_ACCESS_SECRET: ci-access-secret-not-for-production-use-only
       JWT_REFRESH_SECRET: ci-refresh-secret-not-for-production-use-only
       FRONTEND_ORIGIN: http://localhost:5173
+      TWO_FACTOR_KEY: ci-two-factor-key-not-for-production-use-only
       NODE_ENV: test
     defaults:
       run:

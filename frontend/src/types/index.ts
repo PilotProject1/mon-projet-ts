@@ -256,3 +256,21 @@ export interface StatistiquesAdmin {
   /** Inscriptions jour par jour, du plus ancien au plus récent. */
   inscriptionsParJour: { jour: string; nombre: number }[]
 }
+
+/** Ce que l'interface a besoin de savoir de la double authentification. */
+export interface EtatDeuxiemeFacteur {
+  actif: boolean
+  activeeLe: string | null
+  codesDeSecoursRestants: number
+  /** false si le serveur n'a pas la clé nécessaire : l'activation est alors refusée. */
+  disponible: boolean
+}
+
+/** Activation commencée : ce qu'il faut transmettre à l'application d'authentification. */
+export interface PreparationDeuxiemeFacteur {
+  /** Le secret en clair, à recopier quand le code graphique n'est pas lisible. */
+  secret: string
+  uri: string
+  /** Code graphique déjà rendu en image, prêt à afficher. */
+  qrCode: string
+}

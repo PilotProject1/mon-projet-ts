@@ -11,7 +11,7 @@ Poincaré, 57240 Nilvange — syneco.pro@outlook.fr — 06 74 33 74 99.
 obligatoire : l'activité ne consiste ni en un suivi systématique à grande
 échelle, ni en un traitement de données sensibles à grande échelle.
 
-**Dernière mise à jour :** 17 août 2026.
+**Dernière mise à jour :** 18 août 2026.
 
 > Ce registre décrit ce que le code fait. Toute évolution qui change les
 > données collectées, les prestataires ou les durées doit s'y refléter le jour
@@ -26,11 +26,11 @@ obligatoire : l'activité ne consiste ni en un suivi systématique à grande
 | **Finalité** | Créer et gérer un compte, authentifier son titulaire |
 | **Base légale** | Exécution du contrat (art. 6.1.b) |
 | **Personnes concernées** | Utilisateurs du service |
-| **Catégories de données** | Nom, adresse e-mail, empreinte bcrypt du mot de passe, date de création, offre souscrite, rôle |
+| **Catégories de données** | Nom, adresse e-mail, empreinte bcrypt du mot de passe, date de création, offre souscrite, rôle. Si la double authentification est activée : secret chiffré, date d'activation, empreintes des codes de secours |
 | **Destinataires** | Neon (base), Render (serveur) |
 | **Transferts hors UE** | Serveur applicatif aux États-Unis (Virginie) |
 | **Conservation** | Durée de vie du compte. Suppression immédiate et définitive à la demande, depuis l'application |
-| **Sécurité** | Mot de passe jamais conservé en clair ; jeton d'accès de 15 min ; 5 connexions/min et par IP |
+| **Sécurité** | Mot de passe jamais conservé en clair ; jeton d'accès de 15 min ; 5 connexions/min et par IP ; double authentification disponible (code à usage unique, secret chiffré) |
 
 ## 2. Conservation et lecture des documents
 

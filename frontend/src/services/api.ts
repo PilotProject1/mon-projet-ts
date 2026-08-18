@@ -21,6 +21,8 @@ import type {
   PlanUsage,
   PlanCatalogueEntry,
   StatistiquesAdmin,
+  EtatDeuxiemeFacteur,
+  PreparationDeuxiemeFacteur,
 } from '../types'
 
 const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:3000'
@@ -59,6 +61,20 @@ interface AuthResponse {
   refreshToken: string
   user: User
 }
+
+/**
+ * Sur un compte protégé par la double authentification, le mot de passe ne
+ * rend aucun jeton : seulement le droit de présenter un code, pour quelques
+ * minutes.
+ */
+interface DefiResponse {
+  deuxiemeFacteurRequis: true
+  challengeToken: string
+}
+
+export type ResultatConnexion =
+  | { user: User }
+  | { deuxiemeFacteurRequis: true; challengeToken: string }
 
 async function rawRequest(path: string, options: RequestInit = {}) {
   const token = getAccessToken()
@@ -123,10 +139,23 @@ async function tryRefresh(): Promise<boolean> {
 }
 
 export const authApi = {
-  async login(email: string, password: string) {
-    const data = await request<AuthResponse>('/auth/login', {
+  async login(email: string, password: string): Promise<ResultatConnexion> {
+    const data = await request<AuthResponse | DefiResponse>('/auth/login', {
       method: 'POST',
       body: JSON.stringify({ email, password }),
+    })
+    if ('deuxiemeFacteurRequis' in data) {
+      return { deuxiemeFacteurRequis: true, challengeToken: data.challengeToken }
+    }
+    setTokens(data.accessToken, data.refreshToken)
+    return { user: data.user }
+  },
+
+  /** Second temps de la connexion : le code, ou l'un des codes de secours. */
+  async loginDeuxiemeFacteur(challengeToken: string, code: string) {
+    const data = await request<AuthResponse>('/auth/login/2fa', {
+      method: 'POST',
+      body: JSON.stringify({ challengeToken, code }),
     })
     setTokens(data.accessToken, data.refreshToken)
     return data.user
@@ -146,6 +175,31 @@ export const authApi = {
   logout() {
     clearTokens()
   },
+}
+
+export const deuxFacteursApi = {
+  etat: () => request<EtatDeuxiemeFacteur>('/auth/2fa'),
+
+  preparer: () =>
+    request<PreparationDeuxiemeFacteur>('/auth/2fa/preparer', { method: 'POST' }),
+
+  activer: (code: string) =>
+    request<{ codesDeSecours: string[] }>('/auth/2fa/activer', {
+      method: 'POST',
+      body: JSON.stringify({ code }),
+    }),
+
+  retirer: (password: string, code: string) =>
+    request<void>('/auth/2fa/retirer', {
+      method: 'POST',
+      body: JSON.stringify({ password, code }),
+    }),
+
+  renouvelerLesCodes: (password: string, code: string) =>
+    request<{ codesDeSecours: string[] }>('/auth/2fa/codes', {
+      method: 'POST',
+      body: JSON.stringify({ password, code }),
+    }),
 }
 
 export const documentsApi = {

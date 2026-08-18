@@ -3,6 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom'
 import { Check } from 'lucide-react'
 import type { PlanCatalogueEntry, PlanFeature, PlanUsage } from '../types'
 import { ApiError, billingApi, planApi } from '../services/api'
+import DoubleAuthentification from '../components/DoubleAuthentification'
 import ExporterMesDonnees from '../components/ExporterMesDonnees'
 import SupprimerCompte from '../components/SupprimerCompte'
 
@@ -259,6 +260,7 @@ export default function Abonnement({
           la page où l'on vient quand on veut partir, et l'ordre évite qu'on
           la rencontre par hasard. */}
       <div className="mt-6 space-y-4">
+        <DoubleAuthentification />
         <ExporterMesDonnees />
         <SupprimerCompte onSupprime={onCompteSupprime} />
       </div>
