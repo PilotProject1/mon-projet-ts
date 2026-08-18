@@ -3,11 +3,13 @@ import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
 import { AuthService } from './auth.service';
 import { UsersService } from '../users/users.service';
+import { TwoFactorService } from './two-factor.service';
 
 describe('AuthService', () => {
   let authService: AuthService;
   let usersService: jest.Mocked<UsersService>;
   let jwtService: jest.Mocked<JwtService>;
+  let twoFactor: jest.Mocked<TwoFactorService>;
 
   const user = {
     id: 'user-1',
@@ -15,10 +17,14 @@ describe('AuthService', () => {
     name: 'Test User',
     role: 'user',
     passwordHash: '',
+    twoFactorEnabledAt: null as Date | null,
+    twoFactorSecret: null as string | null,
+    twoFactorLastStep: null as number | null,
   };
 
   beforeEach(async () => {
     user.passwordHash = await bcrypt.hash('correct-password', 10);
+    user.twoFactorEnabledAt = null;
 
     usersService = {
       findByEmail: jest.fn(),
@@ -31,7 +37,11 @@ describe('AuthService', () => {
       verify: jest.fn(),
     } as unknown as jest.Mocked<JwtService>;
 
-    authService = new AuthService(usersService, jwtService);
+    twoFactor = {
+      verifierCode: jest.fn(),
+    } as unknown as jest.Mocked<TwoFactorService>;
+
+    authService = new AuthService(usersService, jwtService, twoFactor);
   });
 
   describe('register', () => {
@@ -96,8 +106,43 @@ describe('AuthService', () => {
         password: 'correct-password',
       });
 
+      if ('deuxiemeFacteurRequis' in result) {
+        throw new Error('Ce compte ne demande pas de second facteur');
+      }
       expect(result.accessToken).toBe('signed-token');
       expect(result.user.id).toBe(user.id);
+    });
+
+    /*
+     * Le point qui fait tenir toute la double authentification : sur un
+     * compte protégé, un mot de passe correct ne délivre aucun jeton
+     * d'accès. Si ce test tombe, le second facteur ne protège plus rien.
+     */
+    it('ne délivre aucun jeton quand la double authentification est active', async () => {
+      user.twoFactorEnabledAt = new Date();
+      usersService.findByEmail.mockResolvedValue(user as any);
+
+      const result = await authService.login({
+        email: user.email,
+        password: 'correct-password',
+      });
+
+      expect(result).not.toHaveProperty('accessToken');
+      expect(result).not.toHaveProperty('refreshToken');
+      expect(result).toMatchObject({ deuxiemeFacteurRequis: true });
+    });
+
+    it('refuse un jeton de défi présenté à la place du mot de passe', async () => {
+      jwtService.verify.mockReturnValue({
+        sub: user.id,
+        email: user.email,
+        typ: 'acces',
+      });
+
+      await expect(
+        authService.loginDeuxiemeFacteur('jeton-d-acces', '123456'),
+      ).rejects.toThrow(UnauthorizedException);
+      expect(twoFactor.verifierCode).not.toHaveBeenCalled();
     });
   });
 

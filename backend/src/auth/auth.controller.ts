@@ -12,6 +12,12 @@ import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { RefreshDto } from './dto/refresh.dto';
+import { TwoFactorService } from './two-factor.service';
+import {
+  ActiverDeuxiemeFacteurDto,
+  ConnexionDeuxiemeFacteurDto,
+  RetirerDeuxiemeFacteurDto,
+} from './dto/two-factor.dto';
 import { JwtAuthGuard } from './jwt-auth.guard';
 import {
   CurrentUser,
@@ -30,10 +36,20 @@ import {
 const EN_TEST = process.env.NODE_ENV === 'test';
 const LIMITE_INSCRIPTION = EN_TEST ? 10_000 : 5;
 const LIMITE_CONNEXION = EN_TEST ? 10_000 : 8;
+/*
+ * Six chiffres se devinent avec assez d'essais. Six tentatives par minute et
+ * par adresse, contre un jeton de défi qui expire au bout de cinq minutes,
+ * laissent une trentaine d'essais pour un million de combinaisons — et il
+ * faut redonner le mot de passe pour en obtenir trente de plus.
+ */
+const LIMITE_CODE = EN_TEST ? 10_000 : 6;
 
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(
+    private readonly authService: AuthService,
+    private readonly twoFactor: TwoFactorService,
+  ) {}
 
   @Post('register')
   @Throttle({ default: { limit: LIMITE_INSCRIPTION, ttl: 60_000 } })
@@ -54,9 +70,66 @@ export class AuthController {
     return this.authService.refresh(dto.refreshToken);
   }
 
+  @Post('login/2fa')
+  @HttpCode(HttpStatus.OK)
+  @Throttle({ default: { limit: LIMITE_CODE, ttl: 60_000 } })
+  loginDeuxiemeFacteur(@Body() dto: ConnexionDeuxiemeFacteurDto) {
+    return this.authService.loginDeuxiemeFacteur(dto.challengeToken, dto.code);
+  }
+
   @Get('me')
   @UseGuards(JwtAuthGuard)
   me(@CurrentUser() user: CurrentUserPayload) {
     return this.authService.me(user.userId);
+  }
+
+  @Get('2fa')
+  @UseGuards(JwtAuthGuard)
+  etatDeuxiemeFacteur(@CurrentUser() user: CurrentUserPayload) {
+    return this.twoFactor.etat(user.userId);
+  }
+
+  @Post('2fa/preparer')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard)
+  preparerDeuxiemeFacteur(@CurrentUser() user: CurrentUserPayload) {
+    return this.twoFactor.preparer(user.userId);
+  }
+
+  @Post('2fa/activer')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard)
+  @Throttle({ default: { limit: LIMITE_CODE, ttl: 60_000 } })
+  activerDeuxiemeFacteur(
+    @CurrentUser() user: CurrentUserPayload,
+    @Body() dto: ActiverDeuxiemeFacteurDto,
+  ) {
+    return this.twoFactor.activer(user.userId, dto.code);
+  }
+
+  @Post('2fa/retirer')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @UseGuards(JwtAuthGuard)
+  @Throttle({ default: { limit: LIMITE_CODE, ttl: 60_000 } })
+  async retirerDeuxiemeFacteur(
+    @CurrentUser() user: CurrentUserPayload,
+    @Body() dto: RetirerDeuxiemeFacteurDto,
+  ) {
+    await this.twoFactor.desactiver(user.userId, dto.password, dto.code);
+  }
+
+  @Post('2fa/codes')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard)
+  @Throttle({ default: { limit: LIMITE_CODE, ttl: 60_000 } })
+  renouvelerLesCodes(
+    @CurrentUser() user: CurrentUserPayload,
+    @Body() dto: RetirerDeuxiemeFacteurDto,
+  ) {
+    return this.twoFactor.renouvelerLesCodes(
+      user.userId,
+      dto.password,
+      dto.code,
+    );
   }
 }

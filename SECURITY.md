@@ -7,7 +7,7 @@ questions précises, un prestataire, un auditeur.
 Il est tenu à jour avec le code. **Une ligne de ce document qui ne serait plus
 vraie est un défaut au même titre qu'un test qui échoue.**
 
-Dernière revue : 17 août 2026.
+Dernière revue : 18 août 2026.
 
 ## Signaler une faille
 
@@ -32,6 +32,32 @@ divulgation publique avant correction, s'il vous plaît. Réponse sous 72 heures
 Le rôle d'un compte est relu **en base à chaque requête**, jamais porté par le
 jeton : un rôle retiré prend effet immédiatement, sans attendre l'expiration
 d'un jeton déjà émis. Vérifié par un test.
+
+### Double authentification
+
+Code à usage unique conforme à la RFC 6238 (TOTP), compatible avec Google
+Authenticator, Aegis, 1Password et les applications équivalentes. Activable
+depuis la page Abonnement, désactivable de la même façon.
+
+| Point | État |
+|---|---|
+| Secret partagé | Chiffré (AES-256-GCM) avant d'atteindre la base, avec une clé qui ne s'y trouve pas. |
+| Activation | En deux temps : un code doit prouver le bon réglage avant que le compte soit protégé. |
+| Rejeu | Un code déjà présenté est refusé pour le reste de sa validité. |
+| Connexion sur un compte protégé | Le mot de passe seul ne délivre **aucun jeton d'accès** — seulement un jeton de défi, valable 5 minutes, qui n'ouvre rien d'autre que la présentation d'un code. |
+| Tentatives de code | **6 par minute** et par adresse IP. |
+| Codes de secours | Dix codes à usage unique, montrés une seule fois, conservés en empreinte bcrypt comme un mot de passe. |
+| Retrait | Exige le mot de passe **et** un code : un jeton volé ne suffit pas à désarmer la protection. |
+
+Implémentation propre au dépôt plutôt qu'une bibliothèque tierce : les
+paquets disponibles ne s'exécutaient qu'en modules ECMAScript, incompatibles
+avec l'outil de tests du projet. Le calcul du code (HMAC-SHA1 tronqué,
+RFC 4226) est vérifié sur les vecteurs publiés des RFC 4226 et 6238.
+
+Sans la variable d'environnement `TWO_FACTOR_KEY`, l'activation est refusée
+avec un message explicite plutôt que d'enregistrer un secret en clair — et
+les comptes déjà protégés continuent de fonctionner, leurs codes de secours
+n'en dépendant pas.
 
 ### Contrôle d'accès (IDOR / BOLA)
 
@@ -160,7 +186,6 @@ la même exigence que la précédente.
 
 | Manque | Portée | Priorité |
 |---|---|---|
-| **Double authentification** | Mot de passe seul. | Haute |
 | **Analyse antivirale des fichiers** | Aucune. Le contrôle de signature écarte les exécutables, pas un PDF piégé. | Moyenne |
 | **Chiffrement applicatif des documents** | Le stockage chiffre au repos, mais l'éditeur et l'hébergeur peuvent techniquement lire les fichiers. **Ne jamais prétendre à un chiffrement de bout en bout.** | Moyenne |
 | **Sauvegardes autonomes** | Un script `pg_dump` existe mais n'est ni planifié, ni chiffré, ni déporté. La seule protection réelle est la fenêtre de 6 heures de l'hébergeur — courte pour un incident découvert tardivement. | Haute |

@@ -38,7 +38,9 @@ export default function Confidentialite() {
             <td>
               Adresse e-mail, nom, mot de passe (conservé uniquement sous forme d'une
               empreinte cryptographique irréversible, calculée avec bcrypt, et jamais en
-              clair), date de création
+              clair), date de création. Si vous activez la double authentification : le
+              secret qui produit vos codes (chiffré) et l'empreinte de vos codes de
+              secours, selon les mêmes principes que le mot de passe
             </td>
           </tr>
           <tr>
@@ -341,6 +343,10 @@ export default function Confidentialite() {
         <li>
           Les mots de passe ne sont jamais stockés en clair, mais sous forme d'empreinte
           cryptographique irréversible.
+        </li>
+        <li>
+          Vous pouvez activer une double authentification (code à usage unique, en plus du
+          mot de passe) depuis la page Abonnement.
         </li>
         <li>
           Chaque requête est contrôlée pour garantir qu'un utilisateur ne peut accéder qu'à ses

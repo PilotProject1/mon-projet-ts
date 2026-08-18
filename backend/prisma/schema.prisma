@@ -66,12 +66,12 @@ model User {
 
   // Facturation Stripe. Le plan reste la source de vérité côté application ;
   // ces champs servent à relier un compte à son abonnement.
-  stripeCustomerId     String?   @unique
-  stripeSubscriptionId String?   @unique
-  planRenewsAt         DateTime?
+  stripeCustomerId      String?   @unique
+  stripeSubscriptionId  String?   @unique
+  planRenewsAt          DateTime?
   // true lorsque l'abonnement est résilié mais court jusqu'à son échéance :
   // planRenewsAt désigne alors une date de fin, non de reconduction.
-  planCancelAtPeriodEnd Boolean  @default(false)
+  planCancelAtPeriodEnd Boolean   @default(false)
 
   // Rappels d'échéance envoyés par e-mail. Désactivable par l'utilisateur ;
   // les rappels restent alors visibles dans l'application.
@@ -80,10 +80,29 @@ model User {
   /// Point hebdomadaire par e-mail : ce qui demande une décision. Distinct
   /// des rappels d'échéance, et refusable séparément — les deux ne rendent
   /// pas le même service et ne s'acceptent pas ensemble.
-  weeklyDigest Boolean @default(true)
+  weeklyDigest       Boolean   @default(true)
   /// Dernier point parti. Garantit qu'il ne part qu'une fois par semaine, et
   /// rattrape une semaine où la tournée n'a pas eu lieu.
   lastWeeklyDigestAt DateTime?
+
+  /// Double authentification par code à usage unique (TOTP, RFC 6238).
+  /// Une date plutôt qu'un booléen : elle vaut activation, et se montre à
+  /// l'utilisateur, qui a le droit de savoir depuis quand son compte est
+  /// protégé.
+  twoFactorEnabledAt     DateTime?
+  /// Secret partagé avec l'application d'authentification. Chiffré par
+  /// l'application avant d'atteindre la base : un vidage de la base ne suffit
+  /// pas à fabriquer des codes.
+  twoFactorSecret        String?
+  /// Secret d'une activation commencée mais pas encore confirmée par un
+  /// premier code. Séparé du précédent pour qu'une préparation abandonnée —
+  /// mauvaise application, téléphone qui s'éteint — ne coupe jamais l'accès à
+  /// un compte déjà protégé.
+  twoFactorPendingSecret String?
+  /// Dernier pas de temps accepté (RFC 6238). Un code déjà présenté est
+  /// refusé pendant le reste de sa validité : lu par-dessus l'épaule, il ne
+  /// sert plus à rien.
+  twoFactorLastStep      Int?
 
   documents         Document[]
   deadlines         Deadline[]
@@ -91,6 +110,7 @@ model User {
   notifications     Notification[]
   shareLinks        ShareLink[]
   pushSubscriptions PushSubscription[]
+  recoveryCodes     TwoFactorRecoveryCode[]
   company           Company?
 }
 
@@ -114,11 +134,11 @@ model Document {
   /// calculés à chaque analyse puis jetés ; les conserver est ce qui permet
   /// de répondre à « combien ai-je payé chez X », « où est ma facture de
   /// février » sans relire tous les fichiers.
-  provider     String?
-  amount       Float?
+  provider       String?
+  amount         Float?
   /// Date portée par le document lui-même — émission, établissement — par
   /// opposition à createdAt, qui n'est que le jour du dépôt.
-  documentDate DateTime?
+  documentDate   DateTime?
   /// Référence propre au document — numéro de facture, de contrat, de police,
   /// ou identifiant client. C'est ce qu'un service client réclame au
   /// téléphone, et ce qu'on ne retrouve jamais dans une pile de papiers.
@@ -129,12 +149,12 @@ model Document {
   /// Vrai si le document se déclare acquitté, faux s'il annonce un règlement
   /// à venir, null si rien ne tranche. Une facture déjà prélevée n'appelle
   /// aucun rappel : proposer une échéance dessus ne ferait qu'agacer.
-  paid Boolean?
+  paid           Boolean?
   /// Texte lu dans le document, tronqué. Sert la recherche par le contenu.
-  extractedText String?
+  extractedText  String?
   /// Dernière lecture réussie. Distingue « rien trouvé » de « jamais lu »,
   /// et permet de rattraper les documents déposés avant cette version.
-  analyzedAt    DateTime?
+  analyzedAt     DateTime?
 
   userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -178,11 +198,11 @@ model Contract {
 }
 
 model ShareLink {
-  id         String    @id @default(cuid())
-  token      String    @unique
-  expiresAt  DateTime
-  revokedAt  DateTime?
-  createdAt  DateTime  @default(now())
+  id        String    @id @default(cuid())
+  token     String    @unique
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime  @default(now())
 
   userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -227,18 +247,18 @@ model Client {
 }
 
 model Invoice {
-  id      String        @id @default(cuid())
-  number  String
-  total   Float
-  dueDate DateTime
-  status  InvoiceStatus @default(brouillon)
-  createdAt DateTime    @default(now())
+  id        String        @id @default(cuid())
+  number    String
+  total     Float
+  dueDate   DateTime
+  status    InvoiceStatus @default(brouillon)
+  createdAt DateTime      @default(now())
 
   companyId String
   company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
 
   clientId String
-  client   Client  @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  client   Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
 
   @@unique([companyId, number])
 }
@@ -280,6 +300,26 @@ model PushSubscription {
   /// Aide l'utilisateur à reconnaître l'appareil dans la liste.
   label     String?
   createdAt DateTime @default(now())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+/// Code de secours de la double authentification.
+///
+/// Conservé sous forme d'empreinte bcrypt, exactement comme un mot de passe :
+/// la base ne permet pas de les relire, et l'utilisateur ne les voit qu'une
+/// fois, au moment où ils sont créés. Chacun ne sert qu'une seule fois — d'où
+/// `usedAt`, qui garde la trace de celui qui a servi plutôt que d'effacer la
+/// ligne : savoir qu'un code a été consommé, et quand, vaut mieux que de le
+/// voir disparaître sans explication.
+model TwoFactorRecoveryCode {
+  id        String    @id @default(cuid())
+  codeHash  String
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
 
   userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
