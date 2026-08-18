@@ -46,16 +46,35 @@ describe('PlansService', () => {
   });
 
   describe('assertFeature', () => {
-    it('refuses the AI assistant on the free plan', async () => {
+    /*
+     * L'extraction automatique est ce qui distingue ce service d'un dossier
+     * partagé : la retirer au plan gratuit reviendrait à faire essayer autre
+     * chose que le produit. La borne du gratuit est le nombre de documents,
+     * pas ce qu'on peut en faire.
+     */
+    it('allows the AI assistant on the free plan', async () => {
       onPlan('gratuit');
-      await expect(service.assertFeature('u1', 'ia')).rejects.toBeInstanceOf(
-        ForbiddenException,
-      );
+      await expect(service.assertFeature('u1', 'ia')).resolves.toBeUndefined();
+    });
+
+    it('allows secure sharing on the free plan', async () => {
+      onPlan('gratuit');
+      await expect(
+        service.assertFeature('u1', 'partage'),
+      ).resolves.toBeUndefined();
     });
 
     it('allows the AI assistant from the premium plan', async () => {
       onPlan('premium');
       await expect(service.assertFeature('u1', 'ia')).resolves.toBeUndefined();
+    });
+
+    /* Ce que le gratuit ne donne pas : la facturation reste au Professionnel. */
+    it('refuses invoicing on the free plan', async () => {
+      onPlan('gratuit');
+      await expect(
+        service.assertFeature('u1', 'facturation'),
+      ).rejects.toBeInstanceOf(ForbiddenException);
     });
 
     it('refuses invoicing on the premium plan but allows it on pro', async () => {

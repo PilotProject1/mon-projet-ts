@@ -63,7 +63,12 @@ const OFFRES = [
     nom: 'Gratuit',
     prix: '0 €',
     detail: 'Jusqu’à 10 documents',
-    inclus: ['Échéances et rappels', 'Dépenses récurrentes', 'Application installable'],
+    inclus: [
+      'Lecture par intelligence artificielle',
+      'Recherche en langage naturel',
+      'Échéances et rappels',
+      'Partage sécurisé',
+    ],
   },
   {
     nom: 'Particulier Premium',
@@ -71,9 +76,9 @@ const OFFRES = [
     detail: 'par mois, sans engagement',
     inclus: [
       'Documents illimités',
-      'Lecture par intelligence artificielle',
-      'Recherche en langage naturel',
-      'Partage sécurisé',
+      'Tout ce que contient l’offre gratuite',
+      'Dépenses récurrentes et hausses détectées',
+      'Application installable',
     ],
     vedette: true,
   },
@@ -162,7 +167,7 @@ export default function Accueil() {
             </Link>
           </div>
           <p className="mt-4 text-[13px] text-brand-muted">
-            Sans carte bancaire · 10 documents offerts · Résiliation en un clic
+            Sans carte bancaire · 10 documents offerts, toutes fonctions comprises
           </p>
         </div>
       </section>

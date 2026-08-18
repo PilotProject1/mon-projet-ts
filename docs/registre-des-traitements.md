@@ -65,7 +65,7 @@ obligatoire : l'activité ne consiste ni en un suivi systématique à grande
 | **Conservation** | Durée de vie de l'échéance |
 | **Refus** | Les rappels par e-mail et le point hebdomadaire se désactivent séparément |
 
-## 4. Analyse automatisée par intelligence artificielle *(offres payantes)*
+## 4. Analyse automatisée par intelligence artificielle *(toutes offres)*
 
 | | |
 |---|---|
@@ -76,7 +76,7 @@ obligatoire : l'activité ne consiste ni en un suivi systématique à grande
 | **Transferts hors UE** | Oui. **Mécanisme à confirmer contractuellement** — voir tâches ouvertes |
 | **Conservation** | Aucune conservation par le prestataire à des fins d'entraînement |
 | **Décision automatisée** | Non. Les informations extraites sont des suggestions, corrigeables et refusables ; aucune échéance ni aucun contrat n'est créé sans validation |
-| **Repli** | Sans cette fonctionnalité, l'analyse s'effectue localement et aucune donnée n'est transmise |
+| **Repli** | Sans cette fonctionnalité — clé absente côté serveur — l'analyse s'effectue localement et aucune donnée n'est transmise |
 
 ## 5. Facturation et gestion des clients *(offres professionnelles)*
 
