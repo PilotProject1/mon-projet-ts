@@ -22,7 +22,8 @@
     "backup": "ts-node scripts/backup.ts",
     "rappels": "ts-node scripts/rappels.ts",
     "vapid": "ts-node scripts/vapid.ts",
-    "restaurer": "ts-node scripts/restaurer.ts"
+    "restaurer": "ts-node scripts/restaurer.ts",
+    "comparer-modeles": "ts-node scripts/comparer-modeles.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.116.0",
