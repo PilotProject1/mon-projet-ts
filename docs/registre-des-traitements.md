@@ -29,7 +29,7 @@ obligatoire : l'activité ne consiste ni en un suivi systématique à grande
 | **Catégories de données** | Nom, adresse e-mail, empreinte bcrypt du mot de passe, date de création, offre souscrite, rôle. Si la double authentification est activée : secret chiffré, date d'activation, empreintes des codes de secours |
 | **Destinataires** | Neon (base), Render (serveur) |
 | **Transferts hors UE** | Serveur applicatif aux États-Unis (Virginie) |
-| **Conservation** | Durée de vie du compte. Suppression immédiate et définitive à la demande, depuis l'application |
+| **Conservation** | Durée de vie du compte. Suppression immédiate à la demande, depuis l'application ; effacement définitif au plus tard 14 jours après, le temps que les sauvegardes chiffrées expirent |
 | **Sécurité** | Mot de passe jamais conservé en clair ; jeton d'accès de 15 min ; 5 connexions/min et par IP ; double authentification disponible (code à usage unique, secret chiffré) |
 
 ## 2. Conservation et lecture des documents
@@ -42,7 +42,7 @@ obligatoire : l'activité ne consiste ni en un suivi systématique à grande
 | **Catégories de données** | Fichier et son contenu ; nom, type, format, taille, date d'ajout ; texte lu tronqué à 20 000 caractères ; émetteur, montant, date, référence, statut de règlement reconnus |
 | **Destinataires** | Cloudflare R2 (fichiers), Neon (métadonnées et texte lu), Render (traitement) |
 | **Transferts hors UE** | Traitement aux États-Unis (Virginie). Fichiers et base au repos dans l'Union |
-| **Conservation** | Durée de vie du compte ; effacement immédiat à la suppression du document ou du compte |
+| **Conservation** | Durée de vie du compte ; effacement immédiat à la suppression du document ou du compte, aux 14 jours de sauvegarde près |
 | **Sécurité** | Contrôle de propriété à chaque requête ; type réel du fichier vérifié par sa signature ; plafond de 10 Mo |
 
 > **Point de vigilance.** Un utilisateur peut déposer un document contenant
@@ -134,6 +134,16 @@ obligatoire : l'activité ne consiste ni en un suivi systématique à grande
 | Stripe | Paiement | États-Unis / Irlande |
 
 ---
+
+## Sauvegardes
+
+Une sauvegarde complète de la base est prise chaque nuit, **chiffrée avant de
+quitter l'application** et déposée chez un prestataire distinct de celui de la
+base. Conservation : **14 jours**. Elles ne sont consultées qu'en cas
+d'incident majeur, jamais à une autre fin.
+
+Elles ne contiennent pas les fichiers déposés par les utilisateurs, qui
+restent chez le prestataire de stockage.
 
 ## Mesures de sécurité
 

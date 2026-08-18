@@ -24,6 +24,7 @@ import { PushModule } from './push/push.module';
 import { PlansModule } from './plans/plans.module';
 import { AdminModule } from './admin/admin.module';
 import { BillingModule } from './billing/billing.module';
+import { BackupModule } from './backup/backup.module';
 import { LoggingInterceptor } from './common/logging.interceptor';
 import { AllExceptionsFilter } from './common/all-exceptions.filter';
 
@@ -44,6 +45,7 @@ import { AllExceptionsFilter } from './common/all-exceptions.filter';
     PushModule,
     PlansModule,
     AdminModule,
+    BackupModule,
     BillingModule,
     UsersModule,
     AuthModule,

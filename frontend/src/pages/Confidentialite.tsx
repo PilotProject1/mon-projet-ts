@@ -299,8 +299,11 @@ export default function Confidentialite() {
         <li>
           <strong>Sauvegardes</strong> : la base de données conserve un historique de{' '}
           <strong>6 heures</strong>, qui permet de la restaurer à n'importe quel instant de cette
-          fenêtre. Une donnée que vous supprimez peut donc y subsister jusqu'à six heures ; passé ce
-          délai, elle ne subsiste nulle part.
+          fenêtre. S'y ajoute une sauvegarde chiffrée quotidienne, conservée{' '}
+          <strong>14 jours</strong>, destinée à faire face à un incident majeur. Une donnée que vous
+          supprimez peut donc subsister jusqu'à quatorze jours dans ces sauvegardes ; passé ce
+          délai, elle ne subsiste nulle part. Ces sauvegardes ne sont jamais consultées pour un
+          autre motif que le rétablissement du service après un incident.
         </li>
       </ul>
 

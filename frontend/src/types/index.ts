@@ -253,6 +253,15 @@ export interface StatistiquesAdmin {
   plans: Record<string, number>
   documents: { total: number; aujourdhui: number; analyses: number }
   echeances: { total: number; aFaire: number }
+  /** État des sauvegardes : sans regard, une sauvegarde s'arrête sans bruit. */
+  sauvegardes: {
+    configuree: boolean
+    /** false si les sauvegardes restent sur le serveur au lieu d'en partir. */
+    deporte: boolean
+    emplacement?: string
+    nombre: number
+    derniere: string | null
+  }
   /** Inscriptions jour par jour, du plus ancien au plus récent. */
   inscriptionsParJour: { jour: string; nombre: number }[]
 }
