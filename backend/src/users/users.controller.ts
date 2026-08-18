@@ -29,7 +29,10 @@ export class UsersController {
    */
   @Get('moi/export')
   @Header('Content-Type', 'application/json; charset=utf-8')
-  @Header('Content-Disposition', 'attachment; filename="syneco-mes-donnees.json"')
+  @Header(
+    'Content-Disposition',
+    'attachment; filename="syneco-mes-donnees.json"',
+  )
   exporterMesDonnees(@CurrentUser() user: CurrentUserPayload) {
     return this.users.exporterDonnees(user.userId);
   }
