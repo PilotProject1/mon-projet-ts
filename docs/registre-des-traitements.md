@@ -148,5 +148,5 @@ explicitement ce qui est en place de ce qui manque encore.
 |---|---|
 | Confirmer le mécanisme de transfert de chaque sous-traitant hors UE (clauses contractuelles types, adéquation, DPA signé) | À faire |
 | Signer un contrat de sous-traitance avec chaque prestataire traitant des données pour le compte de SYNeco | À faire |
-| Rédiger la procédure de notification de violation (art. 33 — 72 heures) | À faire |
+| Rédiger la procédure de notification de violation (art. 33 — 72 heures) | ✅ Faite — `docs/procedure-violation-donnees.md` |
 | Adhérer à un médiateur de la consommation (CM2C) | Fin août 2026 |
