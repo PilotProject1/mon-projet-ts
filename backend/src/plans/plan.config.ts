@@ -19,11 +19,21 @@ export interface PlanDefinition {
 }
 
 export const PLANS: Record<Plan, PlanDefinition> = {
+  /*
+   * Le gratuit donne accès à tout ce que fait le Premium, mais sur dix
+   * documents seulement.
+   *
+   * Un essai qui retire la fonctionnalité principale n'est pas un essai :
+   * l'extraction automatique est ce qui distingue ce service d'un dossier
+   * partagé, et c'est en la voyant fonctionner sur ses propres papiers qu'on
+   * décide de payer. La borne est donc le nombre de documents, jamais ce
+   * qu'on peut en faire.
+   */
   gratuit: {
     label: 'Gratuit',
     monthlyPrice: 0,
     maxDocuments: 10,
-    features: [],
+    features: ['ia', 'partage'],
   },
   premium: {
     label: 'Particulier Premium',
