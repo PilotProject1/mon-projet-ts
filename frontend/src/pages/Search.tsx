@@ -1,7 +1,10 @@
-import { useState } from 'react'
-import type { FormEvent } from 'react'
+import { useMemo, useState } from 'react'
+import type { CSSProperties, FormEvent } from 'react'
+import { Sparkles } from 'lucide-react'
 import { searchApi, ApiError } from '../services/api'
-import type { SearchAnswer, SearchHit, DocumentType } from '../types'
+import type { Deadline, Document, SearchAnswer, SearchHit, DocumentType } from '../types'
+import { suggestionsRecherche } from '../utils/suggestionsRecherche'
+import { useEntree } from '../utils/useApparition'
 import { formatDate } from '../utils/formatDate'
 import { formatAmount } from '../utils/formatAmount'
 
@@ -64,21 +67,31 @@ function describeHit(hit: SearchHit): { title: string; subtitle: string } {
   }
 }
 
-export default function Search() {
+interface SearchProps {
+  documents: Document[]
+  deadlines: Deadline[]
+}
+
+export default function Search({ documents, deadlines }: SearchProps) {
   const [query, setQuery] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [answer, setAnswer] = useState<SearchAnswer | null>(null)
 
-  async function handleSubmit(e: FormEvent) {
-    e.preventDefault()
-    if (!query.trim()) return
+  const suggestions = useMemo(
+    () => suggestionsRecherche(documents, deadlines),
+    [documents, deadlines],
+  )
+  const listeSuggestions = useEntree<HTMLDivElement>()
+
+  async function lancer(question: string) {
+    const propre = question.trim()
+    if (!propre) return
     setLoading(true)
     setError(null)
     setAnswer(null)
     try {
-      const result = await searchApi.ask(query.trim())
-      setAnswer(result)
+      setAnswer(await searchApi.ask(propre))
     } catch (err) {
       setError(
         err instanceof ApiError
@@ -90,29 +103,76 @@ export default function Search() {
     }
   }
 
+  async function handleSubmit(e: FormEvent) {
+    e.preventDefault()
+    await lancer(query)
+  }
+
+  /*
+   * Une suggestion se lance d'un seul geste : la recopier dans le champ pour
+   * faire ensuite appuyer sur « Rechercher » demanderait deux gestes là où le
+   * propos est justement d'en épargner. Le champ est tout de même renseigné,
+   * pour que la question reste modifiable après coup.
+   */
+  async function choisir(question: string) {
+    setQuery(question)
+    await lancer(question)
+  }
+
   return (
     <div>
       <h1 className="mb-2 text-[28px] font-bold text-brand-deep">Recherche</h1>
       <p className="mb-6 text-sm text-brand-muted">
-        Pose une question en langage naturel sur tes documents, échéances, contrats ou factures.
+        Posez une question en langage naturel sur vos documents, échéances, contrats ou factures.
       </p>
 
-      <form onSubmit={handleSubmit} className="mb-6 flex gap-3">
+      <form onSubmit={handleSubmit} className="flex flex-col gap-3 sm:flex-row">
         <input
           type="text"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Ex : mes factures EDF de plus de 100€ en 2026"
-          className="flex-1 rounded-md border border-brand-border px-3 py-2 text-sm focus:border-brand-green focus:outline-none"
+          placeholder="Votre question…"
+          className="min-w-0 flex-1 rounded-md border border-brand-border px-3 py-2 text-sm focus:border-brand-green focus:outline-none"
         />
         <button
           type="submit"
           disabled={loading || !query.trim()}
-          className="brand-gradient rounded-md px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
+          className="brand-gradient shrink-0 rounded-md px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
         >
           {loading ? 'Recherche...' : 'Rechercher'}
         </button>
       </form>
+
+      {/*
+        Les suggestions disparaissent dès qu'une réponse s'affiche : leur rôle
+        est d'amorcer, pas d'encombrer une page qui a déjà répondu. Elles
+        reviennent au vidage du champ.
+      */}
+      {!answer && (
+        <div
+          ref={listeSuggestions.ref}
+          className={`mvt-liste mt-4 flex flex-wrap gap-2 ${listeSuggestions.classe}`}
+        >
+          <span className="flex items-center gap-1.5 text-[12.5px] font-medium text-brand-muted">
+            <Sparkles size={14} className="text-brand-green" />
+            Par exemple
+          </span>
+          {suggestions.map((suggestion, rang) => (
+            <button
+              key={suggestion}
+              type="button"
+              onClick={() => void choisir(suggestion)}
+              disabled={loading}
+              style={{ '--rang': rang + 1 } as CSSProperties}
+              className="mvt-carte max-w-full rounded-full border border-brand-border bg-white px-3 py-1.5 text-left text-[12.5px] text-brand-deep hover:border-brand-green hover:bg-brand-mint/50 disabled:opacity-50"
+            >
+              {suggestion}
+            </button>
+          ))}
+        </div>
+      )}
+
+      <div className="mb-6" />
 
       {error && (
         <div className="mb-4 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>

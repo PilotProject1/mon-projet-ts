@@ -324,7 +324,10 @@ function App() {
           }
         >
           <Route path="/" element={<Dashboard documents={documents} deadlines={deadlines} />} />
-          <Route path="/recherche" element={<Search />} />
+          <Route
+            path="/recherche"
+            element={<Search documents={documents} deadlines={deadlines} />}
+          />
           {/* Route déclarée pour tous : le serveur refuse la donnée à qui
               n'est pas administrateur, et la page affiche alors son refus. */}
           <Route path="/administration" element={<Administration />} />
