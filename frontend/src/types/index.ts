@@ -283,3 +283,10 @@ export interface PreparationDeuxiemeFacteur {
   /** Code graphique déjà rendu en image, prêt à afficher. */
   qrCode: string
 }
+
+/** Adresse de dépôt par e-mail, propre à chaque compte. */
+export interface AdresseDepot {
+  /** null si la fonctionnalité n'est pas configurée sur le serveur. */
+  adresse: string | null
+  disponible: boolean
+}

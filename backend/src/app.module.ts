@@ -25,6 +25,7 @@ import { PlansModule } from './plans/plans.module';
 import { AdminModule } from './admin/admin.module';
 import { BillingModule } from './billing/billing.module';
 import { BackupModule } from './backup/backup.module';
+import { InboundModule } from './inbound/inbound.module';
 import { LoggingInterceptor } from './common/logging.interceptor';
 import { AllExceptionsFilter } from './common/all-exceptions.filter';
 
@@ -46,6 +47,7 @@ import { AllExceptionsFilter } from './common/all-exceptions.filter';
     PlansModule,
     AdminModule,
     BackupModule,
+    InboundModule,
     BillingModule,
     UsersModule,
     AuthModule,

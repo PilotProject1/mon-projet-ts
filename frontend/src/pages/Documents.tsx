@@ -13,6 +13,7 @@ import { ApiError, documentsApi } from '../services/api'
 import { formatDate } from '../utils/formatDate'
 import { formatAmount } from '../utils/formatAmount'
 import PlanUsageCard from '../components/PlanUsageCard'
+import DepotParEmail from '../components/DepotParEmail'
 import DocumentScanner from '../components/DocumentScanner'
 import SuggestedDeadline from '../components/SuggestedDeadline'
 import { useEntree } from '../utils/useApparition'
@@ -468,6 +469,13 @@ export default function Documents({
           <PlanUsageCard usage={planUsage} />
         </div>
       )}
+
+      {/* Une autre façon d'ajouter un document : sa place est près du bouton
+          qui en ajoute un, pas dans un écran de réglages où personne ne la
+          trouverait. */}
+      <div className="mb-6">
+        <DepotParEmail />
+      </div>
 
       {error && (
         <div className="mb-4 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>

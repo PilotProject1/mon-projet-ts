@@ -104,6 +104,18 @@ model User {
   /// sert plus à rien.
   twoFactorLastStep      Int?
 
+  /// Jeton de l'adresse de dépôt par e-mail : depot-<jeton>@depot.syneco.pro.
+  ///
+  /// C'est un secret, au même titre qu'un mot de passe — l'expéditeur d'un
+  /// courriel se falsifie en trois lignes, et seule cette part inconnue de
+  /// l'adresse empêche d'écrire dans le coffre de quelqu'un d'autre. Il se
+  /// régénère à volonté ; l'ancienne adresse cesse alors immédiatement de
+  /// fonctionner.
+  ///
+  /// Nul tant que la personne n'a pas demandé son adresse : on n'ouvre pas
+  /// une porte que personne n'a réclamée.
+  inboundToken String? @unique
+
   documents         Document[]
   deadlines         Deadline[]
   contracts         Contract[]

@@ -23,6 +23,7 @@ import type {
   StatistiquesAdmin,
   EtatDeuxiemeFacteur,
   PreparationDeuxiemeFacteur,
+  AdresseDepot,
 } from '../types'
 
 const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:3000'
@@ -377,6 +378,13 @@ export const briefingApi = {
 
 export const recurrencesApi = {
   get: () => request<Recurrences>('/recurrences'),
+}
+
+export const depotEmailApi = {
+  adresse: () => request<AdresseDepot>('/depot-email/adresse'),
+
+  regenerer: () =>
+    request<{ adresse: string }>('/depot-email/regenerer', { method: 'POST' }),
 }
 
 export const usersApi = {
