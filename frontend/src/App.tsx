@@ -14,6 +14,7 @@ import CompanyPage from './pages/Company'
 import Clients from './pages/Clients'
 import Invoices from './pages/Invoices'
 import Search from './pages/Search'
+import PartageRecu from './pages/PartageRecu'
 import Administration from './pages/Administration'
 import Abonnement from './pages/Abonnement'
 import MentionsLegales from './pages/MentionsLegales'
@@ -339,6 +340,9 @@ function App() {
                 onCompteSupprime={handleLogout}
               />}
           />
+          {/* Cible du partage venu du système : un fichier poussé depuis une
+              autre application arrive ici. */}
+          <Route path="/partage-recu" element={<PartageRecu />} />
           <Route
             path="/documents"
             element={
