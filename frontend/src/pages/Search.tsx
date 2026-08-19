@@ -109,6 +109,21 @@ export default function Search({ documents, deadlines }: SearchProps) {
   }
 
   /*
+   * Vider le champ ramène la page à son point de départ.
+   *
+   * Sans cela, la réponse survivait à la question qui l'avait produite : un
+   * texte orphelin restait affiché, et il masquait les suggestions qu'on
+   * était précisément revenu chercher en effaçant sa question.
+   */
+  function modifierQuestion(valeur: string) {
+    setQuery(valeur)
+    if (!valeur.trim()) {
+      setAnswer(null)
+      setError(null)
+    }
+  }
+
+  /*
    * Une suggestion se lance d'un seul geste : la recopier dans le champ pour
    * faire ensuite appuyer sur « Rechercher » demanderait deux gestes là où le
    * propos est justement d'en épargner. Le champ est tout de même renseigné,
@@ -130,7 +145,7 @@ export default function Search({ documents, deadlines }: SearchProps) {
         <input
           type="text"
           value={query}
-          onChange={(e) => setQuery(e.target.value)}
+          onChange={(e) => modifierQuestion(e.target.value)}
           placeholder="Votre question…"
           className="min-w-0 flex-1 rounded-md border border-brand-border px-3 py-2 text-sm focus:border-brand-green focus:outline-none"
         />
