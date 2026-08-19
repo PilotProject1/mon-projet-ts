@@ -320,3 +320,106 @@ export function IllustrationDeuxUsages() {
     </svg>
   )
 }
+
+/**
+ * Le trajet d'une facture, de la boîte mail au coffre.
+ *
+ * Le dessin raconte un mouvement, pas un état : le message part de la boîte
+ * de réception, traverse, et ressort lu. Le tracé pointillé se dessine à
+ * l'apparition, ce qui fait le trajet sous les yeux au lieu de le suggérer.
+ */
+export function IllustrationDepotEmail() {
+  const lignes: [string, string][] = [
+    ['EDF', GREEN],
+    ['84,30 €', DEEP],
+    ['5 sept.', AMBER],
+  ]
+  return (
+    <svg
+      viewBox="0 0 320 170"
+      className={cadre}
+      role="img"
+      aria-label="Une facture reçue par e-mail, transférée puis lue"
+    >
+      {/* La boîte de réception */}
+      <rect x="10" y="26" width="112" height="118" rx="9" fill="#fff" stroke={BORDER} />
+      <rect x="10" y="26" width="112" height="20" rx="9" fill={SOFT} />
+      <rect x="10" y="38" width="112" height="8" fill={SOFT} />
+      <text x="22" y="40" fill={DEEP} fontSize="8" fontWeight="600">
+        Boîte de réception
+      </text>
+
+      {[56, 80].map((y, i) => (
+        <g key={y} className={`at-anim at-fondu at-d${i + 1}`}>
+          <rect x="19" y={y} width="94" height="17" rx="5" fill="#fbfdfc" stroke={BORDER} />
+          <rect x="25" y={y + 5} width="42" height="3.5" rx="1.75" fill="#eef3f1" />
+          <rect x="25" y={y + 10} width="62" height="3" rx="1.5" fill="#f4f8f6" />
+        </g>
+      ))}
+
+      {/* Le message qui porte la facture : c'est lui qu'on transfère. */}
+      <g className="at-anim at-pastille at-d3">
+        <rect x="19" y="104" width="94" height="26" rx="6" fill={SOFT} stroke={GREEN} />
+        <text x="26" y="115" fill={DEEP} fontSize="7.5" fontWeight="600">
+          Votre facture EDF
+        </text>
+        {/* Le trombone : ce qui distingue un message utile d'un autre. */}
+        <g transform="translate(26 119)" stroke={GREEN} strokeWidth="1.1" fill="none">
+          <path d="M0 4.5V2a2 2 0 014 0v4a3.6 3.6 0 01-7.2 0V2" transform="translate(3 0)" />
+        </g>
+        <text x="38" y="125" fill={MUTED} fontSize="6.5">
+          facture-aout.pdf
+        </text>
+      </g>
+
+      {/* Le trajet */}
+      <g className="at-anim at-trace at-d4" style={{ '--longueur': 90 } as CSSProperties}>
+        <path
+          d="M124 117 C 152 117, 158 85, 186 85"
+          fill="none"
+          stroke={GREEN}
+          strokeWidth="1.8"
+          strokeDasharray="4 4"
+        />
+      </g>
+      <g className="at-anim at-badge at-d4">
+        <rect x="128" y="128" width="56" height="18" rx="9" fill="#fff" stroke={BORDER} />
+        <text x="156" y="140" textAnchor="middle" fill={GREEN} fontSize="7.5" fontWeight="600">
+          Transférer
+        </text>
+      </g>
+
+      {/* Le résultat, dans le coffre */}
+      <rect x="186" y="26" width="124" height="118" rx="9" fill="#fff" stroke={BORDER} />
+      <rect x="186" y="26" width="124" height="20" rx="9" fill={DEEP} />
+      <rect x="186" y="38" width="124" height="8" fill={DEEP} />
+      <text x="198" y="40" fill="#fff" fontSize="8" fontWeight="600">
+        SYNeco
+      </text>
+
+      <g className="at-anim at-pastille at-d5">
+        <rect x="196" y="56" width="104" height="20" rx="5" fill="#fbfdfc" stroke={BORDER} />
+        <text x="204" y="69" fill={DEEP} fontSize="7.5" fontWeight="600">
+          Facture · EDF
+        </text>
+      </g>
+
+      {lignes.map(([valeur, couleur], i) => (
+        <g key={valeur} className={`at-anim at-pastille at-d${i + 3}`}>
+          <rect
+            x="196"
+            y={84 + i * 20}
+            width="104"
+            height="16"
+            rx="5"
+            fill={i === 2 ? SOFT : '#fbfdfc'}
+          />
+          <circle cx="205" cy={92 + i * 20} r="2.4" fill={couleur} />
+          <text x="213" y={95 + i * 20} fill={couleur} fontSize="7.5" fontWeight="600">
+            {valeur}
+          </text>
+        </g>
+      ))}
+    </svg>
+  )
+}

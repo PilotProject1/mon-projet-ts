@@ -10,6 +10,7 @@ import {
 } from '../components/IllustrationsAtouts'
 import {
   IllustrationActions,
+  IllustrationDepotEmail,
   IllustrationDeuxUsages,
   IllustrationFichierBrut,
   IllustrationInformationsLues,
@@ -261,6 +262,55 @@ function SectionIllustree({
   )
 }
 
+/*
+ * Le trajet d'une facture reçue par courriel.
+ *
+ * Section pleine largeur et fond appuyé, à la différence des autres : c'est
+ * le geste qui supprime le plus de friction — plus rien à télécharger, plus
+ * rien à redéposer — et il mérite qu'on s'arrête dessus en descendant la
+ * page.
+ */
+function SectionDepotEmail() {
+  const { ref, classe } = useApparition<HTMLDivElement>()
+  return (
+    <section className="mb-16 bg-brand-mint/45 py-14">
+      <div ref={ref} className={`mx-auto max-w-5xl px-5 sm:px-8 ${classe}`}>
+        <div className="flex flex-col gap-8 sm:flex-row sm:items-center sm:gap-12">
+          <div className="min-w-0 sm:w-[42%]">
+            <p className="text-[11.5px] font-semibold tracking-wide text-brand-green uppercase">
+              Sans rien télécharger
+            </p>
+            <h2 className="font-heading mt-1.5 text-[22px] leading-tight font-semibold text-brand-deep">
+              Transférez. SYNeco s’occupe du reste.
+            </h2>
+            <p className="mt-2.5 text-[13.5px] leading-relaxed text-brand-muted">
+              Vos factures arrivent par e-mail. Plutôt que de télécharger la pièce jointe,
+              d’ouvrir le site et de la redéposer, transférez simplement le message à
+              votre adresse SYNeco.
+            </p>
+            <ul className="mt-4 space-y-2">
+              {[
+                'Une adresse personnelle, à vous seul',
+                'La pièce jointe est déposée et lue automatiquement',
+                'Depuis n’importe quelle messagerie, sur téléphone comme sur ordinateur',
+              ].map((point) => (
+                <li key={point} className="flex items-start gap-2 text-[13.5px] text-brand-ink">
+                  <Check size={15} className="mt-0.5 shrink-0 text-brand-green" />
+                  <span className="min-w-0">{point}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          <div className="w-full min-w-0 rounded-[18px] border border-brand-border bg-white px-4 py-5 shadow-[0_20px_50px_-30px_rgba(11,46,47,0.45)] sm:w-[58%]">
+            <IllustrationDepotEmail />
+          </div>
+        </div>
+      </div>
+    </section>
+  )
+}
+
 export default function Accueil() {
   useTitrePage(
     'SYNeco — Le coffre-fort administratif du particulier et de l’indépendant',
@@ -333,6 +383,8 @@ export default function Accueil() {
           ))}
         </div>
       </section>
+
+      <SectionDepotEmail />
 
       <SectionIllustree
         illustration={IllustrationRangement}
