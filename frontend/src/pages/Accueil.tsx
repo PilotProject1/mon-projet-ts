@@ -374,6 +374,8 @@ export default function Accueil() {
         </div>
       </section>
 
+      <SectionDepotEmail />
+
       <SectionParcours />
 
       <section className="mx-auto max-w-5xl px-5 pb-16 sm:px-8">
@@ -383,8 +385,6 @@ export default function Accueil() {
           ))}
         </div>
       </section>
-
-      <SectionDepotEmail />
 
       <SectionIllustree
         illustration={IllustrationRangement}
