@@ -165,9 +165,13 @@ function Etape({
   texte: string
   rang: number
 }) {
+  const { ref, classe } = useApparition<HTMLDivElement>()
   return (
     <div className="flex flex-1 flex-col">
-      <div className="rounded-[16px] border border-brand-border bg-white px-4 pt-4 pb-3">
+      <div
+        ref={ref}
+        className={`rounded-[16px] border border-brand-border bg-white px-4 pt-4 pb-3 ${classe}`}
+      >
         <Illustration />
       </div>
       <p className="mt-3.5 text-[11.5px] font-semibold tracking-wide text-brand-green uppercase">
@@ -181,7 +185,6 @@ function Etape({
 }
 
 function SectionParcours() {
-  const { ref, classe } = useApparition<HTMLDivElement>()
   return (
     <section className="mx-auto max-w-5xl px-5 pb-16 sm:px-8">
       <h2 className="font-heading text-[22px] font-semibold text-brand-deep">
@@ -192,7 +195,7 @@ function SectionParcours() {
         ce qu’il y a dedans.
       </p>
 
-      <div ref={ref} className={`mt-6 flex flex-col gap-5 sm:flex-row sm:gap-4 ${classe}`}>
+      <div className="mt-6 flex flex-col gap-5 sm:flex-row sm:gap-4">
         {ETAPES.map((etape, i) => (
           <div key={etape.titre} className="flex flex-1 flex-col sm:flex-row sm:items-stretch">
             <Etape {...etape} rang={i + 1} />

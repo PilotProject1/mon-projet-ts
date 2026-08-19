@@ -11,6 +11,8 @@
  * Aucune ne représente une fonctionnalité qui n'existe pas.
  */
 
+import type { CSSProperties, ReactNode } from 'react'
+
 /** Couleurs reprises des jetons de la marque, pour que rien ne dérive. */
 const DEEP = '#0b2e2f'
 const GREEN = '#2f8f6f'
@@ -31,6 +33,7 @@ export function IllustrationFichierBrut() {
       {[58, 70, 82, 94, 106, 118].map((y, i) => (
         <rect
           key={y}
+          className={`at-anim at-fondu at-d${Math.min(i + 1, 5)}`}
           x="60"
           y={y}
           width={i % 3 === 2 ? 42 : 80}
@@ -40,17 +43,19 @@ export function IllustrationFichierBrut() {
         />
       ))}
       <g transform="translate(100 96)">
-        <rect x="-31" y="-11" width="62" height="22" rx="5" fill={DEEP} />
-        <text
-          x="0"
-          y="4"
-          textAnchor="middle"
-          fill="#fff"
-          fontSize="10"
-          fontFamily="ui-monospace, monospace"
-        >
-          PDF
-        </text>
+        <g className="at-anim at-badge">
+          <rect x="-31" y="-11" width="62" height="22" rx="5" fill={DEEP} />
+          <text
+            x="0"
+            y="4"
+            textAnchor="middle"
+            fill="#fff"
+            fontSize="10"
+            fontFamily="ui-monospace, monospace"
+          >
+            PDF
+          </text>
+        </g>
       </g>
     </svg>
   )
@@ -70,7 +75,7 @@ export function IllustrationInformationsLues() {
       {lignes.map(([libelle, valeur, couleur], i) => {
         const y = 34 + i * 28
         return (
-          <g key={libelle}>
+          <g key={libelle} className={`at-anim at-pastille at-d${i + 1}`}>
             <rect x="26" y={y - 11} width="148" height="22" rx="6" fill={i % 2 ? '#fbfdfc' : SOFT} />
             <text x="34" y={y + 4} fill={MUTED} fontSize="9">
               {libelle}
@@ -85,27 +90,76 @@ export function IllustrationInformationsLues() {
   )
 }
 
-/** Ce que le service en fait : ranger, rappeler, partager, retrouver. */
+/*
+ * Ce que le service en fait : ranger, rappeler, partager, retrouver.
+ *
+ * Les pictogrammes sont dessinés au complet — le cadran de l'horloge, le
+ * cercle de la loupe — et non réduits à ce qui les distingue. Deux aiguilles
+ * sans cadran ne sont pas une horloge : ce sont deux traits dans le vide.
+ */
 export function IllustrationActions() {
-  const actions: [string, string][] = [
-    ['M4 7h7l2 2h7v9H4z', 'Classé'],
-    ['M12 6v6l4 2', 'Rappel posé'],
-    ['M7 12h10M13 8l4 4-4 4', 'Partageable'],
-    ['M11 4a7 7 0 105 12l4 4', 'Retrouvable'],
+  const actions: { icone: ReactNode; libelle: string }[] = [
+    {
+      libelle: 'Classé',
+      icone: <path d="M3 6h6l2 2.5h9V19H3z" strokeLinejoin="round" />,
+    },
+    {
+      libelle: 'Rappel posé',
+      icone: (
+        <g className="at-anim at-cloche">
+          <circle cx="12" cy="12.5" r="8" />
+          <path d="M12 8v4.5l3 1.8" strokeLinecap="round" />
+        </g>
+      ),
+    },
+    {
+      libelle: 'Partageable',
+      icone: (
+        <g>
+          <circle cx="6.5" cy="12.5" r="2.6" />
+          <circle cx="17.5" cy="7" r="2.6" />
+          <circle cx="17.5" cy="18" r="2.6" />
+          <path d="M9 11.2l6-3.1M9 13.8l6 3.1" strokeLinecap="round" />
+        </g>
+      ),
+    },
+    {
+      libelle: 'Retrouvable',
+      icone: (
+        <g>
+          <circle cx="11" cy="11" r="6.2" />
+          <path d="M15.6 15.6L20 20" strokeLinecap="round" />
+        </g>
+      ),
+    },
   ]
   return (
     <svg viewBox="0 0 200 150" className={cadre} role="img" aria-label="Ce que SYNeco en fait">
-      {actions.map(([trace, libelle], i) => {
+      {actions.map(({ icone, libelle }, i) => {
         const y = 22 + i * 32
         return (
+          /*
+           * Deux groupes imbriqués, et non un seul : une animation CSS qui
+           * pose un `transform` remplace l'attribut `transform` du même
+           * élément au lieu de s'y ajouter, et tout se retrouverait empilé à
+           * l'origine. Le placement reste dehors, le mouvement dedans.
+           */
           <g key={libelle} transform={`translate(20 ${y})`}>
-            <rect width="160" height="24" rx="7" fill={i === 1 ? SOFT : '#fbfdfc'} stroke={BORDER} />
-            <g transform="translate(8 3) scale(0.78)" stroke={GREEN} strokeWidth="1.8" fill="none">
-              <path d={trace} strokeLinecap="round" strokeLinejoin="round" />
+            <g className={`at-anim at-pastille at-d${i + 1}`}>
+              <rect
+                width="160"
+                height="24"
+                rx="7"
+                fill={i === 1 ? SOFT : '#fbfdfc'}
+                stroke={BORDER}
+              />
+              <g transform="translate(7 2) scale(0.83)" stroke={GREEN} strokeWidth="1.7" fill="none">
+                {icone}
+              </g>
+              <text x="34" y="16" fill={DEEP} fontSize="10" fontWeight="500">
+                {libelle}
+              </text>
             </g>
-            <text x="34" y="16" fill={DEEP} fontSize="10" fontWeight="500">
-              {libelle}
-            </text>
           </g>
         )
       })}
@@ -122,8 +176,8 @@ export function IllustrationRangement() {
   ]
   return (
     <svg viewBox="0 0 220 150" className={cadre} role="img" aria-label="Documents rangés par foyer">
-      {piles.map(([nom, x, elements]) => (
-        <g key={nom}>
+      {piles.map(([nom, x, elements], i) => (
+        <g key={nom} className={`at-anim at-jalon at-d${i + 1}`}>
           <rect x={x} y="30" width="52" height="96" rx="7" fill="#fff" stroke={BORDER} />
           <rect x={x} y="30" width="52" height="17" rx="7" fill={SOFT} />
           <rect x={x} y="40" width="52" height="7" fill={SOFT} />
@@ -176,7 +230,10 @@ export function IllustrationPartageCible() {
         const y = 30 + i * 32
         return (
           <g key={cible}>
+            {/* --longueur : la longueur du tracé, que l'animation consomme. */}
             <path
+              className={`at-anim at-trace at-d${i + 1}`}
+              style={{ '--longueur': 80 } as CSSProperties}
               d={`M72 73 C 100 73, 108 ${y + 12}, 132 ${y + 12}`}
               fill="none"
               stroke={GREEN}
@@ -184,7 +241,16 @@ export function IllustrationPartageCible() {
               strokeDasharray="3 3"
               opacity="0.75"
             />
-            <rect x="132" y={y} width="76" height="24" rx="7" fill={SOFT} stroke={BORDER} />
+            <rect
+              className={`at-anim at-pastille at-d${i + 2}`}
+              x="132"
+              y={y}
+              width="76"
+              height="24"
+              rx="7"
+              fill={SOFT}
+              stroke={BORDER}
+            />
             <circle cx="146" cy={y + 12} r="6" fill="#fff" stroke={GREEN} strokeWidth="1.4" />
             <circle cx="146" cy={y + 10} r="2.1" fill={GREEN} />
             <path
@@ -201,16 +267,13 @@ export function IllustrationPartageCible() {
       })}
 
       <g transform="translate(110 136)">
-        <rect x="-46" y="-9" width="92" height="18" rx="9" fill="#fff" stroke={BORDER} />
-        <path
-          d="M-32 0a4 4 0 118 0 4 4 0 01-8 0"
-          fill="none"
-          stroke={AMBER}
-          strokeWidth="1.4"
-        />
-        <text x="4" y="3" textAnchor="middle" fill={MUTED} fontSize="7.5">
-          Le lien expire
-        </text>
+        <g className="at-anim at-badge">
+          <rect x="-46" y="-9" width="92" height="18" rx="9" fill="#fff" stroke={BORDER} />
+          <path d="M-32 0a4 4 0 118 0 4 4 0 01-8 0" fill="none" stroke={AMBER} strokeWidth="1.4" />
+          <text x="4" y="3" textAnchor="middle" fill={MUTED} fontSize="7.5">
+            Le lien expire
+          </text>
+        </g>
       </g>
     </svg>
   )
@@ -227,7 +290,7 @@ export function IllustrationDeuxUsages() {
       {colonnes.map(([nom, elements, couleur], i) => {
         const x = 14 + i * 110
         return (
-          <g key={nom}>
+          <g key={nom} className={`at-anim at-jalon at-d${i + 1}`}>
             <rect x={x} y="16" width="92" height="108" rx="9" fill="#fff" stroke={BORDER} />
             <rect x={x + 12} y="28" width="68" height="20" rx="6" fill={couleur} />
             <text x={x + 46} y="42" textAnchor="middle" fill="#fff" fontSize="9" fontWeight="600">
