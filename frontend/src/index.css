@@ -56,6 +56,13 @@ body {
   background: linear-gradient(120deg, var(--petrol-deep), var(--green));
 }
 
+/* Dégradé discret, réservé aux grandes surfaces sombres (barre latérale) :
+   contrairement à .brand-gradient, il reste dans les tons profonds pour ne
+   pas nuire à la lisibilité du texte blanc sur toute la hauteur. */
+.brand-gradient-sidebar {
+  background: linear-gradient(180deg, var(--petrol-deep), var(--petrol-mid));
+}
+
 .brand-btn-shadow {
   box-shadow: 0 12px 24px -8px rgba(47, 143, 111, 0.45);
 }

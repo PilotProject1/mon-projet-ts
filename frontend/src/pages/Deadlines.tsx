@@ -110,7 +110,7 @@ export default function Deadlines({
   return (
     <div>
       <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-[28px] font-bold text-brand-deep">Échéances</h1>
+        <h1 className="font-heading text-[28px] font-semibold text-brand-deep">Échéances</h1>
         <button
           onClick={() => setShowForm((v) => !v)}
           className="brand-gradient rounded-md px-3 py-2 text-sm font-semibold text-white"

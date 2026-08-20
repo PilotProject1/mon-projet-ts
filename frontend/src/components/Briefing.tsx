@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react'
+import type { CSSProperties } from 'react'
 import { Link } from 'react-router-dom'
 import { AlertTriangle, ArrowRight, Bell, Info } from 'lucide-react'
 import type { Briefing as BriefingData, PointBriefing, Urgence } from '../types'
 import { briefingApi } from '../services/api'
+import { useEntree } from '../utils/useApparition'
 
 const styles: Record<Urgence, { bord: string; fond: string; texte: string; Icone: typeof Info }> = {
   urgent: {
@@ -48,20 +50,30 @@ export default function Briefing() {
   if (!data || data.points.length === 0) return null
 
   return (
-    <div className="mb-5.5 space-y-2">
-      {data.points.map((point) => (
-        <Point key={point.kind} point={point} />
+    <ListePoints points={data.points} />
+  )
+}
+
+function ListePoints({ points }: { points: PointBriefing[] }) {
+  const { ref, classe } = useEntree<HTMLDivElement>()
+  return (
+    <div ref={ref} className={`mvt-liste mb-5.5 space-y-2 ${classe}`}>
+      {points.map((point, rang) => (
+        <Point key={point.kind} point={point} rang={rang} />
       ))}
     </div>
   )
 }
 
-function Point({ point }: { point: PointBriefing }) {
+function Point({ point, rang }: { point: PointBriefing; rang: number }) {
   const style = styles[point.urgence]
   const { Icone } = style
 
   return (
-    <div className={`rounded-[12px] border ${style.bord} ${style.fond} px-4 py-3`}>
+    <div
+      className={`rounded-[12px] border ${style.bord} ${style.fond} px-4 py-3`}
+      style={{ '--rang': rang } as CSSProperties}
+    >
       {/* Sur téléphone l'action passe sous le message : à côté, elle
           réduirait la phrase à deux mots par ligne. */}
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-4">

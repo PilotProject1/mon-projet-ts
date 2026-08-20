@@ -58,7 +58,7 @@ export default function Dashboard({ documents, deadlines }: DashboardProps) {
   return (
     <div>
       <div className="mb-6.5">
-        <h1 className="font-heading text-[22px] font-semibold text-brand-ink">Tableau de bord</h1>
+        <h1 className="font-heading text-[28px] font-semibold text-brand-deep">Tableau de bord</h1>
         <p className="mt-1 text-[13px] text-brand-muted">
           Bonjour, voici l&apos;état de votre espace aujourd&apos;hui.
         </p>

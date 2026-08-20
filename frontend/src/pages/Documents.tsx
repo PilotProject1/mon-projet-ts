@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import type { ChangeEvent, CSSProperties, FormEvent } from 'react'
 import { useSearchParams } from 'react-router-dom'
+import { Eye, Loader2, ScanSearch, Share2, Trash2 } from 'lucide-react'
 import type {
   Document,
   DocumentType,
@@ -451,7 +452,7 @@ export default function Documents({
   return (
     <div>
       <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-[28px] font-bold text-brand-deep">Documents</h1>
+        <h1 className="font-heading text-[28px] font-semibold text-brand-deep">Documents</h1>
         <button
           onClick={() => setShowForm((v) => !v)}
           disabled={!showForm && quotaReached}
@@ -728,27 +729,31 @@ export default function Documents({
                     </span>
                     <button
                       onClick={() => handleAnalyze(doc)}
-                      className="text-sm text-brand-muted hover:text-brand-green"
+                      className="flex items-center gap-1.5 text-sm text-brand-muted hover:text-brand-green"
                     >
+                      <ScanSearch size={14.5} />
                       {expandedId === doc.id ? 'Fermer' : 'Analyser'}
                     </button>
                     <button
                       onClick={() => handleToggleShare(doc)}
-                      className="text-sm text-brand-muted hover:text-brand-green"
+                      className="flex items-center gap-1.5 text-sm text-brand-muted hover:text-brand-green"
                     >
+                      <Share2 size={14.5} />
                       {shareExpandedId === doc.id ? 'Fermer' : 'Partager'}
                     </button>
                     <button
                       onClick={() => handleView(doc)}
                       disabled={openingId === doc.id}
-                      className="text-sm text-brand-muted hover:text-brand-green disabled:opacity-60"
+                      className="flex items-center gap-1.5 text-sm text-brand-muted hover:text-brand-green disabled:opacity-60"
                     >
+                      {openingId === doc.id ? <Loader2 size={14.5} className="animate-spin" /> : <Eye size={14.5} />}
                       {openingId === doc.id ? 'Ouverture...' : 'Voir'}
                     </button>
                     <button
                       onClick={() => handleDelete(doc.id)}
-                      className="text-sm text-brand-muted hover:text-brand-danger"
+                      className="flex items-center gap-1.5 text-sm text-brand-muted hover:text-brand-danger"
                     >
+                      <Trash2 size={14.5} />
                       Supprimer
                     </button>
                   </div>

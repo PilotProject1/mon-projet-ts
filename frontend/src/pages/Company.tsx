@@ -45,7 +45,7 @@ export default function CompanyPage({ company, onCreate, onUpdate }: CompanyPage
 
   return (
     <div>
-      <h1 className="mb-6 text-[28px] font-bold text-brand-deep">Entreprise</h1>
+      <h1 className="font-heading mb-6 text-[28px] font-semibold text-brand-deep">Entreprise</h1>
 
       {error && (
         <div className="mb-4 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>

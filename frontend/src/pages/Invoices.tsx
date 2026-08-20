@@ -48,7 +48,7 @@ export default function Invoices({
   if (!company) {
     return (
       <div>
-        <h1 className="mb-6 text-[28px] font-bold text-brand-deep">Factures</h1>
+        <h1 className="mb-6 font-heading text-[28px] font-semibold text-brand-deep">Factures</h1>
         <p className="text-sm text-brand-muted">
           Crée d'abord{' '}
           <Link to="/entreprise" className="font-medium text-brand-green hover:underline">
@@ -63,7 +63,7 @@ export default function Invoices({
   if (clients.length === 0) {
     return (
       <div>
-        <h1 className="mb-6 text-[28px] font-bold text-brand-deep">Factures</h1>
+        <h1 className="mb-6 font-heading text-[28px] font-semibold text-brand-deep">Factures</h1>
         <p className="text-sm text-brand-muted">
           Ajoute d'abord{' '}
           <Link to="/clients" className="font-medium text-brand-green hover:underline">
@@ -125,7 +125,7 @@ export default function Invoices({
   return (
     <div>
       <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-[28px] font-bold text-brand-deep">Factures</h1>
+        <h1 className="font-heading text-[28px] font-semibold text-brand-deep">Factures</h1>
         <button
           onClick={() => setShowForm((v) => !v)}
           className="brand-gradient rounded-md px-3 py-2 text-sm font-semibold text-white"

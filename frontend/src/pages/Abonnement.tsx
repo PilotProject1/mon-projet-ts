@@ -99,7 +99,7 @@ export default function Abonnement({
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-[28px] font-bold text-brand-deep">Abonnement</h1>
+        <h1 className="font-heading text-[28px] font-semibold text-brand-deep">Abonnement</h1>
         <p className="mt-1 text-sm text-brand-muted">
           Votre offre actuelle et les formules disponibles.
         </p>
