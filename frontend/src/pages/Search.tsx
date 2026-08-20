@@ -136,7 +136,7 @@ export default function Search({ documents, deadlines }: SearchProps) {
 
   return (
     <div>
-      <h1 className="mb-2 text-[28px] font-bold text-brand-deep">Recherche</h1>
+      <h1 className="font-heading mb-2 text-[28px] font-semibold text-brand-deep">Recherche</h1>
       <p className="mb-6 text-sm text-brand-muted">
         Posez une question en langage naturel sur vos documents, échéances, contrats ou factures.
       </p>

@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { ShieldCheck, Check, ArrowRight } from 'lucide-react'
+import { ShieldCheck, Check, ArrowRight, FileText, Clock, CheckCircle2 } from 'lucide-react'
 import type { ComponentType } from 'react'
 import BrandLogo from '../components/BrandLogo'
 import {
@@ -104,7 +104,7 @@ const OFFRES = [
 function CaseAtout({ illustration: Illustration, titre, texte }: AtoutProps) {
   const { ref, classe } = useApparition<HTMLDivElement>()
   return (
-    <div className="brand-card-shadow overflow-hidden rounded-[14px] border border-brand-border bg-white">
+    <div className="brand-card-shadow mvt-carte overflow-hidden rounded-[14px] border border-brand-border bg-white">
       {/* L'illustration occupe toute la largeur de la case : à cette taille,
           un dessin encadré perdrait sa lisibilité. */}
       <div ref={ref} className={`border-b border-brand-border bg-brand-mint/60 px-5 pt-4 pb-2 ${classe}`}>
@@ -311,6 +311,65 @@ function SectionDepotEmail() {
   )
 }
 
+/*
+ * Aperçu de l'espace, montré dans le hero.
+ *
+ * Le premier écran de la page n'avait jusqu'ici aucun visuel : du texte, deux
+ * boutons, rien qui montre ce que devient un document une fois dans SYNeco.
+ * Cette carte reprend le langage visuel du vrai tableau de bord (mêmes puces
+ * d'icônes teintées) pour donner un aperçu crédible sans dupliquer une vraie
+ * capture d'écran, qui se périmerait au premier changement d'interface.
+ */
+function HeroApercu() {
+  const lignes = [
+    { icon: FileText, tint: '#12514F', label: 'Documents rangés', valeur: '12' },
+    { icon: Clock, tint: '#C98A3E', label: 'Prochaine échéance', valeur: 'dans 6 jours' },
+    { icon: CheckCircle2, tint: '#2F8F6F', label: 'Lus automatiquement', valeur: '12/12' },
+  ]
+  return (
+    <div className="brand-card-shadow w-full shrink-0 rounded-[18px] border border-brand-border bg-white p-5 sm:w-[360px]">
+      <div className="flex items-center justify-between">
+        <p className="text-[11px] font-semibold tracking-wide text-brand-muted uppercase">
+          Votre espace
+        </p>
+        <span className="flex items-center gap-1.5 rounded-full bg-brand-green-soft px-2.5 py-1 text-[11px] font-semibold text-brand-green-deep">
+          <span className="h-1.5 w-1.5 rounded-full bg-brand-green" />À jour
+        </span>
+      </div>
+
+      <div className="mt-4 space-y-2.5">
+        {lignes.map(({ icon: Icon, tint, label, valeur }) => (
+          <div key={label} className="flex items-center gap-2.5">
+            <div
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[9px]"
+              style={{ background: `${tint}1A` }}
+            >
+              <Icon size={16} color={tint} strokeWidth={2.2} />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-[12.5px] text-brand-muted">{label}</p>
+            </div>
+            <p className="shrink-0 text-[12.5px] font-semibold text-brand-ink">{valeur}</p>
+          </div>
+        ))}
+      </div>
+
+      <div className="mt-4 flex items-center gap-2.5 rounded-[12px] border border-brand-border bg-brand-mint/50 px-3 py-2.5">
+        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-[8px] bg-white">
+          <FileText size={14} className="text-brand-muted" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-[12px] font-medium text-brand-ink">
+            Facture_EDF_08_2026.pdf
+          </p>
+          <p className="text-[11px] text-brand-muted">84,30 € · échéance le 5 sept.</p>
+        </div>
+        <Check size={15} className="shrink-0 text-brand-green" />
+      </div>
+    </div>
+  )
+}
+
 export default function Accueil() {
   useTitrePage(
     'SYNeco — Le coffre-fort administratif du particulier et de l’indépendant',
@@ -341,36 +400,42 @@ export default function Accueil() {
 
       <section className="relative overflow-hidden">
         <AmbientBackground variant="auth" />
-        <div className="relative z-10 mx-auto max-w-5xl px-5 pt-14 pb-16 sm:px-8 sm:pt-20 sm:pb-20">
-          <h1 className="font-heading max-w-3xl text-[30px] leading-[1.15] font-bold text-brand-deep sm:text-[44px]">
-            Le coffre-fort administratif du particulier et de l’indépendant
-          </h1>
-          <p className="mt-5 max-w-2xl text-[15px] leading-relaxed text-brand-muted sm:text-[17px]">
-            Photographiez un document : SYNeco le lit, repère son échéance et vous prévient avant
-            qu’elle n’arrive. Vos contrats, factures et attestations au même endroit, consultables
-            depuis votre téléphone.
-          </p>
+        <div className="relative z-10 mx-auto flex max-w-5xl flex-col gap-10 px-5 pt-14 pb-16 sm:flex-row sm:items-center sm:px-8 sm:pt-20 sm:pb-20">
+          <div className="min-w-0 flex-1">
+            <h1 className="font-heading max-w-3xl text-[30px] leading-[1.15] font-bold text-brand-deep sm:text-[44px]">
+              Le coffre-fort administratif du particulier et de l’indépendant
+            </h1>
+            <p className="mt-5 max-w-2xl text-[15px] leading-relaxed text-brand-muted sm:text-[17px]">
+              Photographiez un document : SYNeco le lit, repère son échéance et vous prévient
+              avant qu’elle n’arrive. Vos contrats, factures et attestations au même endroit,
+              consultables depuis votre téléphone.
+            </p>
 
-          {/* Sur téléphone les deux boutons s'empilent : côte à côte, leurs
-              intitulés seraient tronqués. */}
-          <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
-            <Link
-              to="/inscription"
-              className="brand-gradient flex items-center justify-center gap-2 rounded-xl px-5 py-3 text-[15px] font-semibold text-white"
-            >
-              Commencer gratuitement
-              <ArrowRight size={16} />
-            </Link>
-            <Link
-              to="/connexion"
-              className="flex items-center justify-center rounded-xl border border-brand-border bg-white px-5 py-3 text-[15px] font-semibold text-brand-deep hover:bg-white/70"
-            >
-              J’ai déjà un compte
-            </Link>
+            {/* Sur téléphone les deux boutons s'empilent : côte à côte, leurs
+                intitulés seraient tronqués. */}
+            <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
+              <Link
+                to="/inscription"
+                className="brand-gradient flex items-center justify-center gap-2 rounded-xl px-5 py-3 text-[15px] font-semibold text-white"
+              >
+                Commencer gratuitement
+                <ArrowRight size={16} />
+              </Link>
+              <Link
+                to="/connexion"
+                className="flex items-center justify-center rounded-xl border border-brand-border bg-white px-5 py-3 text-[15px] font-semibold text-brand-deep hover:bg-white/70"
+              >
+                J’ai déjà un compte
+              </Link>
+            </div>
+            <p className="mt-4 text-[13px] text-brand-muted">
+              Sans carte bancaire · 10 documents offerts, toutes fonctions comprises
+            </p>
           </div>
-          <p className="mt-4 text-[13px] text-brand-muted">
-            Sans carte bancaire · 10 documents offerts, toutes fonctions comprises
-          </p>
+
+          <div className="flex justify-center sm:block">
+            <HeroApercu />
+          </div>
         </div>
       </section>
 
@@ -433,12 +498,17 @@ export default function Accueil() {
           {OFFRES.map((offre) => (
             <div
               key={offre.nom}
-              className={`rounded-[14px] border bg-white px-5 py-5 ${
+              className={`mvt-carte relative rounded-[14px] border px-5 py-5 ${
                 offre.vedette
-                  ? 'border-brand-green shadow-[0_18px_40px_-24px_rgba(47,143,111,0.55)]'
-                  : 'border-brand-border'
+                  ? 'border-brand-green bg-brand-green-soft/40 shadow-[0_18px_40px_-24px_rgba(47,143,111,0.55)]'
+                  : 'border-brand-border bg-white'
               }`}
             >
+              {offre.vedette && (
+                <span className="brand-gradient absolute -top-3 left-5 rounded-full px-2.5 py-1 text-[11px] font-semibold text-white">
+                  Le plus choisi
+                </span>
+              )}
               <p className="text-[13px] font-semibold text-brand-muted">{offre.nom}</p>
               <p className="font-heading mt-1 text-[26px] font-semibold text-brand-ink">
                 {offre.prix}

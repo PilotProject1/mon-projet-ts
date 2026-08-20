@@ -105,7 +105,7 @@ export default function Layout({
       )}
 
       <aside
-        className={`fixed inset-y-0 left-0 z-40 flex w-[232px] shrink-0 flex-col bg-brand-deep pt-[calc(1.375rem+var(--zone-sure-haut))] pr-4 pb-[calc(1.375rem+var(--zone-sure-bas))] pl-[calc(1rem+var(--zone-sure-gauche))] transition-transform duration-200 md:relative md:translate-x-0 ${
+        className={`brand-gradient-sidebar fixed inset-y-0 left-0 z-40 flex w-[232px] shrink-0 flex-col pt-[calc(1.375rem+var(--zone-sure-haut))] pr-4 pb-[calc(1.375rem+var(--zone-sure-bas))] pl-[calc(1rem+var(--zone-sure-gauche))] transition-transform duration-200 md:relative md:translate-x-0 ${
           navOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >

@@ -75,7 +75,7 @@ export default function Contracts({ contracts, documents, onAdd, onDelete }: Con
   return (
     <div>
       <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-[28px] font-bold text-brand-deep">Contrats</h1>
+        <h1 className="font-heading text-[28px] font-semibold text-brand-deep">Contrats</h1>
         <button
           onClick={() => setShowForm((v) => !v)}
           disabled={documents.length === 0}
