@@ -104,7 +104,7 @@ const OFFRES = [
 function CaseAtout({ illustration: Illustration, titre, texte }: AtoutProps) {
   const { ref, classe } = useApparition<HTMLDivElement>()
   return (
-    <div className="brand-card-shadow mvt-carte overflow-hidden rounded-[14px] border border-brand-border bg-white">
+    <div className="brand-card-shadow mvt-carte neon-carte overflow-hidden rounded-[14px] border border-brand-border bg-white">
       {/* L'illustration occupe toute la largeur de la case : à cette taille,
           un dessin encadré perdrait sa lisibilité. */}
       <div ref={ref} className={`border-b border-brand-border bg-brand-mint/60 px-5 pt-4 pb-2 ${classe}`}>
@@ -171,7 +171,7 @@ function Etape({
     <div className="flex flex-1 flex-col">
       <div
         ref={ref}
-        className={`rounded-[16px] border border-brand-border bg-white px-4 pt-4 pb-3 ${classe}`}
+        className={`neon-carte rounded-[16px] border border-brand-border bg-white px-4 pt-4 pb-3 ${classe}`}
       >
         <Illustration />
       </div>
@@ -242,7 +242,7 @@ function SectionIllustree({
           inverse ? 'sm:flex-row-reverse' : 'sm:flex-row'
         } ${classe}`}
       >
-        <div className="w-full shrink-0 rounded-[16px] border border-brand-border bg-white px-4 py-4 sm:w-[46%]">
+        <div className="neon-carte w-full shrink-0 rounded-[16px] border border-brand-border bg-white px-4 py-4 sm:w-[46%]">
           <Illustration />
         </div>
         <div className="min-w-0">
@@ -327,7 +327,7 @@ function HeroApercu() {
     { icon: CheckCircle2, tint: '#2F8F6F', label: 'Lus automatiquement', valeur: '12/12' },
   ]
   return (
-    <div className="brand-card-shadow w-full shrink-0 rounded-[18px] border border-brand-border bg-white p-5 sm:w-[360px]">
+    <div className="brand-card-shadow neon-carte w-full shrink-0 rounded-[18px] border border-brand-border bg-white p-5 sm:w-[360px]">
       <div className="flex items-center justify-between">
         <p className="text-[11px] font-semibold tracking-wide text-brand-muted uppercase">
           Votre espace
@@ -498,7 +498,7 @@ export default function Accueil() {
           {OFFRES.map((offre) => (
             <div
               key={offre.nom}
-              className={`mvt-carte relative rounded-[14px] border px-5 py-5 ${
+              className={`mvt-carte neon-carte relative rounded-[14px] border px-5 py-5 ${
                 offre.vedette
                   ? 'border-brand-green bg-brand-green-soft/40 shadow-[0_18px_40px_-24px_rgba(47,143,111,0.55)]'
                   : 'border-brand-border bg-white'

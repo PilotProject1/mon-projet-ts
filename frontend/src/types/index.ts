@@ -1,10 +1,21 @@
 export type DocumentType = 'contrat' | 'facture' | 'assurance' | 'garantie' | 'courrier' | 'autre'
 
+/**
+ * Le pan de la vie auquel le document se rapporte.
+ *
+ * À distinguer du type : le type dit ce qu'est le papier (une facture), la
+ * catégorie dit de quoi il parle (l'électricité du logement). C'est la
+ * seconde qu'on a en tête quand on cherche « les papiers de la maison ».
+ */
+export type DocumentCategory = 'maison' | 'personnel' | 'famille'
+
 export interface Document {
   id: string
   userId: string
   name: string
   type: DocumentType
+  /** Maison, personnel ou famille. Null tant que rien ne permet de trancher. */
+  category: DocumentCategory | null
   fileKey: string
   mimeType: string
   sizeBytes: number

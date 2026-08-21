@@ -4,6 +4,7 @@ import type { ComponentType, CSSProperties } from 'react'
 import type { Document, Deadline } from '../types'
 import PriorityBadge from '../components/PriorityBadge'
 import RecurringExpenses from '../components/RecurringExpenses'
+import RepartitionCategories from '../components/RepartitionCategories'
 import Briefing from '../components/Briefing'
 import Compteur from '../components/Compteur'
 import { useEntree } from '../utils/useApparition'
@@ -26,8 +27,8 @@ interface StatCardProps {
 function StatCard({ icon: Icon, label, value, tint, rang }: StatCardProps) {
   return (
     <div
-      className="brand-card-shadow mvt-carte relative min-w-[200px] flex-1 overflow-hidden rounded-[14px] border border-brand-border bg-white px-5.5 py-5"
-      style={{ '--rang': rang } as CSSProperties}
+      className="brand-card-shadow mvt-carte neon-carte relative min-w-[200px] flex-1 overflow-hidden rounded-[14px] border border-brand-border bg-white px-5.5 py-5"
+      style={{ '--rang': rang, '--neon': tint } as CSSProperties}
     >
       <div className="absolute top-0 left-0 h-full w-1" style={{ background: tint }} />
       <div className="mb-3.5 flex items-center gap-2.5">
@@ -90,7 +91,7 @@ export default function Dashboard({ documents, deadlines }: DashboardProps) {
         />
       </div>
 
-      <div className="brand-card-shadow rounded-[14px] border border-brand-border bg-white px-5.5 py-5">
+      <div className="brand-card-shadow neon-carte rounded-[14px] border border-brand-border bg-white px-5.5 py-5">
         <div className="mb-1.5 flex items-center justify-between">
           <h2 className="font-heading text-[15.5px] font-semibold text-brand-ink">
             Prochaines échéances
@@ -152,6 +153,8 @@ export default function Dashboard({ documents, deadlines }: DashboardProps) {
           </ul>
         )}
       </div>
+
+      <RepartitionCategories documents={documents} />
 
       <RecurringExpenses />
     </div>

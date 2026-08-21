@@ -38,6 +38,7 @@ import {
 import type {
   Document,
   Deadline,
+  DocumentCategory,
   DocumentType,
   Contract,
   RenewalType,
@@ -165,7 +166,12 @@ function App() {
     setDeadlines(dls)
   }
 
-  async function addDocument(data: { name: string; type?: DocumentType; file: File }) {
+  async function addDocument(data: {
+    name: string
+    type?: DocumentType
+    category?: DocumentCategory
+    file: File
+  }) {
     const doc = await documentsApi.create(data)
     setDocuments((prev) => [doc, ...prev])
     await refreshPlanUsage()
@@ -320,7 +326,12 @@ function App() {
                 onMarkRead={markNotificationRead}
               />
             ) : (
-              <Navigate to="/connexion" replace />
+              /* Vers la présentation du service, non vers l'écran de
+                 connexion : après une déconnexion, se retrouver devant un
+                 formulaire vide donne l'impression d'être mis dehors. La
+                 page d'accueil, elle, laisse repartir — ou se reconnecter,
+                 le lien est dans son en-tête. */
+              <Navigate to="/" replace />
             )
           }
         >

@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { DocumentType } from '@prisma/client';
+import { DocumentCategory, DocumentType } from '@prisma/client';
 
 export interface ExtractedFields {
   suggestedType: DocumentType | null;
@@ -144,6 +144,89 @@ const TYPE_KEYWORDS: Record<DocumentType, string[]> = {
   ],
   courrier: ['objet :', 'madame, monsieur', 'cordialement', 'veuillez agréer'],
   autre: [],
+};
+
+/*
+ * Ce qui rattache un document à un pan de la vie.
+ *
+ * La reconnaissance est volontairement littérale : une facture qui parle de
+ * cantine scolaire est un papier de famille, une quittance de loyer un papier
+ * de maison. Aucune de ces listes ne prétend être complète — elles n'ont pas
+ * à l'être, puisque rien ne se range quand rien ne correspond, et que la
+ * catégorie reste modifiable à la main.
+ *
+ * Les tournures longues sont préférées aux mots isolés, pour la même raison
+ * qu'au-dessus : « assurance habitation » désigne, « assurance » ne désigne
+ * rien.
+ */
+const CATEGORY_KEYWORDS: Record<DocumentCategory, string[]> = {
+  maison: [
+    'assurance habitation',
+    'taxe foncière',
+    "taxe d'habitation",
+    'taxe d’habitation',
+    'quittance de loyer',
+    'contrat de bail',
+    'charges de copropriété',
+    'syndic de copropriété',
+    'électricité',
+    'gaz naturel',
+    'consommation de gaz',
+    'eau potable',
+    'assainissement',
+    'ordures ménagères',
+    'compteur',
+    'kwh',
+    'logement',
+    'locataire',
+    'propriétaire',
+    'loyer',
+    'bail',
+  ],
+  personnel: [
+    'assurance automobile',
+    'assurance auto',
+    'carte grise',
+    'certificat d’immatriculation',
+    "certificat d'immatriculation",
+    'permis de conduire',
+    'complémentaire santé',
+    'mutuelle',
+    'télétransmission',
+    'assurance maladie',
+    'numéro de sécurité sociale',
+    'déclaration de revenus',
+    'avis d’imposition',
+    "avis d'imposition",
+    'impôt sur le revenu',
+    'relevé de compte',
+    'épargne',
+    'retraite',
+    'bulletin de paie',
+    'bulletin de salaire',
+  ],
+  famille: [
+    'cantine scolaire',
+    'restauration scolaire',
+    'assurance scolaire',
+    'inscription scolaire',
+    'certificat de scolarité',
+    'conseil de classe',
+    'bulletin scolaire',
+    'école élémentaire',
+    'école maternelle',
+    'collège',
+    'lycée',
+    'crèche',
+    'périscolaire',
+    'centre de loisirs',
+    'allocations familiales',
+    'caisse d’allocations',
+    "caisse d'allocations",
+    'pédiatre',
+    'carnet de santé',
+    'votre enfant',
+  ],
 };
 
 const DATE_REGEX = /\b(\d{1,2})[/\-.](\d{1,2})[/\-.](\d{2,4})\b/g;
@@ -687,5 +770,49 @@ export class ExtractionService {
       }
     }
     return bestType;
+  }
+
+  /**
+   * Rattache le document à un pan de la vie : maison, personnel ou famille.
+   *
+   * Méthode à part, et non un champ de plus dans `extract` : le classement
+   * doit valoir quelle que soit la manière dont le document a été lu — par
+   * le moteur local comme par le modèle. Le brancher ici, sur le seul texte,
+   * évite d'avoir à le redemander à chaque fournisseur d'extraction, et à
+   * s'en remettre à ce qu'il voudra bien répondre.
+   *
+   * Rend null si rien ne dépasse : une catégorie fausse se voit moins qu'une
+   * catégorie absente, et se corrige donc moins souvent. Le doute penche du
+   * côté de ne rien affirmer.
+   */
+  categorise(text: string): DocumentCategory | null {
+    const lower = text.toLowerCase();
+    let best: DocumentCategory | null = null;
+    let bestScore = 0;
+    let exAequo = false;
+
+    for (const [category, keywords] of Object.entries(CATEGORY_KEYWORDS) as [
+      DocumentCategory,
+      string[],
+    ][]) {
+      const score = keywords.reduce(
+        (acc, kw) =>
+          acc + (lower.includes(kw) ? kw.trim().split(/\s+/).length : 0),
+        0,
+      );
+      if (score > bestScore) {
+        bestScore = score;
+        best = category;
+        exAequo = false;
+      } else if (score > 0 && score === bestScore) {
+        // Deux pans revendiquent le document avec la même force : une
+        // facture d'électricité d'un logement étudiant peut sonner maison
+        // et famille à parts égales. Trancher au hasard serait pire que
+        // laisser la personne le faire.
+        exAequo = true;
+      }
+    }
+
+    return exAequo ? null : best;
   }
 }
