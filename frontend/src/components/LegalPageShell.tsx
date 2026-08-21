@@ -17,12 +17,24 @@ export function ARemplir({ children }: { children: ReactNode }) {
 
 interface LegalPageShellProps {
   title: string
+  /**
+   * Résumé de la page pour les résultats de recherche. Ces trois pages
+   * figurent au plan du site : sans description, le moteur en fabrique une
+   * en prélevant une phrase au hasard du texte, ce qui donne rarement envie
+   * de cliquer sur des conditions générales.
+   */
+  description?: string
   lastUpdated: string
   children: ReactNode
 }
 
-export default function LegalPageShell({ title, lastUpdated, children }: LegalPageShellProps) {
-  useTitrePage(`${title} — SYNeco`)
+export default function LegalPageShell({
+  title,
+  description,
+  lastUpdated,
+  children,
+}: LegalPageShellProps) {
+  useTitrePage(`${title} — SYNeco`, description)
   return (
     <div className="min-h-screen bg-brand-mint">
       <header className="border-b border-brand-border bg-white">

@@ -3,7 +3,11 @@ import LegalPageShell from '../components/LegalPageShell'
 
 export default function Confidentialite() {
   return (
-    <LegalPageShell title="Politique de confidentialité" lastUpdated="16 août 2026">
+    <LegalPageShell
+      title="Politique de confidentialité"
+      description="Quelles données SYNeco conserve, pourquoi, combien de temps, avec quels prestataires, et comment les récupérer ou les supprimer."
+      lastUpdated="16 août 2026"
+    >
       <p>
         SYNeco sert à centraliser des documents personnels (contrats, factures, assurances) et à en
         suivre les échéances. Ces documents sont sensibles par nature : cette page décrit précisément
@@ -350,7 +354,7 @@ export default function Confidentialite() {
         </li>
         <li>
           Vous pouvez activer une double authentification (code à usage unique, en plus du
-          mot de passe) depuis la page Abonnement.
+          mot de passe) depuis la page Sécurité.
         </li>
         <li>
           Chaque requête est contrôlée pour garantir qu'un utilisateur ne peut accéder qu'à ses

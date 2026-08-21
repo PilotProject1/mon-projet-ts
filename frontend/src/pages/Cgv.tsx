@@ -3,7 +3,11 @@ import LegalPageShell from '../components/LegalPageShell'
 
 export default function Cgv() {
   return (
-    <LegalPageShell title="Conditions générales de vente" lastUpdated="16 août 2026">
+    <LegalPageShell
+      title="Conditions générales de vente"
+      description="Offres, prix, durée, résiliation et garanties du service SYNeco. TVA non applicable, article 293 B du Code général des impôts."
+      lastUpdated="16 août 2026"
+    >
       <p>
         Les présentes conditions régissent la souscription aux offres payantes de SYNeco. Elles
         s'appliquent à compter de leur acceptation lors de la commande, et complètent les{' '}
