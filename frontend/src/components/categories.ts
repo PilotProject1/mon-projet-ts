@@ -1,5 +1,5 @@
 import { Home, User, Users } from 'lucide-react'
-import type { ComponentType } from 'react'
+import type { ComponentType, CSSProperties } from 'react'
 import type { DocumentCategory } from '../types'
 
 /*
@@ -21,7 +21,13 @@ export interface DescriptionCategorie {
   libelle: string
   /** Ce que la case contient, dans les mots de la page d'accueil. */
   exemples: string
-  icone: ComponentType<{ size?: number; className?: string; strokeWidth?: number }>
+  icone: ComponentType<{
+    size?: number
+    className?: string
+    strokeWidth?: number
+    /** La couleur se pose parfois en ligne, la teinte n'étant connue qu'ici. */
+    style?: CSSProperties
+  }>
   /** Teinte d'accompagnement, en dur : elle sert aussi aux halos en CSS. */
   teinte: string
 }
