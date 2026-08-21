@@ -22,6 +22,7 @@ import MentionsLegales from './pages/MentionsLegales'
 import Confidentialite from './pages/Confidentialite'
 import Cgv from './pages/Cgv'
 import BrandLogo from './components/BrandLogo'
+import Mesure from './components/Mesure'
 import {
   authApi,
   documentsApi,
@@ -302,6 +303,7 @@ function App() {
 
   return (
     <BrowserRouter>
+      <Mesure />
       <Routes>
         <Route path="/partage/:token" element={<PublicShare />} />
         <Route path="/mentions-legales" element={<MentionsLegales />} />
