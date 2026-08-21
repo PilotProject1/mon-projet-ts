@@ -74,6 +74,58 @@ body {
   box-shadow: 0 8px 24px -14px rgba(11, 46, 47, 0.12);
 }
 
+/* ---------------------------------------------------------------------------
+   Halo lumineux autour d'une case.
+
+   Un néon, mais tenu : sur un service qui garde des avis d'imposition et des
+   contrats d'assurance, une enseigne clignotante inspirerait tout sauf
+   confiance. Le halo reste donc dans les verts de la charte, il ne bat jamais,
+   et il ne s'intensifie qu'au survol — au repos, il ne fait que décoller la
+   carte de son fond.
+
+   La teinte se règle par --neon : chaque case peut rayonner de sa propre
+   couleur (maison, personnel, famille, ou la couleur d'un indicateur) sans
+   qu'on redéclare la règle. À défaut, c'est le vert de marque.
+
+   Porté par la boîte elle-même, et non par un ::after : plusieurs de ces
+   cartes ont `overflow-hidden` — qui découperait le pseudo-élément — alors
+   qu'une ombre portée, elle, n'est jamais rognée par le débordement de
+   l'élément qui la porte.
+
+   L'ombre de profondeur de .brand-card-shadow est reprise dans la même
+   déclaration : une propriété box-shadow remplace l'autre, et les cartes qui
+   portent les deux classes perdraient sinon leur relief.
+--------------------------------------------------------------------------- */
+.neon-carte {
+  --neon-teinte: var(--neon, var(--green));
+  box-shadow:
+    0 8px 24px -14px rgba(11, 46, 47, 0.12),
+    0 0 0 1px color-mix(in srgb, var(--neon-teinte) 34%, transparent),
+    0 0 18px -3px color-mix(in srgb, var(--neon-teinte) 42%, transparent),
+    0 0 40px -10px color-mix(in srgb, var(--neon-teinte) 26%, transparent);
+  transition: box-shadow 0.22s ease;
+}
+
+/* Le halo ne s'ouvre qu'à la souris. Sur un écran tactile, `hover` reste
+   collé après le toucher : la carte resterait allumée sans raison. */
+@media (hover: hover) and (pointer: fine) {
+  .neon-carte:hover {
+    box-shadow:
+      0 8px 24px -14px rgba(11, 46, 47, 0.12),
+      0 0 0 1px color-mix(in srgb, var(--neon-teinte) 45%, transparent),
+      0 0 20px -3px color-mix(in srgb, var(--neon-teinte) 45%, transparent),
+      0 0 42px -8px color-mix(in srgb, var(--neon-teinte) 30%, transparent);
+  }
+}
+
+/* Qui a demandé moins de mouvement garde le halo, mais sans la transition :
+   c'est le mouvement qui gêne, pas la couleur. */
+@media (prefers-reduced-motion: reduce) {
+  .neon-carte {
+    transition: none;
+  }
+}
+
 /* Halos de fond ambiants (charte SYNeco) */
 .brand-blob {
   position: absolute;

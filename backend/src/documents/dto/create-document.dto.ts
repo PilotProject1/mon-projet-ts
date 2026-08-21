@@ -1,5 +1,5 @@
 import { IsEnum, IsNotEmpty, IsOptional, IsString } from 'class-validator';
-import { DocumentType } from '@prisma/client';
+import { DocumentCategory, DocumentType } from '@prisma/client';
 
 export class CreateDocumentDto {
   @IsString()
@@ -13,4 +13,12 @@ export class CreateDocumentDto {
   @IsOptional()
   @IsEnum(DocumentType)
   type?: DocumentType;
+
+  /**
+   * Maison, personnel ou famille. Omise de la même manière : la lecture du
+   * document s'en charge, et ne revient pas sur un choix déjà fait ici.
+   */
+  @IsOptional()
+  @IsEnum(DocumentCategory)
+  category?: DocumentCategory;
 }

@@ -304,4 +304,45 @@ describe('ExtractionService — émetteur', () => {
       ).toBe(null);
     });
   });
+
+  describe('categorise', () => {
+    it('range une quittance de loyer dans la maison', () => {
+      expect(
+        service.categorise(
+          'Quittance de loyer\nLogement situé au 3 rue des Lilas\nLoyer : 640 EUR',
+        ),
+      ).toBe('maison');
+    });
+
+    it('range une mutuelle dans le personnel', () => {
+      expect(
+        service.categorise(
+          'Complémentaire santé\nVotre mutuelle vous informe\nTélétransmission activée',
+        ),
+      ).toBe('personnel');
+    });
+
+    it('range une facture de cantine dans la famille', () => {
+      expect(
+        service.categorise(
+          'Restauration scolaire\nCantine scolaire — école élémentaire\nMontant : 52,80 EUR',
+        ),
+      ).toBe('famille');
+    });
+
+    /*
+     * Le point qui compte : ne rien affirmer plutôt qu'affirmer à tort. Une
+     * catégorie fausse se remarque moins qu'une case vide, donc se corrige
+     * moins souvent — et un rangement qu'on ne peut pas croire ne sert plus
+     * à rien.
+     */
+    it('ne range pas un document qui ne dit rien de son pan de vie', () => {
+      expect(service.categorise('Notes de courses\npain, lait')).toBe(null);
+    });
+
+    it('ne tranche pas entre deux pans revendiqués à égalité', () => {
+      // « bail » (maison) contre « crèche » (famille) : un mot chacun.
+      expect(service.categorise('Bail\nCrèche')).toBe(null);
+    });
+  });
 });

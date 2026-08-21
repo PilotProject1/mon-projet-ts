@@ -62,6 +62,8 @@ export class DocumentsService {
       data: {
         name: dto.name,
         type: dto.type ?? 'autre',
+        // Nulle si la personne n'a rien choisi : la lecture s'en chargera.
+        category: dto.category ?? null,
         userId,
         fileKey: stored.key,
         mimeType: stored.mimeType,
@@ -118,11 +120,18 @@ export class DocumentsService {
           ? dueDate
           : null;
 
+      // Le rangement promis : la catégorie n'est posée qu'à la première
+      // lecture, et seulement si le document n'en a pas déjà reçu une au
+      // dépôt. Un choix fait à la main ne se fait pas écraser par une
+      // supposition.
+      const categorie = document.category ?? this.extraction.categorise(text);
+
       await this.prisma.document.update({
         where: { id: documentId },
         data: {
           status: 'traite',
           ...(fields.suggestedType ? { type: fields.suggestedType } : {}),
+          ...(categorie ? { category: categorie } : {}),
           suggestedDueDate: futureDueDate,
           suggestedDueLabel: futureDueDate ? fields.suggestedDueLabel : null,
           ...this.factsFrom(fields, text),

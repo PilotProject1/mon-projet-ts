@@ -46,10 +46,11 @@ export default function Confidentialite() {
           <tr>
             <td>Documents</td>
             <td>
-              Le fichier lui-même et son contenu, son nom, son type, son format, sa taille et sa date
-              d'ajout. À la lecture automatique s'ajoutent, enregistrés dans la base de données, le
-              texte lu dans le document (tronqué à 20 000 caractères) ainsi que l'émetteur, le
-              montant et la date qui y ont été reconnus
+              Le fichier lui-même et son contenu, son nom, son type, sa catégorie (maison,
+              personnel ou famille), son format, sa taille et sa date d'ajout. À la lecture
+              automatique s'ajoutent, enregistrés dans la base de données, le texte lu dans le
+              document (tronqué à 20 000 caractères) ainsi que l'émetteur, le montant et la date
+              qui y ont été reconnus
             </td>
           </tr>
           <tr>

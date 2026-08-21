@@ -4,6 +4,7 @@ import { useSearchParams } from 'react-router-dom'
 import { Eye, Loader2, ScanSearch, Share2, Trash2 } from 'lucide-react'
 import type {
   Document,
+  DocumentCategory,
   DocumentType,
   DocumentAnalysis,
   PlanUsage,
@@ -14,6 +15,8 @@ import { ApiError, documentsApi } from '../services/api'
 import { formatDate } from '../utils/formatDate'
 import { formatAmount } from '../utils/formatAmount'
 import PlanUsageCard from '../components/PlanUsageCard'
+import PastilleCategorie from '../components/PastilleCategorie'
+import { CATEGORIES } from '../components/categories'
 import DepotParEmail from '../components/DepotParEmail'
 import DocumentScanner from '../components/DocumentScanner'
 import SuggestedDeadline from '../components/SuggestedDeadline'
@@ -22,7 +25,12 @@ import { useEntree } from '../utils/useApparition'
 interface DocumentsProps {
   documents: Document[]
   planUsage: PlanUsage | null
-  onAdd: (data: { name: string; type?: DocumentType; file: File }) => Promise<void>
+  onAdd: (data: {
+    name: string
+    type?: DocumentType
+    category?: DocumentCategory
+    file: File
+  }) => Promise<void>
   onDelete: (id: string) => Promise<void>
   onCreateDeadline: (data: { title: string; dueDate: string; documentId?: string }) => Promise<void>
   onCreateContract: (data: {
@@ -138,10 +146,15 @@ export default function Documents({
 
   const [search, setSearch] = useState('')
   const [typeFilter, setTypeFilter] = useState<DocumentType | 'tous'>('tous')
+  // Le rangement par pan de vie, indépendant du filtre par nature : on
+  // cherche « les papiers de la maison » plus souvent que « les contrats ».
+  const [categoryFilter, setCategoryFilter] = useState<DocumentCategory | 'toutes'>('toutes')
   const [showForm, setShowForm] = useState(false)
   const [name, setName] = useState('')
   // Chaîne vide : le serveur reconnaît le type à partir du contenu.
   const [type, setType] = useState<DocumentType | ''>('')
+  // Idem : sans choix, la lecture du document range le document elle-même.
+  const [category, setCategory] = useState<DocumentCategory | ''>('')
   // Plusieurs fichiers peuvent être choisis d'un coup : c'est le cas du
   // tiroir qu'on vide. Un seul fichier reste le cas courant, et garde son
   // formulaire nommé.
@@ -163,6 +176,21 @@ export default function Documents({
     searchParams.delete('scan')
     setSearchParams(searchParams, { replace: true })
   }, [searchParams, setSearchParams, quotaReached])
+
+  /*
+   * Une case du tableau de bord mène ici avec sa catégorie : /documents?
+   * categorie=maison. Le paramètre est consommé puis retiré de l'adresse,
+   * pour qu'un retour en arrière ne rejoue pas indéfiniment le filtre.
+   */
+  useEffect(() => {
+    const demandee = searchParams.get('categorie')
+    if (demandee === null) return
+    if (CATEGORIES.some((c) => c.cle === demandee)) {
+      setCategoryFilter(demandee as DocumentCategory)
+    }
+    searchParams.delete('categorie')
+    setSearchParams(searchParams, { replace: true })
+  }, [searchParams, setSearchParams])
 
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const [analyzing, setAnalyzing] = useState(false)
@@ -190,7 +218,9 @@ export default function Documents({
       (doc.reference?.toLowerCase().includes(recherche) ?? false) ||
       (doc.provider?.toLowerCase().includes(recherche) ?? false)
     const matchesType = typeFilter === 'tous' || doc.type === typeFilter
-    return matchesSearch && matchesType
+    const matchesCategory =
+      categoryFilter === 'toutes' || doc.category === categoryFilter
+    return matchesSearch && matchesType && matchesCategory
   })
 
   /**
@@ -249,6 +279,7 @@ export default function Documents({
   function reinitialiserFormulaire() {
     setName('')
     setType('')
+    setCategory('')
     setFiles([])
     if (fileInputRef.current) fileInputRef.current.value = ''
   }
@@ -313,7 +344,12 @@ export default function Documents({
           setError('Donnez un nom au document.')
           return
         }
-        await onAdd({ name: name.trim(), ...(type ? { type } : {}), file: files[0] })
+        await onAdd({
+          name: name.trim(),
+          ...(type ? { type } : {}),
+          ...(category ? { category } : {}),
+          file: files[0],
+        })
         reinitialiserFormulaire()
         setShowForm(false)
       } else {
@@ -575,6 +611,33 @@ export default function Documents({
                   </p>
                 )}
               </div>
+              <div>
+                <label
+                  htmlFor="doc-categorie"
+                  className="mb-1 block text-sm font-medium text-brand-deep"
+                >
+                  Catégorie
+                </label>
+                <select
+                  id="doc-categorie"
+                  value={category}
+                  onChange={(e) => setCategory(e.target.value as DocumentCategory | '')}
+                  className="w-full rounded-md border border-brand-border px-3 py-2 text-sm focus:border-brand-green focus:outline-none"
+                >
+                  <option value="">Ranger automatiquement</option>
+                  {CATEGORIES.map((c) => (
+                    <option key={c.cle} value={c.cle}>
+                      {c.libelle} — {c.exemples}
+                    </option>
+                  ))}
+                </select>
+                {category === '' && (
+                  <p className="mt-1 text-xs text-brand-muted">
+                    Maison, personnel ou famille : reconnu au même moment que le type. Le
+                    document reste sans catégorie si rien ne permet de trancher.
+                  </p>
+                )}
+              </div>
             </>
           )}
           <DocumentScanner onScanned={handleScanned} onProcessingChange={setScanning} />
@@ -647,7 +710,9 @@ export default function Documents({
         </form>
       )}
 
-      <div className="mb-4 flex gap-3">
+      {/* Empilés sur téléphone : côte à côte, le champ de recherche se
+          réduirait à quelques caractères. */}
+      <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:gap-3">
         {/* La liste est filtrée à chaque frappe : il n'y a rien à valider.
             type="search" fait afficher au clavier mobile une touche « rechercher »
             qui referme le clavier, et une croix pour effacer le champ. */}
@@ -684,6 +749,50 @@ export default function Documents({
         </select>
       </div>
 
+      {/*
+       * Les trois pans de vie, montrés plutôt que rangés dans un menu.
+       *
+       * C'est le rangement que la page d'accueil promet ; caché derrière une
+       * liste déroulante, il resterait invisible à qui ne l'ouvre pas. Le
+       * compte affiché à côté de chaque case dit d'un coup d'œil ce qu'elle
+       * contient — et une case vide se voit, ce qui invite à y ranger.
+       */}
+      <div className="mb-4 flex flex-wrap gap-2">
+        <button
+          type="button"
+          onClick={() => setCategoryFilter('toutes')}
+          aria-pressed={categoryFilter === 'toutes'}
+          className={`rounded-full border px-3 py-1.5 text-[12.5px] font-medium ${
+            categoryFilter === 'toutes'
+              ? 'border-brand-deep bg-brand-deep text-white'
+              : 'border-brand-border bg-white text-brand-muted hover:bg-brand-mint'
+          }`}
+        >
+          Tout ({documents.length})
+        </button>
+        {CATEGORIES.map(({ cle, libelle, icone: Icone, teinte }) => {
+          const nombre = documents.filter((d) => d.category === cle).length
+          const actif = categoryFilter === cle
+          return (
+            <button
+              key={cle}
+              type="button"
+              onClick={() => setCategoryFilter(actif ? 'toutes' : cle)}
+              aria-pressed={actif}
+              className="flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[12.5px] font-medium"
+              style={
+                actif
+                  ? { borderColor: teinte, background: teinte, color: '#fff' }
+                  : { borderColor: `${teinte}55`, background: `${teinte}12`, color: teinte }
+              }
+            >
+              <Icone size={13} strokeWidth={2.4} />
+              {libelle} ({nombre})
+            </button>
+          )
+        })}
+      </div>
+
       <div className="rounded-lg border border-brand-border bg-white">
         {filtered.length === 0 ? (
           <p className="px-4 py-6 text-sm text-brand-muted">Aucun document trouvé.</p>
@@ -708,11 +817,14 @@ export default function Documents({
                     {/* Ce que la lecture a reconnu dans le document. Ligne
                         distincte et tronquée : un nom de fournisseur long ne
                         doit pas repousser le reste hors de l'écran. */}
-                    {(resumeLu(doc) || doc.paid !== null) && (
-                      <div className="flex min-w-0 items-center gap-2">
+                    {(resumeLu(doc) || doc.paid !== null || doc.category) && (
+                      /* flex-wrap : sur téléphone, résumé et pastilles ne
+                         tiennent pas sur une seule ligne. */
+                      <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
                         {resumeLu(doc) && (
                           <p className="truncate text-xs text-brand-green">{resumeLu(doc)}</p>
                         )}
+                        <PastilleCategorie category={doc.category} />
                         <PastillePaiement paid={doc.paid} />
                       </div>
                     )}

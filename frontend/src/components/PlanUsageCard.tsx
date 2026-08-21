@@ -38,7 +38,7 @@ export default function PlanUsageCard({ usage, compact = false }: PlanUsageCardP
   }
 
   return (
-    <div className="brand-card-shadow rounded-lg border border-brand-border bg-white p-4">
+    <div className="brand-card-shadow neon-carte rounded-lg border border-brand-border bg-white p-4">
       <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
         <div className="flex items-center gap-2.5">
           <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[9px] bg-brand-green-soft">

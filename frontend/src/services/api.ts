@@ -1,5 +1,6 @@
 import type {
   Document,
+  DocumentCategory,
   DocumentType,
   Deadline,
   DeadlineStatus,
@@ -206,14 +207,28 @@ export const deuxFacteursApi = {
 export const documentsApi = {
   list: () => request<Document[]>('/documents'),
 
-  create: (data: { name: string; type?: DocumentType; file: File }) => {
+  create: (data: {
+    name: string
+    type?: DocumentType
+    category?: DocumentCategory
+    file: File
+  }) => {
     const formData = new FormData()
     formData.append('name', data.name)
     // Sans type, le serveur le déduit du contenu du document.
     if (data.type) formData.append('type', data.type)
+    // Sans catégorie non plus : la lecture du document s'en charge.
+    if (data.category) formData.append('category', data.category)
     formData.append('file', data.file)
     return request<Document>('/documents', { method: 'POST', body: formData })
   },
+
+  /** Range le document, ou le sort de sa case si la catégorie est nulle. */
+  setCategory: (id: string, category: DocumentCategory | null) =>
+    request<Document>(`/documents/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ category }),
+    }),
 
   remove: (id: string) => request<void>(`/documents/${id}`, { method: 'DELETE' }),
 

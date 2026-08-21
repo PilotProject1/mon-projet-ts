@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 
 /**
  * Signale qu'un élément est entré dans l'écran, une seule fois.
@@ -12,6 +12,15 @@ import { useEffect, useRef, useState } from 'react'
  * d'emblée dans son état final :
  *  - le visiteur a demandé à réduire les animations dans son système ;
  *  - le navigateur ne connaît pas IntersectionObserver.
+ *
+ * L'élément est suivi par une fonction de référence plutôt que par un
+ * `useRef`. La différence n'est pas de style : un appelant qui ne rend son
+ * contenu qu'une fois ses données arrivées — donc `null` au premier rendu —
+ * attachait la référence trop tard pour un effet monté une seule fois.
+ * L'observateur n'était alors jamais posé, et comme les règles de mouvement
+ * mettent les éléments à `opacity: 0` en les attendant, le bloc restait
+ * invisible pour de bon. Ici, l'effet se rejoue à l'instant où le nœud
+ * apparaît, quel que soit le rendu où cela arrive.
  */
 export function useApparition<T extends HTMLElement>(
   classes: { arme: string; visible: string } = {
@@ -19,12 +28,11 @@ export function useApparition<T extends HTMLElement>(
     visible: 'est-visible',
   },
 ) {
-  const ref = useRef<T>(null)
+  const [element, setElement] = useState<T | null>(null)
   const [anime, setAnime] = useState(false)
   const [visible, setVisible] = useState(false)
 
   useEffect(() => {
-    const element = ref.current
     if (!element) return
 
     const mouvementRefuse =
@@ -50,10 +58,12 @@ export function useApparition<T extends HTMLElement>(
 
     observateur.observe(element)
     return () => observateur.disconnect()
-  }, [])
+  }, [element])
 
   return {
-    ref,
+    // Stable d'un rendu à l'autre (c'est le poseur d'état de useState) : React
+    // ne rappelle donc pas la fonction à chaque rendu.
+    ref: setElement,
     classe: `${anime ? classes.arme : ''} ${visible ? classes.visible : ''}`.trim(),
   }
 }

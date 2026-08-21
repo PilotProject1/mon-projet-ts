@@ -20,6 +20,21 @@ enum DocumentStatus {
   en_attente
 }
 
+/// À quel pan de la vie le document se rapporte.
+///
+/// Distinct du type : une facture peut être d'électricité ou de cantine, un
+/// contrat peut être un bail ou une mutuelle. Le type dit ce qu'est le
+/// papier, la catégorie dit de quoi il parle — et c'est la seconde qu'on a
+/// en tête en cherchant « les papiers de la maison ».
+///
+/// Volontairement courte : trois entrées se retiennent et se choisissent
+/// d'un coup d'œil, là où une arborescence de dossiers ne se maintient pas.
+enum DocumentCategory {
+  maison
+  personnel
+  famille
+}
+
 enum DeadlineStatus {
   a_faire
   terminee
@@ -135,6 +150,11 @@ model Document {
   sizeBytes Int
   status    DocumentStatus @default(en_attente)
   createdAt DateTime       @default(now())
+
+  /// Maison, personnel ou famille. Nulle tant que rien ne permet de trancher :
+  /// ranger d'office dans la mauvaise case coûte plus cher que ne rien ranger,
+  /// car une erreur invisible ne se corrige jamais.
+  category DocumentCategory?
 
   /// Échéance repérée dans le texte du document et proposée à l'utilisateur.
   /// Effacée dès qu'il l'accepte ou l'écarte : une proposition n'a de sens
