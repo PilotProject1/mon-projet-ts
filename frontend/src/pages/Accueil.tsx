@@ -70,7 +70,7 @@ const ATOUTS: AtoutProps[] = [
     illustration: IllustrationRappels,
     titre: 'Vous êtes prévenu à temps',
     texte:
-      'L’échéance repérée devient un rappel : trente jours, sept jours et un jour avant, puis le jour même — par notification et par e-mail.',
+      'L’échéance repérée devient un rappel : trente jours, sept jours et un jour avant, puis le jour même — par notification et par e-mail. Une fois par semaine, un point vous résume ce qui demande une décision, et rien ne part quand il n’y a rien à dire.',
   },
   {
     illustration: IllustrationHausse,

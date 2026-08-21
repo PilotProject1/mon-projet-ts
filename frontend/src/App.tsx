@@ -17,6 +17,7 @@ import Search from './pages/Search'
 import PartageRecu from './pages/PartageRecu'
 import Administration from './pages/Administration'
 import Abonnement from './pages/Abonnement'
+import Securite from './pages/Securite'
 import MentionsLegales from './pages/MentionsLegales'
 import Confidentialite from './pages/Confidentialite'
 import Cgv from './pages/Cgv'
@@ -353,6 +354,7 @@ function App() {
           />
           {/* Cible du partage venu du système : un fichier poussé depuis une
               autre application arrive ici. */}
+          <Route path="/securite" element={<Securite />} />
           <Route path="/partage-recu" element={<PartageRecu />} />
           <Route
             path="/documents"

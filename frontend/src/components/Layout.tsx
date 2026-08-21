@@ -11,6 +11,7 @@ import {
   Users,
   Receipt,
   CreditCard,
+  ShieldCheck,
   BarChart3,
   ChevronDown,
   LogOut,
@@ -62,7 +63,10 @@ const navGroups: GroupeNav[] = [
   },
   {
     label: 'Compte',
-    items: [{ to: '/abonnement', label: 'Abonnement', icon: CreditCard }],
+    items: [
+      { to: '/securite', label: 'Sécurité', icon: ShieldCheck },
+      { to: '/abonnement', label: 'Abonnement', icon: CreditCard },
+    ],
   },
 ]
 

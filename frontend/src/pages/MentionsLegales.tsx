@@ -3,7 +3,11 @@ import LegalPageShell from '../components/LegalPageShell'
 
 export default function MentionsLegales() {
   return (
-    <LegalPageShell title="Mentions légales" lastUpdated="13 août 2026">
+    <LegalPageShell
+      title="Mentions légales"
+      description="Éditeur, hébergeurs et coordonnées du service SYNeco."
+      lastUpdated="13 août 2026"
+    >
       <h2>1. Éditeur du site</h2>
       <p>
         Le site SYNeco est édité par <strong>Monsieur Loïc Vincent</strong>, entrepreneur individuel
