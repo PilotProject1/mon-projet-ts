@@ -1,6 +1,19 @@
 import { Link } from 'react-router-dom'
-import { ShieldCheck, Check, ArrowRight, FileText, Clock, CheckCircle2 } from 'lucide-react'
-import type { ComponentType } from 'react'
+import {
+  ShieldCheck,
+  Check,
+  ArrowRight,
+  FileText,
+  Clock,
+  CheckCircle2,
+  Lock,
+  KeyRound,
+  Smartphone,
+  Link2,
+  FileCheck2,
+  DatabaseBackup,
+} from 'lucide-react'
+import type { ComponentType, CSSProperties } from 'react'
 import BrandLogo from '../components/BrandLogo'
 import {
   IllustrationCadrage,
@@ -19,7 +32,7 @@ import {
 } from '../components/IllustrationsParcours'
 import AmbientBackground from '../components/AmbientBackground'
 import { useTitrePage } from '../utils/useTitrePage'
-import { useApparition } from '../utils/useApparition'
+import { useApparition, useEntree } from '../utils/useApparition'
 
 /*
  * Page vue par un visiteur qui n'a pas de compte.
@@ -370,6 +383,102 @@ function HeroApercu() {
   )
 }
 
+/*
+ * Ce qui protège les documents, dit en clair.
+ *
+ * Ces mesures existaient déjà toutes, mais seule la politique de
+ * confidentialité les décrivait — que personne ne lit avant de s'inscrire. La
+ * page d'accueil ne disait jusqu'ici que ce que le service refuse de faire.
+ * Or on confie ici des avis d'imposition et des contrats d'assurance : la
+ * question « qui peut voir mes papiers » se pose avant toutes les autres, et
+ * ne pas y répondre, c'est laisser le visiteur y répondre seul.
+ *
+ * Chaque ligne renvoie à quelque chose que le code fait vraiment. Une
+ * promesse de sécurité invérifiable coûterait plus cher que le silence.
+ */
+const PROTECTIONS = [
+  {
+    icone: Lock,
+    titre: 'Vos documents ne sont jamais publics',
+    texte:
+      'Aucun fichier n’est accessible par une adresse devinable. Chaque ouverture passe par votre session, et vérifie que le document vous appartient.',
+  },
+  {
+    icone: KeyRound,
+    titre: 'Mot de passe jamais conservé en clair',
+    texte:
+      'Il est remplacé par une empreinte irréversible. Personne — nous compris — ne peut le relire.',
+  },
+  {
+    icone: Smartphone,
+    titre: 'Double authentification',
+    texte:
+      'Un code à usage unique en plus du mot de passe. Le secret qui produit ces codes est lui-même chiffré : une copie de la base ne permettrait pas d’en fabriquer.',
+  },
+  {
+    icone: Link2,
+    titre: 'Partages limités et révocables',
+    texte:
+      'Un lien expire au bout de 24 heures, 7 jours ou 30 jours. Vous voyez qui l’a ouvert, et vous le coupez quand vous voulez.',
+  },
+  {
+    icone: FileCheck2,
+    titre: 'Fichiers vérifiés au contenu',
+    texte:
+      'Le type annoncé ne décide de rien : c’est la signature du fichier qui tranche. Un programme renommé en « facture.pdf » est refusé.',
+  },
+  {
+    icone: DatabaseBackup,
+    titre: 'Sauvegarde chiffrée quotidienne',
+    texte:
+      'Vos données sont copiées chaque jour, chiffrées, et hébergées dans l’Union européenne.',
+  },
+]
+
+function SectionSecurite() {
+  // useEntree, et non useApparition : c'est le vocabulaire mvt-* qu'attend
+  // la grille mvt-liste. Les deux jeux de classes ne se répondent pas.
+  const { ref, classe } = useEntree<HTMLDivElement>()
+  return (
+    <section className="mx-auto max-w-5xl px-5 pb-16 sm:px-8">
+      <p className="text-[11.5px] font-semibold tracking-wide text-brand-green uppercase">
+        Ce qui protège vos papiers
+      </p>
+      <h2 className="font-heading mt-1.5 text-[22px] font-semibold text-brand-deep">
+        Un coffre-fort, pas un dossier partagé
+      </h2>
+      <p className="mt-1.5 max-w-2xl text-[13.5px] leading-relaxed text-brand-muted">
+        Vous y déposez des avis d’imposition, des contrats et des attestations. Voici ce qui
+        les garde, sans jargon.
+      </p>
+
+      {/* Empilées sur téléphone : deux colonnes de 170 px hacheraient chaque
+          explication en mots isolés. */}
+      <div ref={ref} className={`mvt-liste mt-6 grid gap-3.5 sm:grid-cols-2 ${classe}`}>
+        {PROTECTIONS.map(({ icone: Icone, titre, texte }, rang) => (
+          <div
+            key={titre}
+            className="mvt-carte neon-carte rounded-[14px] border border-brand-border bg-white px-5 py-4.5"
+            style={{ '--rang': rang } as CSSProperties}
+          >
+            <div className="flex items-start gap-3">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] bg-brand-green-soft">
+                <Icone size={17} className="text-brand-green-deep" strokeWidth={2.2} />
+              </div>
+              <div className="min-w-0">
+                <h3 className="font-heading text-[14.5px] font-semibold text-brand-ink">
+                  {titre}
+                </h3>
+                <p className="mt-1 text-[13px] leading-relaxed text-brand-muted">{texte}</p>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
+  )
+}
+
 export default function Accueil() {
   useTitrePage(
     'SYNeco — Le coffre-fort administratif du particulier et de l’indépendant',
@@ -526,6 +635,8 @@ export default function Accueil() {
           ))}
         </div>
       </section>
+
+      <SectionSecurite />
 
       <section className="mx-auto max-w-5xl px-5 pb-16 sm:px-8">
         <div className="rounded-[14px] border border-brand-border bg-white px-5 py-5">
