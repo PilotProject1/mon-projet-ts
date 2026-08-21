@@ -179,6 +179,12 @@ function App() {
     if (doc.status === 'en_attente') void followPendingAnalysis()
   }
 
+  /** Range un document, ou l'en sort. La liste et les compteurs suivent. */
+  async function setDocumentCategory(id: string, category: DocumentCategory | null) {
+    const maj = await documentsApi.setCategory(id, category)
+    setDocuments((prev) => prev.map((d) => (d.id === id ? maj : d)))
+  }
+
   async function deleteDocument(id: string) {
     await documentsApi.remove(id)
     setDocuments((prev) => prev.filter((d) => d.id !== id))
@@ -364,6 +370,7 @@ function App() {
                 planUsage={planUsage}
                 onAdd={addDocument}
                 onDelete={deleteDocument}
+                onSetCategory={setDocumentCategory}
                 onCreateDeadline={addDeadline}
                 onCreateContract={addContract}
                 onCreateShare={createShare}

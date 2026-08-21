@@ -15,7 +15,7 @@ import { ApiError, documentsApi } from '../services/api'
 import { formatDate } from '../utils/formatDate'
 import { formatAmount } from '../utils/formatAmount'
 import PlanUsageCard from '../components/PlanUsageCard'
-import PastilleCategorie from '../components/PastilleCategorie'
+import SelecteurCategorie from '../components/SelecteurCategorie'
 import { CATEGORIES } from '../components/categories'
 import DepotParEmail from '../components/DepotParEmail'
 import DocumentScanner from '../components/DocumentScanner'
@@ -32,6 +32,7 @@ interface DocumentsProps {
     file: File
   }) => Promise<void>
   onDelete: (id: string) => Promise<void>
+  onSetCategory: (id: string, category: DocumentCategory | null) => Promise<void>
   onCreateDeadline: (data: { title: string; dueDate: string; documentId?: string }) => Promise<void>
   onCreateContract: (data: {
     provider: string
@@ -133,6 +134,7 @@ export default function Documents({
   planUsage,
   onAdd,
   onDelete,
+  onSetCategory,
   onCreateDeadline,
   onCreateContract,
   onCreateShare,
@@ -817,17 +819,22 @@ export default function Documents({
                     {/* Ce que la lecture a reconnu dans le document. Ligne
                         distincte et tronquée : un nom de fournisseur long ne
                         doit pas repousser le reste hors de l'écran. */}
-                    {(resumeLu(doc) || doc.paid !== null || doc.category) && (
-                      /* flex-wrap : sur téléphone, résumé et pastilles ne
-                         tiennent pas sur une seule ligne. */
-                      <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
-                        {resumeLu(doc) && (
-                          <p className="truncate text-xs text-brand-green">{resumeLu(doc)}</p>
-                        )}
-                        <PastilleCategorie category={doc.category} />
-                        <PastillePaiement paid={doc.paid} />
-                      </div>
-                    )}
+                    {/* Toujours affichée, même sans rien à montrer : c'est
+                        par cette ligne qu'on range un document, et une
+                        commande qui n'apparaît qu'une fois le travail fait
+                        ne sert à personne.
+                        flex-wrap : sur téléphone, résumé et pastilles ne
+                        tiennent pas sur une seule ligne. */}
+                    <div className="mt-0.5 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+                      {resumeLu(doc) && (
+                        <p className="truncate text-xs text-brand-green">{resumeLu(doc)}</p>
+                      )}
+                      <SelecteurCategorie
+                        valeur={doc.category}
+                        onChoisir={(categorie) => onSetCategory(doc.id, categorie)}
+                      />
+                      <PastillePaiement paid={doc.paid} />
+                    </div>
                   </div>
                   <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 sm:shrink-0">
                     <span

@@ -38,7 +38,13 @@ describe('DocumentsService', () => {
       delete: jest.fn(),
     };
     ocr = { extractText: jest.fn() };
-    extraction = { extract: jest.fn() };
+    // categorise rend null par défaut : ces cas portent sur l'extraction des
+    // champs, non sur le rangement, et un domaine surgissant au milieu
+    // brouillerait ce qu'ils vérifient.
+    extraction = {
+      extract: jest.fn(),
+      categorise: jest.fn().mockReturnValue(null),
+    };
     ai = { available: false };
     aiExtraction = { extract: jest.fn() };
     // Par défaut le plan de test autorise l'IA : les cas existants vérifient
@@ -181,6 +187,56 @@ describe('DocumentsService', () => {
         ForbiddenException,
       );
       expect(storage.getBuffer).not.toHaveBeenCalled();
+    });
+
+    /*
+     * Un document déposé avant l'existence des domaines n'en a aucun, et le
+     * classement ne tournait qu'au dépôt : sans cela, il n'aurait jamais pu
+     * en recevoir un autrement qu'en étant redéposé.
+     */
+    it('range un document qui n’a pas encore de domaine', async () => {
+      prisma.document.findUnique.mockResolvedValue({
+        ...document,
+        category: null,
+      });
+      storage.getBuffer.mockResolvedValue(Buffer.from('file-bytes'));
+      ocr.extractText.mockResolvedValue({
+        text: 'Quittance de loyer',
+        warning: undefined,
+      });
+      extraction.extract.mockReturnValue({});
+      extraction.categorise.mockReturnValue('maison');
+
+      await service.analyze(document.id, ownerId);
+
+      expect(prisma.document.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ category: 'maison' }),
+        }),
+      );
+    });
+
+    it('ne défait pas un rangement déjà décidé', async () => {
+      prisma.document.findUnique.mockResolvedValue({
+        ...document,
+        category: 'famille',
+      });
+      storage.getBuffer.mockResolvedValue(Buffer.from('file-bytes'));
+      ocr.extractText.mockResolvedValue({
+        text: 'Quittance de loyer',
+        warning: undefined,
+      });
+      extraction.extract.mockReturnValue({});
+      // La lecture dirait « maison » : le choix existant doit primer.
+      extraction.categorise.mockReturnValue('maison');
+
+      await service.analyze(document.id, ownerId);
+
+      expect(prisma.document.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ category: 'famille' }),
+        }),
+      );
     });
 
     it('runs OCR + extraction and returns a preview capped at 500 chars', async () => {

@@ -266,9 +266,19 @@ export class DocumentsService {
     // par elle qu'un document déposé avant cette version rejoint la
     // recherche par le contenu. Le type, lui, n'est pas touché — il a pu
     // être choisi à la main, et ce choix prime.
+    //
+    // La catégorie suit la même règle, mais dans l'autre sens : elle n'est
+    // posée que si elle manque. C'est ce qui permet à un document déposé
+    // avant l'existence des domaines d'en recevoir un, sans jamais défaire
+    // un rangement déjà décidé.
+    const categorie = document.category ?? this.extraction.categorise(text);
+
     await this.prisma.document.update({
       where: { id },
-      data: this.factsFrom(fields, text),
+      data: {
+        ...this.factsFrom(fields, text),
+        ...(categorie ? { category: categorie } : {}),
+      },
     });
 
     return {
