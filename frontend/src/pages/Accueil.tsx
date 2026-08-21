@@ -12,6 +12,7 @@ import {
   Link2,
   FileCheck2,
   DatabaseBackup,
+  ChevronDown,
 } from 'lucide-react'
 import type { ComponentType, CSSProperties } from 'react'
 import BrandLogo from '../components/BrandLogo'
@@ -31,6 +32,7 @@ import {
   IllustrationRangement,
 } from '../components/IllustrationsParcours'
 import AmbientBackground from '../components/AmbientBackground'
+import { FAQ } from '../components/faq'
 import { useTitrePage } from '../utils/useTitrePage'
 import { useApparition, useEntree } from '../utils/useApparition'
 
@@ -479,9 +481,58 @@ function SectionSecurite() {
   )
 }
 
+/*
+ * Les objections, posées à plat.
+ *
+ * Une page qui ne répond qu'aux enthousiastes laisse partir les prudents —
+ * et sur un service à qui l'on confie ses avis d'imposition, les prudents
+ * sont la majorité. Les questions sont donc celles qui fâchent : ce qu'il
+ * advient des documents si l'on cesse de payer, qui peut les lire, comment
+ * repartir avec.
+ *
+ * Le contenu vient de `components/faq.ts`, d'où sont aussi tirées les données
+ * structurées du fichier HTML : les moteurs écartent une fiche dont le balisage
+ * ne correspond pas au texte affiché.
+ */
+function SectionFaq() {
+  const { ref, classe } = useEntree<HTMLDivElement>()
+  return (
+    <section className="mx-auto max-w-3xl px-5 pb-16 sm:px-8">
+      <h2 className="font-heading text-[22px] font-semibold text-brand-deep">
+        Questions fréquentes
+      </h2>
+      <p className="mt-1.5 text-[13.5px] leading-relaxed text-brand-muted">
+        Ce qu'on veut savoir avant de confier ses papiers.
+      </p>
+
+      <div ref={ref} className={`mvt-liste mt-6 space-y-2.5 ${classe}`}>
+        {FAQ.map(({ question, reponse }, rang) => (
+          /* Un <details> natif : il s'ouvre sans JavaScript, reste accessible
+             au clavier, et son contenu demeure lisible par les moteurs même
+             replié — ce qu'un panneau redessiné à la main ne garantit pas. */
+          <details
+            key={question}
+            className="neon-carte group rounded-[14px] border border-brand-border bg-white px-5 py-4"
+            style={{ '--rang': rang } as CSSProperties}
+          >
+            <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-[14.5px] font-semibold text-brand-ink">
+              {question}
+              <ChevronDown
+                size={17}
+                className="shrink-0 text-brand-green transition-transform group-open:rotate-180"
+              />
+            </summary>
+            <p className="mt-2.5 text-[13.5px] leading-relaxed text-brand-muted">{reponse}</p>
+          </details>
+        ))}
+      </div>
+    </section>
+  )
+}
+
 export default function Accueil() {
   useTitrePage(
-    'SYNeco — Le coffre-fort administratif du particulier et de l’indépendant',
+    'SYNeco — Coffre-fort administratif et rappels d’échéances',
     'Photographiez un document : SYNeco le lit, repère son échéance et vous prévient avant qu’elle n’arrive. Gratuit jusqu’à 10 documents.',
   )
 
@@ -659,6 +710,8 @@ export default function Accueil() {
         </div>
       </section>
 
+      <SectionFaq />
+
       <section className="mx-auto max-w-5xl px-5 pb-20 sm:px-8">
         <div className="brand-gradient rounded-[16px] px-6 py-8 text-center">
           <h2 className="font-heading text-[20px] font-semibold text-white sm:text-[24px]">
@@ -680,7 +733,19 @@ export default function Accueil() {
 
       <footer className="border-t border-brand-border bg-white">
         <div className="mx-auto flex max-w-5xl flex-col gap-3 px-5 py-6 text-[13px] text-brand-muted sm:flex-row sm:items-center sm:justify-between sm:px-8">
-          <p>© {new Date().getFullYear()} SYNeco — VincentLV</p>
+          {/* Éditeur et moyen de le joindre, à même la page d'accueil.
+              Ils ne figuraient que dans les mentions légales : un visiteur
+              n'y va pas, et un service qui garde des papiers sans dire qui
+              le tient inspire à juste titre la méfiance. */}
+          <p>
+            © {new Date().getFullYear()} SYNeco — VincentLV, Nilvange (57){' '}
+            <a
+              href="mailto:syneco.pro@outlook.fr"
+              className="hover:text-brand-green hover:underline"
+            >
+              syneco.pro@outlook.fr
+            </a>
+          </p>
           <div className="flex flex-wrap gap-x-5 gap-y-2">
             <Link to="/mentions-legales" className="hover:text-brand-green hover:underline">
               Mentions légales
