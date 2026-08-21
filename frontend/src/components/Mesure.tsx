@@ -51,17 +51,30 @@ export default function Mesure() {
   return (
     <Analytics
       beforeSend={(evenement) => {
-        let chemin: string
+        let adresse: URL
         try {
-          chemin = new URL(evenement.url).pathname
+          // Base de repli : l'outil transmet aujourd'hui une adresse absolue,
+          // mais rien dans son contrat ne le garantit, et un chemin nu ferait
+          // lever ce constructeur — donc taire toute mesure.
+          adresse = new URL(evenement.url, window.location.origin)
         } catch {
           return null
         }
 
-        if (!CHEMINS_MESURABLES.includes(chemin)) return null
+        if (!CHEMINS_MESURABLES.includes(adresse.pathname)) return null
 
-        // Renvoyé sans sa requête ni son ancre : seul le chemin nous intéresse.
-        return { ...evenement, url: chemin }
+        /*
+         * Requête et ancre retirées, mais l'adresse reste entière.
+         *
+         * Renvoyer le seul chemin semblait plus propre ; c'était une erreur.
+         * L'outil attend une adresse complète — il en construit lui-même une
+         * quand il veut réécrire le chemin — et un envoi mal formé est rejeté
+         * sans un mot, la requête étant enveloppée dans un catch muet. Rien
+         * n'était mesuré, et rien ne le disait.
+         */
+        adresse.search = ''
+        adresse.hash = ''
+        return { ...evenement, url: adresse.href }
       }}
     />
   )
