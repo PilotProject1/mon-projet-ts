@@ -44,6 +44,71 @@
     />
     <meta name="twitter:image" content="https://syneco.pro/og-syneco.png" />
 
+    <!-- Données structurées (schema.org).
+         Ce que les moteurs lisent pour comprendre de quoi parle le site sans
+         avoir à l'interpréter : qui l'édite, ce qu'il propose, à quel prix.
+         C'est ce qui permet à un résultat de recherche d'afficher autre
+         chose qu'un titre et deux lignes.
+         Rien n'est déclaré ici qui ne soit vrai ailleurs : les prix sont ceux
+         des offres, l'éditeur celui des mentions légales. Aucune note ni
+         aucun avis n'est annoncé — en inventer ferait disparaître la fiche
+         entière des résultats, et mériterait de la faire disparaître. -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "Organization",
+            "@id": "https://syneco.pro/#editeur",
+            "name": "VincentLV",
+            "alternateName": "SYNeco",
+            "url": "https://syneco.pro/",
+            "email": "syneco.pro@outlook.fr",
+            "address": {
+              "@type": "PostalAddress",
+              "streetAddress": "9 rue Poincaré",
+              "postalCode": "57240",
+              "addressLocality": "Nilvange",
+              "addressCountry": "FR"
+            }
+          },
+          {
+            "@type": "SoftwareApplication",
+            "name": "SYNeco",
+            "url": "https://syneco.pro/",
+            "applicationCategory": "BusinessApplication",
+            "operatingSystem": "Web",
+            "inLanguage": "fr-FR",
+            "publisher": { "@id": "https://syneco.pro/#editeur" },
+            "description": "Coffre-fort administratif : SYNeco lit vos documents, en extrait les échéances et vous prévient avant qu'elles n'arrivent.",
+            "offers": [
+              {
+                "@type": "Offer",
+                "name": "Gratuit",
+                "price": "0",
+                "priceCurrency": "EUR",
+                "description": "Jusqu'à 10 documents, toutes fonctions comprises"
+              },
+              {
+                "@type": "Offer",
+                "name": "Particulier Premium",
+                "price": "4.99",
+                "priceCurrency": "EUR",
+                "description": "Documents illimités, sans engagement, par mois"
+              },
+              {
+                "@type": "Offer",
+                "name": "Professionnel",
+                "price": "19.99",
+                "priceCurrency": "EUR",
+                "description": "Entreprise, clients et factures émises, sans engagement, par mois"
+              }
+            ]
+          }
+        ]
+      }
+    </script>
+
     <!-- Installation sur l'écran d'accueil (Android, Chrome, Edge). -->
     <link rel="manifest" href="/manifest.webmanifest" />
     <meta name="theme-color" content="#0b2e2f" />

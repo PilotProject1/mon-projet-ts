@@ -16,5 +16,7 @@ Disallow: /clients
 Disallow: /factures
 Disallow: /recherche
 Disallow: /abonnement
+Disallow: /securite
+Disallow: /partage-recu
 
 Sitemap: https://syneco.pro/sitemap.xml
