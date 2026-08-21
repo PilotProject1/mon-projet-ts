@@ -6,7 +6,7 @@ export default function Confidentialite() {
     <LegalPageShell
       title="Politique de confidentialité"
       description="Quelles données SYNeco conserve, pourquoi, combien de temps, avec quels prestataires, et comment les récupérer ou les supprimer."
-      lastUpdated="16 août 2026"
+      lastUpdated="21 août 2026"
     >
       <p>
         SYNeco sert à centraliser des documents personnels (contrats, factures, assurances) et à en
@@ -218,7 +218,7 @@ export default function Confidentialite() {
         <tbody>
           <tr>
             <td>Vercel Inc.</td>
-            <td>Hébergement de l'interface</td>
+            <td>Hébergement de l'interface et mesure d'audience sans cookie</td>
             <td>États-Unis</td>
           </tr>
           <tr>
@@ -338,12 +338,27 @@ export default function Confidentialite() {
 
       <h2>11. Cookies et traceurs</h2>
       <p>
-        SYNeco n'utilise <strong>aucun cookie publicitaire ni outil de mesure d'audience</strong>.
-        Votre session est maintenue au moyen de jetons d'authentification stockés localement dans
-        votre navigateur, strictement nécessaires au fonctionnement du service. À ce titre, ils sont
-        dispensés de consentement préalable et aucune bannière de cookies n'est nécessaire.
+        SYNeco n'utilise <strong>aucun cookie publicitaire</strong> et ne pratique aucun suivi
+        d'un site à l'autre. Votre session est maintenue au moyen de jetons d'authentification
+        stockés localement dans votre navigateur, strictement nécessaires au fonctionnement du
+        service. À ce titre, ils sont dispensés de consentement préalable et aucune bannière de
+        cookies n'est nécessaire.
       </p>
       <p>Ces jetons sont effacés lorsque vous vous déconnectez.</p>
+      <p>
+        Une <strong>mesure d'audience</strong> est en revanche effectuée, afin de savoir combien
+        de personnes consultent le site et quelles pages elles ouvrent. Elle est assurée par
+        Vercel Inc., déjà hébergeur de l'interface, et <strong>ne dépose aucun cookie</strong> :
+        un identifiant est dérivé de la requête elle-même, effacé au bout de vingt-quatre heures,
+        et seuls des totaux sont conservés. Aucun profil individuel n'est constitué et ces
+        données ne sont pas recoupées avec votre compte.
+      </p>
+      <p>
+        Ce qui est transmis se limite à l'adresse de la page consultée, sans ses paramètres.{' '}
+        <strong>Les adresses de partage en sont exclues</strong>, parce qu'elles contiennent le
+        jeton qui donne accès au document : elles ne sont jamais transmises à la mesure
+        d'audience.
+      </p>
 
       <h2>12. Sécurité</h2>
       <ul>
