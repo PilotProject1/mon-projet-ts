@@ -5,6 +5,7 @@ import { authApi, ApiError } from '../services/api'
 import type { User } from '../types'
 import BrandLogo from '../components/BrandLogo'
 import AmbientBackground from '../components/AmbientBackground'
+import { mesurerCompteCree } from '../utils/mesurer'
 import { useTitrePage } from '../utils/useTitrePage'
 
 interface RegisterProps {
@@ -29,6 +30,9 @@ export default function Register({ onLogin }: RegisterProps) {
     setLoading(true)
     try {
       const user = await authApi.register(email, password, name)
+      // Compté ici seulement : au bout de l'entonnoir, quand le compte existe
+      // vraiment. Mesurer l'envoi du formulaire compterait aussi les échecs.
+      mesurerCompteCree()
       onLogin(user)
       navigate('/')
     } catch (err) {

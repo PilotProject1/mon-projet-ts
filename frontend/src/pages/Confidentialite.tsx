@@ -354,10 +354,17 @@ export default function Confidentialite() {
         données ne sont pas recoupées avec votre compte.
       </p>
       <p>
-        Ce qui est transmis se limite à l'adresse de la page consultée, sans ses paramètres.{' '}
-        <strong>Les adresses de partage en sont exclues</strong>, parce qu'elles contiennent le
-        jeton qui donne accès au document : elles ne sont jamais transmises à la mesure
-        d'audience.
+        Ce qui est transmis se limite à l'adresse de la page consultée, sans ses paramètres, et à
+        deux gestes comptés sans rien qui vous désigne : le <strong>clic sur un bouton
+        d'inscription</strong> (avec l'endroit de la page d'où il part) et la{' '}
+        <strong>création effective d'un compte</strong>. Ils servent à savoir à quelle étape les
+        visiteurs renoncent. Ni votre adresse e-mail, ni votre nom, ni aucun identifiant ne les
+        accompagne : ces mesures répondent à « combien », jamais à « qui ».
+      </p>
+      <p>
+        <strong>Les adresses de partage sont exclues</strong> de tout envoi, parce qu'elles
+        contiennent le jeton qui donne accès au document : elles ne sont jamais transmises à la
+        mesure d'audience.
       </p>
 
       <h2>12. Sécurité</h2>
