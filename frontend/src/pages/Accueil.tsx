@@ -33,6 +33,7 @@ import {
 } from '../components/IllustrationsParcours'
 import AmbientBackground from '../components/AmbientBackground'
 import { FAQ } from '../components/faq'
+import { mesurerClicInscription } from '../utils/mesurer'
 import { useTitrePage } from '../utils/useTitrePage'
 import { useApparition, useEntree } from '../utils/useApparition'
 
@@ -550,6 +551,7 @@ export default function Accueil() {
             </Link>
             <Link
               to="/inscription"
+              onClick={() => mesurerClicInscription('entete')}
               className="brand-gradient rounded-lg px-3.5 py-2 text-[13.5px] font-semibold text-white"
             >
               Créer un compte
@@ -576,6 +578,7 @@ export default function Accueil() {
             <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
               <Link
                 to="/inscription"
+                onClick={() => mesurerClicInscription('hero')}
                 className="brand-gradient flex items-center justify-center gap-2 rounded-xl px-5 py-3 text-[15px] font-semibold text-white"
               >
                 Commencer gratuitement
@@ -723,6 +726,7 @@ export default function Accueil() {
           </p>
           <Link
             to="/inscription"
+            onClick={() => mesurerClicInscription('bandeau')}
             className="mt-5 inline-flex items-center gap-2 rounded-xl bg-white px-5 py-3 text-[15px] font-semibold text-brand-deep"
           >
             Créer un compte gratuit
