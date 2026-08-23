@@ -20,6 +20,8 @@ import { CATEGORIES } from '../components/categories'
 import DepotParEmail from '../components/DepotParEmail'
 import DocumentScanner from '../components/DocumentScanner'
 import SuggestedDeadline from '../components/SuggestedDeadline'
+import CarteAction from '../components/CarteAction'
+import { proposerActions } from '../utils/actionsDocument'
 import { useEntree } from '../utils/useApparition'
 
 interface DocumentsProps {
@@ -879,6 +881,9 @@ export default function Documents({
                 </div>
 
                 <SuggestedDeadline document={doc} onSettled={onRefresh} />
+                {proposerActions(doc).map((action) => (
+                  <CarteAction key={action.kind} action={action} />
+                ))}
 
                 {expandedId === doc.id && (
                   <div className="mt-3 rounded-lg border border-brand-border bg-brand-mint/40 p-4">
