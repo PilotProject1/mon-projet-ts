@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import type { CSSProperties } from 'react'
 import { Link, NavLink, Outlet } from 'react-router-dom'
 import {
   LayoutDashboard,
@@ -114,10 +115,10 @@ export default function Layout({
         }`}
       >
         <div className="mb-7.5 flex items-center justify-between gap-2.5 px-1.5">
-          <BrandLogo iconSize={32} wordmarkClassName="text-[17px]" dark />
+          <BrandLogo iconSize={32} wordmarkClassName="text-[17px]" />
           <button
             onClick={() => setNavOpen(false)}
-            className="text-white/60 hover:text-white md:hidden"
+            className="text-brand-muted hover:text-brand-deep md:hidden"
             aria-label="Fermer le menu"
           >
             <X size={20} />
@@ -127,7 +128,7 @@ export default function Layout({
         <nav className="flex flex-1 flex-col gap-5.5 overflow-y-auto">
           {groupes.map((group) => (
             <div key={group.label}>
-              <div className="mb-2 px-2.5 text-[10.5px] font-semibold tracking-[0.08em] text-white/40 uppercase">
+              <div className="mb-2 px-2.5 text-[10.5px] font-semibold tracking-[0.08em] text-brand-green-deep/60 uppercase">
                 {group.label}
               </div>
               <div className="flex flex-col gap-0.5">
@@ -140,9 +141,12 @@ export default function Layout({
                     className={({ isActive }) =>
                       `flex items-center gap-2.5 rounded-lg px-2.5 py-2.5 text-[13.5px] font-medium ${
                         isActive
-                          ? 'brand-gradient-actif font-semibold text-brand-green-deep'
-                          : 'text-white/75 hover:bg-white/10 hover:text-white'
+                          ? 'neon-carte bg-brand-green font-semibold text-white'
+                          : 'text-brand-deep/70 hover:bg-white/50 hover:text-brand-deep'
                       }`
+                    }
+                    style={({ isActive }) =>
+                      isActive ? ({ '--neon': 'var(--petrol-deep)' } as CSSProperties) : undefined
                     }
                   >
                     {({ isActive }) => (
@@ -150,7 +154,7 @@ export default function Layout({
                         <item.icon
                           size={16.5}
                           strokeWidth={2}
-                          className={isActive ? 'text-brand-green-deep' : 'text-white/65'}
+                          className={isActive ? 'text-white' : 'text-brand-green-deep/70'}
                         />
                         {item.label}
                       </>
@@ -163,25 +167,25 @@ export default function Layout({
         </nav>
 
         {planUsage && (
-          <div className="mt-3.5 border-t border-white/10 pt-3.5">
+          <div className="mt-3.5 border-t border-black/10 pt-3.5">
             <PlanUsageCard usage={planUsage} compact />
           </div>
         )}
 
-        <div className="mt-3.5 border-t border-white/10 pt-3.5">
-          <p className="px-2.5 text-[11.5px] leading-relaxed text-white/45">
+        <div className="mt-3.5 border-t border-black/10 pt-3.5">
+          <p className="px-2.5 text-[11.5px] leading-relaxed text-brand-deep/60">
             Vos documents, synchronisés.
             <br />
             Zéro papier.
           </p>
           <div className="mt-2.5 flex flex-wrap gap-x-3 gap-y-1 px-2.5">
-            <Link to="/mentions-legales" className="text-[11px] text-white/40 hover:text-white/70">
+            <Link to="/mentions-legales" className="text-[11px] text-brand-deep/50 hover:text-brand-deep">
               Mentions légales
             </Link>
-            <Link to="/confidentialite" className="text-[11px] text-white/40 hover:text-white/70">
+            <Link to="/confidentialite" className="text-[11px] text-brand-deep/50 hover:text-brand-deep">
               Confidentialité
             </Link>
-            <Link to="/cgv" className="text-[11px] text-white/40 hover:text-white/70">
+            <Link to="/cgv" className="text-[11px] text-brand-deep/50 hover:text-brand-deep">
               CGV
             </Link>
           </div>
