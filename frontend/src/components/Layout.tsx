@@ -140,7 +140,7 @@ export default function Layout({
                     className={({ isActive }) =>
                       `flex items-center gap-2.5 rounded-lg px-2.5 py-2.5 text-[13.5px] font-medium ${
                         isActive
-                          ? 'brand-gradient-actif font-semibold text-white'
+                          ? 'brand-gradient-actif font-semibold text-brand-green-deep'
                           : 'text-white/75 hover:bg-white/10 hover:text-white'
                       }`
                     }
@@ -150,7 +150,7 @@ export default function Layout({
                         <item.icon
                           size={16.5}
                           strokeWidth={2}
-                          className={isActive ? 'text-white' : 'text-white/65'}
+                          className={isActive ? 'text-brand-green-deep' : 'text-white/65'}
                         />
                         {item.label}
                       </>

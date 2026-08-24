@@ -63,12 +63,13 @@ body {
   background: linear-gradient(180deg, var(--petrol-deep), var(--petrol-mid));
 }
 
-/* Repère actif du menu latéral : un aplat de vert de marque, sur un fond déjà
-   sombre, lisait plus foncé qu'ailleurs dans l'app. Ce dégradé va du vert de
-   marque vers le vert clair des halos — plus léger, et plus proche de la
-   teinte qu'on voit sur les logos et les survols néon. */
+/* Repère actif du menu latéral. Une première version restait un dégradé de
+   verts saturés : sur un fond déjà sombre, ça lisait toujours foncé. Ici on
+   bascule sur la même logique que les pastilles de catégories — un fond
+   clair, un texte foncé — qui se détache franchement de la barre latérale
+   au lieu de s'y fondre. */
 .brand-gradient-actif {
-  background: linear-gradient(120deg, var(--green), var(--green-light));
+  background: linear-gradient(120deg, var(--color-brand-green-soft), var(--green-light));
 }
 
 .brand-btn-shadow {
