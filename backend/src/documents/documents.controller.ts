@@ -21,7 +21,10 @@ import type { Response } from 'express';
 import { DocumentsService } from './documents.service';
 import { CreateDocumentDto } from './dto/create-document.dto';
 import { UpdateDocumentDto } from './dto/update-document.dto';
+import { DraftLetterDto } from './dto/draft-letter.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { PlanFeatureGuard } from '../plans/plan-feature.guard';
+import { RequiresFeature } from '../plans/requires-feature.decorator';
 import {
   CurrentUser,
   type CurrentUserPayload,
@@ -32,7 +35,7 @@ import {
 } from './file-upload.constants';
 import { typeReel } from './file-signature';
 
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, PlanFeatureGuard)
 @Controller('documents')
 export class DocumentsController {
   constructor(private readonly documentsService: DocumentsService) {}
@@ -111,6 +114,17 @@ export class DocumentsController {
     @CurrentUser() user: CurrentUserPayload,
   ) {
     return this.documentsService.dismissSuggestedDeadline(id, user.userId);
+  }
+
+  /** Brouillon de courrier (résiliation, contestation) — jamais envoyé seul. */
+  @Post(':id/letter')
+  @RequiresFeature('ia')
+  draftLetter(
+    @Param('id') id: string,
+    @Body() dto: DraftLetterDto,
+    @CurrentUser() user: CurrentUserPayload,
+  ) {
+    return this.documentsService.draftLetter(id, user.userId, dto.kind);
   }
 
   @Patch(':id')

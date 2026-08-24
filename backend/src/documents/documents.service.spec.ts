@@ -1,4 +1,8 @@
-import { ForbiddenException, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  NotFoundException,
+} from '@nestjs/common';
 import { Readable } from 'stream';
 import { DocumentsService } from './documents.service';
 
@@ -10,6 +14,7 @@ describe('DocumentsService', () => {
   let extraction: any;
   let ai: any;
   let aiExtraction: any;
+  let aiLetter: any;
   let plans: any;
 
   const ownerId = 'user-1';
@@ -47,6 +52,7 @@ describe('DocumentsService', () => {
     };
     ai = { available: false };
     aiExtraction = { extract: jest.fn() };
+    aiLetter = { draft: jest.fn() };
     // Par défaut le plan de test autorise l'IA : les cas existants vérifient
     // le comportement de l'extraction, pas la restriction par plan.
     plans = {
@@ -62,6 +68,7 @@ describe('DocumentsService', () => {
       extraction,
       ai,
       aiExtraction,
+      aiLetter,
       plans,
     );
   });
@@ -296,6 +303,132 @@ describe('DocumentsService', () => {
       const result = await service.analyze(document.id, ownerId);
 
       expect(result.suggestedAmount).toBe(10);
+    });
+  });
+
+  describe('draftLetter', () => {
+    it('rejects a letter for a document owned by someone else', async () => {
+      prisma.document.findUnique.mockResolvedValue({
+        ...document,
+        type: 'contrat',
+        provider: 'Free',
+      });
+
+      await expect(
+        service.draftLetter(document.id, otherId, 'resiliation'),
+      ).rejects.toThrow(ForbiddenException);
+      expect(aiLetter.draft).not.toHaveBeenCalled();
+    });
+
+    it('refuse une résiliation sur un document qui n’est ni un contrat ni une assurance', async () => {
+      prisma.document.findUnique.mockResolvedValue({
+        ...document,
+        type: 'courrier',
+        provider: 'Free',
+      });
+
+      await expect(
+        service.draftLetter(document.id, ownerId, 'resiliation'),
+      ).rejects.toThrow(BadRequestException);
+      expect(aiLetter.draft).not.toHaveBeenCalled();
+    });
+
+    it('refuse une résiliation sans émetteur identifié', async () => {
+      prisma.document.findUnique.mockResolvedValue({
+        ...document,
+        type: 'contrat',
+        provider: null,
+      });
+
+      await expect(
+        service.draftLetter(document.id, ownerId, 'resiliation'),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('refuse une contestation sur un document qui n’est pas une facture', async () => {
+      prisma.document.findUnique.mockResolvedValue({
+        ...document,
+        type: 'contrat',
+        provider: 'EDF',
+        amount: 42,
+        paid: false,
+      });
+
+      await expect(
+        service.draftLetter(document.id, ownerId, 'contestation'),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('refuse une contestation sur une facture déjà réglée', async () => {
+      prisma.document.findUnique.mockResolvedValue({
+        ...document,
+        type: 'facture',
+        provider: 'EDF',
+        amount: 42,
+        paid: true,
+      });
+
+      await expect(
+        service.draftLetter(document.id, ownerId, 'contestation'),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('prépare une résiliation à partir des faits du document', async () => {
+      prisma.document.findUnique.mockResolvedValue({
+        ...document,
+        type: 'assurance',
+        provider: 'MAIF',
+        reference: 'POL-998877',
+        documentDate: new Date('2026-01-10T00:00:00.000Z'),
+        amount: null,
+      });
+      aiLetter.draft.mockResolvedValue({ subject: 'Résiliation', body: '...' });
+
+      const result = await service.draftLetter(
+        document.id,
+        ownerId,
+        'resiliation',
+      );
+
+      expect(aiLetter.draft).toHaveBeenCalledWith({
+        kind: 'resiliation',
+        provider: 'MAIF',
+        reference: 'POL-998877',
+        documentDate: new Date('2026-01-10T00:00:00.000Z'),
+        amount: null,
+      });
+      expect(result).toEqual({ subject: 'Résiliation', body: '...' });
+    });
+
+    it('prépare une contestation pour une facture impayée', async () => {
+      prisma.document.findUnique.mockResolvedValue({
+        ...document,
+        type: 'facture',
+        provider: 'EDF',
+        reference: null,
+        documentDate: null,
+        amount: 84.3,
+        paid: false,
+      });
+      aiLetter.draft.mockResolvedValue({
+        subject: 'Contestation',
+        body: '...',
+      });
+
+      const result = await service.draftLetter(
+        document.id,
+        ownerId,
+        'contestation',
+      );
+
+      expect(aiLetter.draft).toHaveBeenCalledWith({
+        kind: 'contestation',
+        provider: 'EDF',
+        reference: null,
+        documentDate: null,
+        amount: 84.3,
+      });
+      expect(result).toEqual({ subject: 'Contestation', body: '...' });
     });
   });
 
