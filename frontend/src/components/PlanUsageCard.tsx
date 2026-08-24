@@ -20,13 +20,13 @@ export default function PlanUsageCard({ usage, compact = false }: PlanUsageCardP
     return (
       <div className="px-2.5">
         <div className="mb-1.5 flex items-baseline justify-between gap-2">
-          <span className="text-[11.5px] font-semibold text-white/80">{usage.label}</span>
-          <span className="text-[11px] text-white/50">
+          <span className="text-[11.5px] font-semibold text-brand-deep/80">{usage.label}</span>
+          <span className="text-[11px] text-brand-deep/50">
             {unlimited ? `${used} docs` : `${used}/${max}`}
           </span>
         </div>
         {!unlimited && (
-          <div className="h-1 w-full overflow-hidden rounded-full bg-white/15">
+          <div className="h-1 w-full overflow-hidden rounded-full bg-black/10">
             <div
               className={`mvt-barre mvt-entre h-full rounded-full ${barColor}`}
               style={{ width: `${Math.max(ratio * 100, 2)}%` }}

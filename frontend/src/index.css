@@ -56,11 +56,11 @@ body {
   background: linear-gradient(120deg, var(--petrol-deep), var(--green));
 }
 
-/* Dégradé discret, réservé aux grandes surfaces sombres (barre latérale) :
-   contrairement à .brand-gradient, il reste dans les tons profonds pour ne
-   pas nuire à la lisibilité du texte blanc sur toute la hauteur. */
+/* Fond de la barre latérale : le vert pâle des pastilles de catégories,
+   vers le vert clair des halos néon. Le texte et les icônes de la barre
+   sont en tons foncés (voir Layout.tsx) plutôt qu'en blanc. */
 .brand-gradient-sidebar {
-  background: linear-gradient(180deg, var(--petrol-deep), var(--petrol-mid));
+  background: linear-gradient(160deg, var(--color-brand-green-soft), var(--green-light));
 }
 
 .brand-btn-shadow {
