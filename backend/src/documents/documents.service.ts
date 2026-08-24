@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ForbiddenException,
   Injectable,
   Logger,
@@ -13,6 +14,11 @@ import {
 } from '../analysis/extraction.service';
 import { AiService } from '../ai/ai.service';
 import { AiExtractionService } from '../ai/ai-extraction.service';
+import {
+  AiLetterService,
+  type DraftedLetter,
+  type LetterKind,
+} from '../ai/ai-letter.service';
 import { CreateDocumentDto } from './dto/create-document.dto';
 import { UpdateDocumentDto } from './dto/update-document.dto';
 import { PlansService } from '../plans/plans.service';
@@ -43,6 +49,7 @@ export class DocumentsService {
     private readonly extraction: ExtractionService,
     private readonly ai: AiService,
     private readonly aiExtraction: AiExtractionService,
+    private readonly aiLetter: AiLetterService,
     private readonly plans: PlansService,
   ) {}
 
@@ -180,6 +187,58 @@ export class DocumentsService {
   async update(id: string, dto: UpdateDocumentDto, userId: string) {
     await this.findOne(id, userId);
     return this.prisma.document.update({ where: { id }, data: dto });
+  }
+
+  /**
+   * Brouillon de courrier, jamais persisté ni envoyé — relu et expédié par
+   * l'utilisateur lui-même.
+   *
+   * Validé avant l'appel au modèle : une résiliation ne veut rien dire sur un
+   * courrier simple, une contestation sur une facture déjà réglée ne sert à
+   * rien. Refuser ici évite de dépenser un appel IA sur une demande qui n'a
+   * pas de sens pour ce document.
+   */
+  async draftLetter(
+    id: string,
+    userId: string,
+    kind: LetterKind,
+  ): Promise<DraftedLetter> {
+    const document = await this.findOne(id, userId);
+
+    if (kind === 'resiliation') {
+      if (!['contrat', 'assurance'].includes(document.type)) {
+        throw new BadRequestException(
+          'Une résiliation ne se prépare que pour un contrat ou une assurance',
+        );
+      }
+      if (!document.provider) {
+        throw new BadRequestException(
+          "L'émetteur de ce document n'a pas été identifié",
+        );
+      }
+    } else {
+      if (document.type !== 'facture') {
+        throw new BadRequestException(
+          'Une contestation ne se prépare que pour une facture',
+        );
+      }
+      if (!document.provider || document.amount === null) {
+        throw new BadRequestException(
+          "L'émetteur ou le montant de cette facture n'a pas été identifié",
+        );
+      }
+      if (document.paid === true) {
+        throw new BadRequestException('Cette facture est déjà réglée');
+      }
+    }
+
+    return this.aiLetter.draft({
+      kind,
+      provider: document.provider,
+      reference: document.reference,
+      documentDate: document.documentDate,
+      amount: document.amount,
+    });
   }
 
   getFileStream(fileKey: string) {

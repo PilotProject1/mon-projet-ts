@@ -25,6 +25,7 @@ import type {
   EtatDeuxiemeFacteur,
   PreparationDeuxiemeFacteur,
   AdresseDepot,
+  LettreIA,
 } from '../types'
 
 const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:3000'
@@ -241,6 +242,13 @@ export const documentsApi = {
 
   dismissSuggestion: (id: string) =>
     request<Document>(`/documents/${id}/echeance-suggeree`, { method: 'DELETE' }),
+
+  /** Brouillon de courrier rédigé par l'IA — jamais envoyé seul. */
+  draftLetter: (id: string, kind: 'resiliation' | 'contestation') =>
+    request<LettreIA>(`/documents/${id}/letter`, {
+      method: 'POST',
+      body: JSON.stringify({ kind }),
+    }),
 
   async getFileBlob(id: string, retry = true): Promise<Blob> {
     const res = await rawRequest(`/documents/${id}/file`)

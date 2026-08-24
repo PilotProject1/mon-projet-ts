@@ -192,6 +192,12 @@ export interface Briefing {
   points: PointBriefing[]
 }
 
+/** Brouillon de courrier rédigé par l'IA — à relire avant de l'envoyer. */
+export interface LettreIA {
+  subject: string
+  body: string
+}
+
 export type Cadence = 'mensuelle' | 'trimestrielle' | 'semestrielle' | 'annuelle'
 
 export interface RecurrenceOccurrence {

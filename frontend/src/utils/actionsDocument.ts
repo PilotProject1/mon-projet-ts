@@ -16,6 +16,11 @@ export interface ActionProposee {
   actionLabel: string
   /** Une route interne (commence par `/`) ou un lien `mailto:`. */
   actionTo: string
+  /**
+   * Quand présent, le bouton ouvre la rédaction IA au lieu de suivre
+   * `actionTo` — qui reste renseigné comme repli si l'IA échoue.
+   */
+  lettreIA?: { documentId: string; kind: 'resiliation' | 'contestation' }
 }
 
 function formatDateCourrier(date: string | null): string {
@@ -41,12 +46,28 @@ function lienResiliation(document: Document): string {
   return `mailto:?subject=${encodeURIComponent(objet)}&body=${encodeURIComponent(corps)}`
 }
 
+/** Même principe que `lienResiliation`, pour contester le montant d'une facture. */
+function lienContestation(document: Document): string {
+  const objet = `Contestation de facture${document.reference ? ` — réf. ${document.reference}` : ''}`
+  const lignesRef = document.reference ? `Référence de la facture : ${document.reference}\n` : ''
+  const lignesMontant = document.amount !== null ? `Montant facturé : ${document.amount.toFixed(2).replace('.', ',')} €\n` : ''
+  const corps =
+    `Madame, Monsieur,\n\n` +
+    `Je conteste le montant de la facture émise par ${document.provider ?? 'votre organisme'}, ` +
+    `qui me semble erroné.\n\n` +
+    lignesRef +
+    lignesMontant +
+    `\nJe vous remercie de bien vouloir vérifier ce montant et, le cas échéant, de m'adresser une ` +
+    `facture rectificative.\n\nCordialement,`
+  return `mailto:?subject=${encodeURIComponent(objet)}&body=${encodeURIComponent(corps)}`
+}
+
 /**
  * 0 à 2 actions dérivées d'un document déjà analysé.
  *
  * Les échéances (repérées, dépassées, proches) sont déjà couvertes ailleurs
  * (`SuggestedDeadline`, le Briefing) : ces règles ne les répètent pas, elles
- * couvrent ce que ces deux blocs ne disent pas — comparer, résilier.
+ * couvrent ce que ces deux blocs ne disent pas — comparer, résilier, contester.
  */
 export function proposerActions(document: Document): ActionProposee[] {
   const actions: ActionProposee[] = []
@@ -59,6 +80,17 @@ export function proposerActions(document: Document): ActionProposee[] {
       actionLabel: 'Voir le tableau de bord',
       actionTo: '/',
     })
+
+    if (document.paid !== true) {
+      actions.push({
+        kind: 'contester',
+        urgence: 'information',
+        message: `Contester le montant de cette facture ${document.provider}.`,
+        actionLabel: 'Rédiger avec l’IA',
+        actionTo: lienContestation(document),
+        lettreIA: { documentId: document.id, kind: 'contestation' },
+      })
+    }
   }
 
   if ((document.type === 'contrat' || document.type === 'assurance') && document.provider) {
@@ -66,8 +98,9 @@ export function proposerActions(document: Document): ActionProposee[] {
       kind: 'resilier',
       urgence: 'information',
       message: `Envoyer une résiliation à ${document.provider}.`,
-      actionLabel: 'Préparer le courrier',
+      actionLabel: 'Rédiger avec l’IA',
       actionTo: lienResiliation(document),
+      lettreIA: { documentId: document.id, kind: 'resiliation' },
     })
   }
 

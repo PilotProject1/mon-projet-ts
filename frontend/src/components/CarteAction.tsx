@@ -1,8 +1,10 @@
+import { useState } from 'react'
 import type { CSSProperties } from 'react'
 import { Link } from 'react-router-dom'
 import { AlertTriangle, ArrowRight, Bell, Info } from 'lucide-react'
 import type { ActionProposee } from '../utils/actionsDocument'
 import type { Urgence } from '../types'
+import ModaleLettre from './ModaleLettre'
 
 const styles: Record<Urgence, { teinte: string; Icone: typeof Info }> = {
   urgent: { teinte: '#b4483f', Icone: AlertTriangle },
@@ -21,6 +23,10 @@ const styles: Record<Urgence, { teinte: string; Icone: typeof Info }> = {
 export default function CarteAction({ action }: { action: ActionProposee }) {
   const { teinte, Icone } = styles[action.urgence]
   const externe = !action.actionTo.startsWith('/')
+  const [modaleOuverte, setModaleOuverte] = useState(false)
+
+  const boutonClasse =
+    'brand-gradient brand-btn-shadow flex shrink-0 items-center justify-center gap-1.5 rounded-md px-3 py-2 text-[12.5px] font-semibold text-white'
 
   return (
     <div
@@ -38,26 +44,32 @@ export default function CarteAction({ action }: { action: ActionProposee }) {
           <p className="min-w-0 text-[13.5px] text-brand-ink">{action.message}</p>
         </div>
 
-        {externe ? (
-          <a
-            href={action.actionTo}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="brand-gradient brand-btn-shadow flex shrink-0 items-center justify-center gap-1.5 rounded-md px-3 py-2 text-[12.5px] font-semibold text-white"
-          >
+        {action.lettreIA ? (
+          <button onClick={() => setModaleOuverte(true)} className={boutonClasse}>
+            {action.actionLabel}
+            <ArrowRight size={13} />
+          </button>
+        ) : externe ? (
+          <a href={action.actionTo} target="_blank" rel="noopener noreferrer" className={boutonClasse}>
             {action.actionLabel}
             <ArrowRight size={13} />
           </a>
         ) : (
-          <Link
-            to={action.actionTo}
-            className="brand-gradient brand-btn-shadow flex shrink-0 items-center justify-center gap-1.5 rounded-md px-3 py-2 text-[12.5px] font-semibold text-white"
-          >
+          <Link to={action.actionTo} className={boutonClasse}>
             {action.actionLabel}
             <ArrowRight size={13} />
           </Link>
         )}
       </div>
+
+      {action.lettreIA && modaleOuverte && (
+        <ModaleLettre
+          documentId={action.lettreIA.documentId}
+          kind={action.lettreIA.kind}
+          actionTo={action.actionTo}
+          onClose={() => setModaleOuverte(false)}
+        />
+      )}
     </div>
   )
 }
