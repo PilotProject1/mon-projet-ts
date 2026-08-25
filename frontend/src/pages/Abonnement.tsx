@@ -1,7 +1,12 @@
 import { useEffect, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { Check } from 'lucide-react'
-import type { PlanCatalogueEntry, PlanFeature, PlanUsage } from '../types'
+import type {
+  BillingInterval,
+  PlanCatalogueEntry,
+  PlanFeature,
+  PlanUsage,
+} from '../types'
 import { ApiError, billingApi, planApi } from '../services/api'
 import ExporterMesDonnees from '../components/ExporterMesDonnees'
 import SupprimerCompte from '../components/SupprimerCompte'
@@ -20,8 +25,32 @@ const featureLabels: Record<PlanFeature, string> = {
   equipes: 'Plusieurs utilisateurs et droits d’accès',
 }
 
-function formatPrice(euros: number) {
-  return euros === 0 ? 'Gratuit' : `${euros.toFixed(2).replace('.', ',')} €/mois`
+function montant(euros: number) {
+  // Les centimes ne s'affichent que s'il y en a : « 199 € » se lit mieux que
+  // « 199,00 € », et l'un comme l'autre est le montant réellement prélevé.
+  return Number.isInteger(euros)
+    ? `${euros} €`
+    : `${euros.toFixed(2).replace('.', ',')} €`
+}
+
+/** Prix affiché pour une offre, selon la périodicité choisie. */
+function formatPrice(entry: PlanCatalogueEntry, interval: BillingInterval) {
+  if (entry.monthlyPrice === 0) return 'Gratuit'
+  if (interval === 'annuel' && entry.yearlyPrice !== null) {
+    return `${montant(entry.yearlyPrice)}/an`
+  }
+  return `${montant(entry.monthlyPrice)}/mois`
+}
+
+/**
+ * Économie réalisée à l'année, exprimée en mois offerts : c'est ainsi que le
+ * lecteur la compare, bien plus vite qu'avec un pourcentage.
+ */
+function moisOfferts(entry: PlanCatalogueEntry): number | null {
+  if (entry.monthlyPrice <= 0 || entry.yearlyPrice === null) return null
+  const economie = entry.monthlyPrice * 12 - entry.yearlyPrice
+  const mois = Math.round(economie / entry.monthlyPrice)
+  return mois > 0 ? mois : null
 }
 
 const DATE_LONGUE = new Intl.DateTimeFormat('fr-FR', {
@@ -45,6 +74,9 @@ export default function Abonnement({
   // dans cet écran plutôt que sur la page : il se rattache ainsi à une
   // commande précise — offre et prix affichés — et non à une intention vague.
   const [offreAConfirmer, setOffreAConfirmer] = useState<PlanCatalogueEntry | null>(null)
+  // L'annuel est proposé par défaut : c'est la formule la plus avantageuse
+  // pour l'abonné, et celle qui tient le mieux dans le temps.
+  const [intervalle, setIntervalle] = useState<BillingInterval>('annuel')
   const [searchParams, setSearchParams] = useSearchParams()
 
   const paiement = searchParams.get('paiement')
@@ -67,11 +99,11 @@ export default function Abonnement({
     }
   }, [paiement, retourPortail, onPlanChanged])
 
-  async function handleSubscribe(plan: 'premium' | 'pro') {
+  async function handleSubscribe(plan: 'premium' | 'pro', interval: BillingInterval) {
     setError(null)
     setPendingPlan(plan)
     try {
-      const { url } = await billingApi.checkout(plan)
+      const { url } = await billingApi.checkout(plan, interval)
       window.location.href = url
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Impossible d’ouvrir le paiement')
@@ -91,8 +123,20 @@ export default function Abonnement({
     }
   }
 
+  /**
+   * Périodicité réellement applicable à une offre : toutes ne sont pas
+   * vendues à l'année, et proposer un tarif annuel inexistant mènerait à un
+   * paiement refusé côté Stripe.
+   */
+  function intervalleDe(entry: PlanCatalogueEntry): BillingInterval {
+    return intervalle === 'annuel' && entry.yearlyPrice !== null ? 'annuel' : 'mensuel'
+  }
+
   const currentPlan = planUsage?.plan
   const hasPaidPlan = currentPlan && currentPlan !== 'gratuit'
+  const auMoinsUneOffreAnnuelle = catalogue.some(
+    (entry) => entry.purchasable && entry.yearlyPrice !== null,
+  )
   const echeance = planUsage?.renewsAt ? new Date(planUsage.renewsAt) : null
 
   return (
@@ -164,6 +208,37 @@ export default function Abonnement({
         <div className="mb-4 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>
       )}
 
+      {/* Bascule mensuel / annuel. Masquée tant qu'aucune offre n'a de tarif
+          annuel : un sélecteur sans effet ne ferait qu'égarer. */}
+      {auMoinsUneOffreAnnuelle && (
+        <div className="mb-4 flex justify-center">
+          <div
+            role="group"
+            aria-label="Périodicité de facturation"
+            className="inline-flex rounded-full border border-brand-border bg-white p-1"
+          >
+            {(['mensuel', 'annuel'] as const).map((valeur) => (
+              <button
+                key={valeur}
+                type="button"
+                onClick={() => setIntervalle(valeur)}
+                aria-pressed={intervalle === valeur}
+                className={`rounded-full px-4 py-1.5 text-[13px] font-semibold transition ${
+                  intervalle === valeur
+                    ? 'brand-gradient text-white'
+                    : 'text-brand-muted hover:text-brand-deep'
+                }`}
+              >
+                {valeur === 'mensuel' ? 'Mensuel' : 'Annuel'}
+                {valeur === 'annuel' && intervalle !== 'annuel' && (
+                  <span className="ml-1.5 text-brand-green">−2 mois</span>
+                )}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
         {catalogue.map((entry) => {
           const isCurrent = entry.plan === currentPlan
@@ -180,11 +255,18 @@ export default function Abonnement({
               }`}
             >
               <div className="mb-3 flex items-start justify-between gap-2">
-                <div>
+                <div className="min-w-0">
                   <p className="font-heading text-base font-semibold text-brand-deep">
                     {entry.label}
                   </p>
-                  <p className="text-sm text-brand-muted">{formatPrice(entry.monthlyPrice)}</p>
+                  <p className="text-sm text-brand-muted">
+                    {formatPrice(entry, intervalleDe(entry))}
+                  </p>
+                  {intervalleDe(entry) === 'annuel' && moisOfferts(entry) && (
+                    <p className="mt-0.5 text-xs font-medium text-brand-green">
+                      {moisOfferts(entry)} mois offerts
+                    </p>
+                  )}
                 </div>
                 {isCurrent && (
                   <span className="shrink-0 rounded-full bg-brand-green-soft px-2 py-0.5 text-xs font-medium text-brand-green-deep">
@@ -284,14 +366,20 @@ export default function Abonnement({
 
             <div className="my-4 rounded-lg bg-brand-mint p-3.5">
               <div className="flex items-baseline justify-between gap-3">
-                <span className="font-medium text-brand-deep">{offreAConfirmer.label}</span>
-                <span className="font-heading text-lg font-semibold text-brand-deep">
-                  {formatPrice(offreAConfirmer.monthlyPrice)}
+                <span className="min-w-0 font-medium text-brand-deep">
+                  {offreAConfirmer.label}
+                </span>
+                <span className="font-heading shrink-0 text-lg font-semibold text-brand-deep">
+                  {formatPrice(offreAConfirmer, intervalleDe(offreAConfirmer))}
                 </span>
               </div>
               <p className="mt-1 text-xs text-brand-muted">
-                Sans engagement, résiliable à tout moment. TVA non applicable, article 293 B du
-                CGI : ce montant est celui réellement prélevé.
+                {/* La formule annuelle est prélevée en une fois : annoncer
+                    « sans engagement » y serait trompeur. */}
+                {intervalleDe(offreAConfirmer) === 'annuel'
+                  ? 'Prélevé en une fois pour douze mois, puis reconduit annuellement. Résiliable à tout moment depuis le portail : votre accès court alors jusqu’à la fin de l’année payée.'
+                  : 'Sans engagement, résiliable à tout moment.'}{' '}
+                TVA non applicable, article 293 B du CGI : ce montant est celui réellement prélevé.
               </p>
             </div>
 
@@ -320,7 +408,12 @@ export default function Abonnement({
                 Annuler
               </button>
               <button
-                onClick={() => handleSubscribe(offreAConfirmer.plan as 'premium' | 'pro')}
+                onClick={() =>
+                  handleSubscribe(
+                    offreAConfirmer.plan as 'premium' | 'pro',
+                    intervalleDe(offreAConfirmer),
+                  )
+                }
                 disabled={!renonciation || pendingPlan !== null}
                 className="brand-gradient rounded-md px-4 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
               >

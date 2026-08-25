@@ -21,6 +21,7 @@ import type {
   Briefing,
   PlanUsage,
   PlanCatalogueEntry,
+  BillingInterval,
   StatistiquesAdmin,
   EtatDeuxiemeFacteur,
   PreparationDeuxiemeFacteur,
@@ -447,10 +448,10 @@ export const planApi = {
 
 export const billingApi = {
   /** Ouvre une session de paiement Stripe et renvoie l'URL de redirection. */
-  checkout: (plan: 'premium' | 'pro') =>
+  checkout: (plan: 'premium' | 'pro', interval: BillingInterval = 'mensuel') =>
     request<{ url: string }>('/billing/checkout', {
       method: 'POST',
-      body: JSON.stringify({ plan }),
+      body: JSON.stringify({ plan, interval }),
     }),
 
   /** Portail Stripe : moyen de paiement, factures, résiliation. */

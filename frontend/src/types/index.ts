@@ -254,10 +254,15 @@ export interface PlanUsage {
   endsAtPeriodEnd: boolean
 }
 
+/** Périodicité de facturation proposée à la souscription. */
+export type BillingInterval = 'mensuel' | 'annuel'
+
 export interface PlanCatalogueEntry {
   plan: Plan
   label: string
   monthlyPrice: number
+  /** Prix annuel, null quand le plan n'est pas vendu à l'année. */
+  yearlyPrice: number | null
   maxDocuments: number | null
   features: PlanFeature[]
   purchasable: boolean

@@ -11,6 +11,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import {
   planForStripePriceId,
   stripePriceIdFor,
+  type BillingInterval,
   type PurchasablePlan,
 } from '../plans/plan.config';
 
@@ -74,11 +75,12 @@ export class BillingService {
   async createCheckoutSession(
     userId: string,
     plan: PurchasablePlan,
+    interval: BillingInterval = 'mensuel',
   ): Promise<{ url: string }> {
-    const priceId = stripePriceIdFor(plan);
+    const priceId = stripePriceIdFor(plan, interval);
     if (!priceId) {
       throw new ServiceUnavailableException(
-        `Aucun tarif Stripe n'est configuré pour le plan ${plan}`,
+        `Aucun tarif Stripe n'est configuré pour le plan ${plan} en ${interval}`,
       );
     }
 
@@ -91,7 +93,7 @@ export class BillingService {
       // Rattache la session au compte : le webhook s'en sert pour retrouver
       // l'utilisateur même si le client Stripe venait à changer.
       client_reference_id: userId,
-      subscription_data: { metadata: { userId, plan } },
+      subscription_data: { metadata: { userId, plan, interval } },
       success_url: `${this.frontendUrl}/abonnement?paiement=succes`,
       cancel_url: `${this.frontendUrl}/abonnement?paiement=annule`,
     } satisfies Stripe.Checkout.SessionCreateParams;

@@ -28,7 +28,11 @@ export class BillingController {
   @UseGuards(JwtAuthGuard)
   @Post('checkout')
   checkout(@Body() dto: CheckoutDto, @CurrentUser() user: CurrentUserPayload) {
-    return this.billing.createCheckoutSession(user.userId, dto.plan);
+    return this.billing.createCheckoutSession(
+      user.userId,
+      dto.plan,
+      dto.interval ?? 'mensuel',
+    );
   }
 
   @UseGuards(JwtAuthGuard)
