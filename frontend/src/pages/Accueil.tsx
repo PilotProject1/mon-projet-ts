@@ -533,8 +533,8 @@ function SectionFaq() {
 
 export default function Accueil() {
   useTitrePage(
-    'SYNeco — Coffre-fort administratif et rappels d’échéances',
-    'Photographiez un document : SYNeco le lit, repère son échéance et vous prévient avant qu’elle n’arrive. Gratuit jusqu’à 10 documents.',
+    'SYNeco — Ne ratez plus une échéance administrative',
+    'SYNeco lit vos documents, repère leur date limite et vous prévient avant qu’elle n’arrive : reconduction tacite, fin de garantie, facture à régler. Gratuit jusqu’à 10 documents.',
   )
 
   return (
@@ -565,12 +565,13 @@ export default function Accueil() {
         <div className="relative z-10 mx-auto flex max-w-5xl flex-col gap-10 px-5 pt-14 pb-16 sm:flex-row sm:items-center sm:px-8 sm:pt-20 sm:pb-20">
           <div className="min-w-0 flex-1">
             <h1 className="font-heading max-w-3xl text-[30px] leading-[1.15] font-bold text-brand-deep sm:text-[44px]">
-              Le coffre-fort administratif du particulier et de l’indépendant
+              Ne ratez plus une échéance administrative
             </h1>
             <p className="mt-5 max-w-2xl text-[15px] leading-relaxed text-brand-muted sm:text-[17px]">
-              Photographiez un document : SYNeco le lit, repère son échéance et vous prévient
-              avant qu’elle n’arrive. Vos contrats, factures et attestations au même endroit,
-              consultables depuis votre téléphone.
+              Une reconduction tacite, une garantie qui expire, une facture à régler : ce sont
+              des dates, et elles arrivent sans prévenir. Photographiez le document, SYNeco le
+              lit, repère sa date limite et vous prévient à temps — que vous soyez particulier
+              ou à votre compte.
             </p>
 
             {/* Sur téléphone les deux boutons s'empilent : côte à côte, leurs
