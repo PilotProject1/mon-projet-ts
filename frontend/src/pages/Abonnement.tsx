@@ -60,7 +60,11 @@ function moisOfferts(entry: PlanCatalogueEntry): number | null {
  * paiement refusé.
  */
 function offreALAnnee(entry: PlanCatalogueEntry): boolean {
-  return entry.purchasable && entry.purchasableIntervals.includes('annuel')
+  // Champ absent : le serveur déployé est antérieur à cette notion. On s'en
+  // tient au mensuel plutôt que de risquer un paiement refusé — et surtout
+  // sans lire une liste inexistante, qui ferait tomber toute la page pendant
+  // les quelques minutes où l'interface est en avance sur l'API.
+  return entry.purchasable && (entry.purchasableIntervals ?? []).includes('annuel')
 }
 
 const DATE_LONGUE = new Intl.DateTimeFormat('fr-FR', {

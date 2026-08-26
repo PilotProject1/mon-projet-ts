@@ -89,6 +89,13 @@ Une fois l'URL du frontend connue, mets à jour la variable `FRONTEND_ORIGIN` c�
 
 Déjà en place : [.github/workflows/ci.yml](.github/workflows/ci.yml) fait tourner les tests (backend + frontend) à chaque push sur `main`. Une fois ton dépôt connecté à Vercel et à ton hébergeur backend, chaque push sur `main` redéploie automatiquement — il n'y a rien de plus à configurer.
 
+Les deux plateformes redéploient en parallèle, et rien ne garantit laquelle
+finit la première. L'interface doit donc rester debout devant une API encore
+antérieure : lorsqu'un champ attendu manque, elle s'en passe — la formule
+annuelle, par exemple, n'apparaît qu'une fois le backend à jour — plutôt que
+de tomber. C'est une contrainte à garder en tête pour toute donnée nouvelle
+servie par l'API et lue par le frontend.
+
 ## Checklist des variables d'environnement en production
 
 **Backend**

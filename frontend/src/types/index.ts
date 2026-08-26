@@ -287,7 +287,7 @@ export interface PlanCatalogueEntry {
    * existe côté Stripe : c'est cette liste, et non `yearlyPrice`, qui dit ce
    * qu'on peut proposer au client.
    */
-  purchasableIntervals: BillingInterval[]
+  purchasableIntervals?: BillingInterval[]
 }
 
 /** Compteurs de suivi du service, réservés à l'éditeur. */
