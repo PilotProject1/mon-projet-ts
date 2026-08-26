@@ -206,6 +206,46 @@ export class BillingService implements OnApplicationBootstrap {
   }
 
   /**
+   * Efface le client Stripe rattaché à un compte, et avec lui le moyen de
+   * paiement enregistré.
+   *
+   * Résilier l'abonnement ne suffit pas : la carte reste attachée au client,
+   * lequel survit indéfiniment. Or la politique de confidentialité promet une
+   * suppression définitive — un lecteur en conclut, à juste titre, que sa
+   * carte part aussi.
+   *
+   * Les factures déjà émises, elles, restent chez Stripe : leur conservation
+   * n'est pas un choix, c'est une obligation comptable de l'éditeur, et elle
+   * ne dépend pas du compte supprimé.
+   *
+   * L'échec n'interrompt pas la suppression. Le risque d'argent — un
+   * prélèvement sur un compte effacé — est déjà écarté par la résiliation qui
+   * précède ; refuser d'effacer nos propres données parce que Stripe ne
+   * répond pas serait le pire des deux maux. Il est journalisé en erreur pour
+   * qu'un client oublié se voie.
+   */
+  async effacerClientStripe(userId: string): Promise<void> {
+    if (!this.available) return;
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user?.stripeCustomerId) return;
+
+    try {
+      await this.stripe.customers.del(user.stripeCustomerId);
+      this.logger.log(
+        `Client Stripe ${user.stripeCustomerId} effacé avec le compte ${userId}`,
+      );
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      // Un client déjà effacé n'est pas une anomalie : il n'y a plus rien à
+      // faire, et c'est le résultat recherché.
+      if (/No such customer|resource_missing/i.test(message)) return;
+      this.logger.error(
+        `Client Stripe ${user.stripeCustomerId} non effacé (compte ${userId} supprimé quand même) : ${message}`,
+      );
+    }
+  }
+
+  /**
    * Abonnement Stripe en cours pour un compte, ou null.
    *
    * Relu chez Stripe et non en base : entre deux webhooks, seule la réponse

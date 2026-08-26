@@ -139,9 +139,11 @@ export class UsersService {
    *  1. le mot de passe est redemandé — un jeton volé ne doit pas suffire ;
    *  2. l'abonnement est résilié, sinon un compte effacé continuerait d'être
    *     prélevé sans que personne puisse l'arrêter ;
-   *  3. les fichiers sont retirés du stockage, tant que la base sait encore
+   *  3. le client Stripe est effacé, faute de quoi le moyen de paiement
+   *     enregistré survivrait au compte ;
+   *  4. les fichiers sont retirés du stockage, tant que la base sait encore
    *     où ils se trouvent ;
-   *  4. la ligne du compte est supprimée, et quatorze relations en cascade
+   *  5. la ligne du compte est supprimée, et quatorze relations en cascade
    *     emportent le reste.
    */
   async deleteAccount(userId: string, password: string): Promise<void> {
@@ -154,6 +156,17 @@ export class UsersService {
     }
 
     await this.billing.annulerAbonnementAvantSuppression(userId);
+    // Après la résiliation, et sans pouvoir l'empêcher : le prélèvement est
+    // déjà écarté, et nos propres données doivent partir même si Stripe ne
+    // répond pas. La garantie est ici, dans le catch, et non dans la promesse
+    // que l'appelé n'échoue jamais.
+    await this.billing.effacerClientStripe(userId).catch((error: unknown) => {
+      this.logger.error(
+        `Client Stripe du compte ${userId} non effacé, suppression poursuivie : ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
+    });
 
     const documents = await this.prisma.document.findMany({
       where: { userId },
