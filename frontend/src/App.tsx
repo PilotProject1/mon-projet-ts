@@ -22,6 +22,7 @@ import MentionsLegales from './pages/MentionsLegales'
 import Confidentialite from './pages/Confidentialite'
 import Cgv from './pages/Cgv'
 import Resilier from './pages/Resilier'
+import ResilierPrestataire from './pages/ResilierPrestataire'
 import BrandLogo from './components/BrandLogo'
 import Mesure from './components/Mesure'
 import {
@@ -313,6 +314,7 @@ function App() {
         {/* Outil d'appel : accessible connecté ou non, puisqu'il s'adresse
             d'abord à quelqu'un qui arrive d'une recherche. */}
         <Route path="/resilier" element={<Resilier />} />
+        <Route path="/resilier/:slug" element={<ResilierPrestataire />} />
         <Route
           path="/connexion"
           element={
