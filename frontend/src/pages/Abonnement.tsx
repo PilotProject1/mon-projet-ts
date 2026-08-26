@@ -137,10 +137,17 @@ export default function Abonnement({
     setError(null)
     setPendingPlan(plan)
     try {
-      await billingApi.changerOffre(plan, interval)
+      const { paiementUrl } = await billingApi.changerOffre(plan, interval)
+      // Le prélèvement demande une intervention — authentification bancaire
+      // ou carte refusée : on emmène le client là où il peut le finir, plutôt
+      // que d'annoncer un changement qui n'est pas payé.
+      if (paiementUrl) {
+        window.location.href = paiementUrl
+        return
+      }
       await onPlanChanged()
       setOffreAConfirmer(null)
-      setMessage('Votre offre a été modifiée.')
+      setMessage('Votre offre a été modifiée et la différence prélevée.')
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Impossible de changer d’offre')
     } finally {
@@ -460,8 +467,7 @@ export default function Abonnement({
                 // faire hésiter devant un bouton qu'on croit débiteur.
                 <p className="mt-2 text-xs text-brand-muted">
                   Le changement prend effet immédiatement. Le temps déjà réglé est décompté et la
-                  différence apparaîtra sur votre prochaine facture : rien n’est prélevé
-                  maintenant.
+                  différence est prélevée aussitôt sur votre moyen de paiement enregistré.
                 </p>
               )}
             </div>

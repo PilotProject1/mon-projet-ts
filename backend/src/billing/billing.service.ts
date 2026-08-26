@@ -51,6 +51,22 @@ function estTarifInexistant(error: unknown): boolean {
   );
 }
 
+/**
+ * Page de paiement à présenter au client quand la facture émise n'a pas pu
+ * être réglée seule.
+ *
+ * Le cas ordinaire est muet : la carte enregistrée est débitée et il n'y a
+ * rien à faire. Il ne reste une page à ouvrir que si la banque demande une
+ * authentification, ou si le paiement a échoué — précisément les moments où
+ * laisser le client sans rien afficher lui ferait croire que tout est réglé.
+ */
+function paiementAFinir(abonnement: Stripe.Subscription): string | null {
+  const facture = abonnement.latest_invoice;
+  if (!facture || typeof facture === 'string') return null;
+  if (facture.status === 'paid' || facture.status === 'void') return null;
+  return facture.hosted_invoice_url ?? null;
+}
+
 /** Périodicité Stripe attendue pour chacune de nos périodicités. */
 const INTERVALLE_STRIPE: Record<BillingInterval, 'month' | 'year'> = {
   mensuel: 'month',
@@ -270,7 +286,7 @@ export class BillingService implements OnApplicationBootstrap {
     userId: string,
     plan: PurchasablePlan,
     interval: BillingInterval = 'mensuel',
-  ): Promise<{ change: boolean }> {
+  ): Promise<{ change: boolean; paiementUrl?: string }> {
     const priceId = stripePriceIdFor(plan, interval);
     if (!priceId) {
       throw new ServiceUnavailableException(
@@ -294,11 +310,17 @@ export class BillingService implements OnApplicationBootstrap {
       this.stripe.subscriptions.update(abonnement.id, {
         items: [{ id: item.id, price: priceId }],
         cancel_at_period_end: false,
-        // Le temps déjà payé est décompté et l'écart apparaît sur la prochaine
-        // facture : personne n'est prélevé sans l'avoir demandé au moment où
-        // il clique, et rien n'est perdu de ce qui a été réglé.
-        proration_behavior: 'create_prorations',
+        /*
+         * Facturé sur-le-champ, et non reporté à l'échéance suivante.
+         *
+         * Les CGV annoncent un prélèvement « d'avance et pour la période
+         * entière » : reporter l'écart aurait donné douze mois d'accès annuel
+         * avant le moindre paiement. Le temps déjà réglé reste décompté — le
+         * client ne paie que la différence.
+         */
+        proration_behavior: 'always_invoice',
         metadata: { ...abonnement.metadata, userId, plan, interval },
+        expand: ['latest_invoice'],
       }),
     );
 
@@ -310,7 +332,7 @@ export class BillingService implements OnApplicationBootstrap {
     this.logger.log(
       `Abonnement ${abonnement.id} : compte ${userId} passé au tarif ${plan} ${interval}`,
     );
-    return { change: true };
+    return { change: true, paiementUrl: paiementAFinir(misAJour) ?? undefined };
   }
 
   /** Portail Stripe : changement de moyen de paiement, factures, résiliation. */
