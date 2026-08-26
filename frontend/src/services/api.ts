@@ -481,6 +481,25 @@ export const billingApi = {
       body: JSON.stringify({ plan, interval }),
     }),
 
+  /**
+   * Change l'offre ou la périodicité d'un abonnement déjà en cours. Rien
+   * n'est prélevé sur-le-champ : l'écart part sur la prochaine facture.
+   */
+  changerOffre: (
+    plan: 'premium' | 'pro',
+    interval: BillingInterval = 'mensuel',
+  ) =>
+    request<{ change: boolean }>('/billing/subscription/change', {
+      method: 'POST',
+      body: JSON.stringify({ plan, interval }),
+    }),
+
+  /** Annule une résiliation programmée. */
+  reprendre: () =>
+    request<{ repris: boolean }>('/billing/subscription/resume', {
+      method: 'POST',
+    }),
+
   /** Portail Stripe : moyen de paiement, factures, résiliation. */
   portal: () => request<{ url: string }>('/billing/portal', { method: 'POST' }),
 }

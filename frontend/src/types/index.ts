@@ -248,6 +248,8 @@ export interface PlanUsage {
     max: number | null
     remaining: number | null
   }
+  /** Périodicité facturée, null sur le plan gratuit. */
+  interval: BillingInterval | null
   /** Échéance de l'abonnement, null sur le plan gratuit. */
   renewsAt: string | null
   /** true si l'abonnement se termine à cette date au lieu d'être reconduit. */

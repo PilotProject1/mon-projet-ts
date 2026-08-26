@@ -76,6 +76,9 @@ export default function Abonnement({
 }: AbonnementProps) {
   const [catalogue, setCatalogue] = useState<PlanCatalogueEntry[]>([])
   const [error, setError] = useState<string | null>(null)
+  // Confirmation d'une action menée sans quitter la page : contrairement au
+  // retour de Stripe, rien dans l'URL ne dirait qu'elle a abouti.
+  const [message, setMessage] = useState<string | null>(null)
   const [pendingPlan, setPendingPlan] = useState<string | null>(null)
   // Renonciation expresse au droit de rétractation, exigée pour un service
   // numérique exécuté immédiatement (art. L221-25 du Code de la consommation).
@@ -117,6 +120,41 @@ export default function Abonnement({
       window.location.href = url
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Impossible d’ouvrir le paiement')
+      setPendingPlan(null)
+    }
+  }
+
+  /**
+   * Change l'offre d'un abonnement déjà en cours, sans passer par le portail
+   * Stripe : celui-ci dépend d'une configuration propre à chaque mode et
+   * refuse de changer d'offre un abonnement en cours de résiliation.
+   */
+  async function handleChangerOffre(plan: 'premium' | 'pro', interval: BillingInterval) {
+    setError(null)
+    setPendingPlan(plan)
+    try {
+      await billingApi.changerOffre(plan, interval)
+      await onPlanChanged()
+      setOffreAConfirmer(null)
+      setMessage('Votre offre a été modifiée.')
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Impossible de changer d’offre')
+    } finally {
+      setPendingPlan(null)
+    }
+  }
+
+  /** Revient sur une résiliation tant que l'abonnement court encore. */
+  async function handleReprendre() {
+    setError(null)
+    setPendingPlan('reprise')
+    try {
+      await billingApi.reprendre()
+      await onPlanChanged()
+      setMessage('Votre abonnement se poursuit : la résiliation est annulée.')
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Impossible de reprendre l’abonnement')
+    } finally {
       setPendingPlan(null)
     }
   }
@@ -169,6 +207,16 @@ export default function Abonnement({
               Votre abonnement est résilié et prend fin le{' '}
               <strong>{DATE_LONGUE.format(echeance)}</strong>. Vous conservez l'accès jusqu'à cette
               date, puis votre compte reviendra à l'offre gratuite. Aucun prélèvement n'interviendra.
+              {/* Revenir sur sa décision doit tenir en un geste, tant que
+                  l'abonnement court : autrement, le seul chemin est d'attendre
+                  la fin de la période, c'est-à-dire de partir. */}
+              <button
+                onClick={handleReprendre}
+                disabled={pendingPlan !== null}
+                className="mt-2 block rounded-md border border-amber-300 bg-white px-3 py-1.5 text-sm font-medium text-amber-900 hover:bg-amber-100 disabled:opacity-60"
+              >
+                {pendingPlan === 'reprise' ? 'Reprise...' : 'Reprendre mon abonnement'}
+              </button>
             </>
           ) : (
             <>
@@ -215,6 +263,11 @@ export default function Abonnement({
       {error && (
         <div className="mb-4 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>
       )}
+      {message && (
+        <div className="mb-4 rounded-md bg-brand-mint px-3 py-2 text-sm text-brand-deep">
+          {message}
+        </div>
+      )}
 
       {/* Bascule mensuel / annuel. Masquée tant qu'aucune offre n'a de tarif
           annuel : un sélecteur sans effet ne ferait qu'égarer. */}
@@ -249,7 +302,14 @@ export default function Abonnement({
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
         {catalogue.map((entry) => {
-          const isCurrent = entry.plan === currentPlan
+          // Le plan seul ne suffit plus à dire « c'est votre offre » : au
+          // même plan, mensuel et annuel sont deux formules distinctes, et
+          // les confondre priverait un abonné mensuel du passage à l'année.
+          const intervalleVise = intervalleDe(entry)
+          const isCurrent =
+            entry.plan === currentPlan &&
+            (planUsage?.interval === null || planUsage?.interval === intervalleVise)
+          const changement = Boolean(hasPaidPlan) && entry.purchasable
           const quota =
             entry.maxDocuments === null
               ? 'Documents illimités'
@@ -299,14 +359,6 @@ export default function Abonnement({
               <div className="mt-auto">
                 {isCurrent ? (
                   <p className="text-center text-sm text-brand-muted">Votre offre</p>
-                ) : entry.purchasable && hasPaidPlan ? (
-                  <button
-                    onClick={handlePortal}
-                    disabled={pendingPlan !== null}
-                    className="w-full rounded-md border border-brand-border px-3 py-2 text-sm font-medium text-brand-deep hover:bg-brand-mint disabled:opacity-60"
-                  >
-                    {pendingPlan === 'portal' ? 'Redirection...' : 'Changer pour cette offre'}
-                  </button>
                 ) : entry.purchasable ? (
                   <button
                     onClick={() => {
@@ -316,7 +368,17 @@ export default function Abonnement({
                     disabled={pendingPlan !== null}
                     className="brand-gradient w-full rounded-md px-3 py-2 text-sm font-semibold text-white disabled:opacity-60"
                   >
-                    {pendingPlan === entry.plan ? 'Redirection...' : `Choisir ${entry.label}`}
+                    {pendingPlan === entry.plan
+                      ? changement
+                        ? 'Modification...'
+                        : 'Redirection...'
+                      : changement
+                        ? entry.plan === currentPlan
+                          ? intervalleVise === 'annuel'
+                            ? 'Passer à l’année'
+                            : 'Passer au mois'
+                          : 'Changer pour cette offre'
+                        : `Choisir ${entry.label}`}
                   </button>
                 ) : (
                   <p className="text-center text-sm text-brand-muted">
@@ -369,7 +431,7 @@ export default function Abonnement({
               id="titre-confirmation"
               className="font-heading text-lg font-semibold text-brand-deep"
             >
-              Confirmer votre abonnement
+              {hasPaidPlan ? 'Confirmer le changement' : 'Confirmer votre abonnement'}
             </h2>
 
             <div className="my-4 rounded-lg bg-brand-mint p-3.5">
@@ -389,6 +451,15 @@ export default function Abonnement({
                   : 'Sans engagement, résiliable à tout moment.'}{' '}
                 TVA non applicable, article 293 B du CGI : ce montant est celui réellement prélevé.
               </p>
+              {hasPaidPlan && (
+                // Rien n'est prélevé au moment du clic : le dire évite de
+                // faire hésiter devant un bouton qu'on croit débiteur.
+                <p className="mt-2 text-xs text-brand-muted">
+                  Le changement prend effet immédiatement. Le temps déjà réglé est décompté et la
+                  différence apparaîtra sur votre prochaine facture : rien n’est prélevé
+                  maintenant.
+                </p>
+              )}
             </div>
 
             <label className="flex cursor-pointer items-start gap-2.5">
@@ -417,7 +488,7 @@ export default function Abonnement({
               </button>
               <button
                 onClick={() =>
-                  handleSubscribe(
+                  (hasPaidPlan ? handleChangerOffre : handleSubscribe)(
                     offreAConfirmer.plan as 'premium' | 'pro',
                     intervalleDe(offreAConfirmer),
                   )
@@ -425,7 +496,13 @@ export default function Abonnement({
                 disabled={!renonciation || pendingPlan !== null}
                 className="brand-gradient rounded-md px-4 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
               >
-                {pendingPlan ? 'Redirection...' : 'Continuer vers le paiement'}
+                {pendingPlan
+                  ? hasPaidPlan
+                    ? 'Modification...'
+                    : 'Redirection...'
+                  : hasPaidPlan
+                    ? 'Confirmer le changement'
+                    : 'Continuer vers le paiement'}
               </button>
             </div>
           </div>

@@ -177,6 +177,8 @@ Le rappel s'affiche alors sur l'écran de l'appareil, application fermée.
 2. Déclare un webhook vers `https://ton-backend.example.com/billing/webhook`, abonné aux événements `checkout.session.completed`, `customer.subscription.created`, `customer.subscription.updated` et `customer.subscription.deleted`. Stripe fournit alors le secret `whsec_...`.
 3. Renseigne les quatre variables ci-dessus côté hébergeur, puis redéploie.
 4. Active le **portail client** dans les réglages Stripe : c'est lui qui permet à un abonné de changer de carte, récupérer ses factures et résilier sans intervention de ta part.
+   Le portail a une **configuration par mode** : celle du mode test ne vaut pas pour la production, et inversement. Sans elle, le bouton « Ouvrir le portail de facturation » échoue.
+   Le changement d'offre, lui, ne dépend pas du portail : il passe par l'API depuis la page Abonnement, et fonctionne y compris sur un abonnement dont la résiliation est programmée — cas que le portail refuse.
 
 > Le plan d'un compte n'est jamais modifié par la redirection de retour après paiement, qu'un visiteur peut atteindre sans avoir payé, mais uniquement par les webhooks dont la signature a été vérifiée. Un abonnement impayé ou résilié ramène automatiquement le compte au plan gratuit.
 

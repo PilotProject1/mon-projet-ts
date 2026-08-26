@@ -189,6 +189,130 @@ export class BillingService implements OnApplicationBootstrap {
     }
   }
 
+  /**
+   * Abonnement Stripe en cours pour un compte, ou null.
+   *
+   * Relu chez Stripe et non en base : entre deux webhooks, seule la réponse
+   * de Stripe dit l'état réel de l'abonnement qu'on s'apprête à modifier.
+   */
+  private async abonnementEnCours(
+    userId: string,
+  ): Promise<Stripe.Subscription> {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user?.stripeSubscriptionId) {
+      throw new BadRequestException(
+        "Aucun abonnement en cours n'est rattaché à ce compte",
+      );
+    }
+    return this.appelStripe(() =>
+      this.stripe.subscriptions.retrieve(user.stripeSubscriptionId!),
+    );
+  }
+
+  /**
+   * Exécute un appel Stripe en traduisant ses pannes en indisponibilité.
+   *
+   * Sans cela, une clé refusée ou un réseau coupé remonte en « erreur interne
+   * du serveur » : l'abonné croit à un bogue de l'application et abandonne,
+   * alors qu'il suffisait de réessayer.
+   */
+  private async appelStripe<T>(action: () => Promise<T>): Promise<T> {
+    try {
+      return await action();
+    } catch (error) {
+      this.logger.error(
+        `Appel Stripe en échec : ${error instanceof Error ? error.message : String(error)}`,
+      );
+      throw new ServiceUnavailableException(
+        "Le service de paiement est momentanément indisponible. Votre abonnement n'a pas été modifié : réessayez dans un moment.",
+      );
+    }
+  }
+
+  /**
+   * Annule une résiliation programmée : l'abonnement reprend son cours.
+   *
+   * Tant qu'il court encore, revenir sur sa décision doit se faire d'un
+   * geste. Sans cela, le seul chemin praticable est d'attendre la fin de la
+   * période puis de tout re-souscrire — c'est-à-dire, en pratique, de partir.
+   */
+  async reprendreAbonnement(userId: string): Promise<{ repris: boolean }> {
+    const abonnement = await this.abonnementEnCours(userId);
+    if (!abonnement.cancel_at_period_end) {
+      // Déjà en cours : le dire plutôt que d'échouer, l'utilisateur ayant
+      // obtenu ce qu'il demandait.
+      return { repris: false };
+    }
+
+    const misAJour = await this.appelStripe(() =>
+      this.stripe.subscriptions.update(abonnement.id, {
+        cancel_at_period_end: false,
+      }),
+    );
+    await this.syncSubscription(misAJour);
+    this.logger.log(`Abonnement ${abonnement.id} repris par le compte ${userId}`);
+    return { repris: true };
+  }
+
+  /**
+   * Change l'offre ou la périodicité d'un abonnement en cours.
+   *
+   * Passe par l'API plutôt que par le portail Stripe : le portail dépend
+   * d'une configuration propre à chaque mode (test et production en ont
+   * chacun une), et refuse de changer d'offre un abonnement dont la
+   * résiliation est programmée. Le client se retrouvait alors sans aucun
+   * chemin pour changer d'offre depuis l'application.
+   *
+   * Une résiliation programmée est levée au passage : demander une autre
+   * offre, c'est vouloir rester.
+   */
+  async changerOffre(
+    userId: string,
+    plan: PurchasablePlan,
+    interval: BillingInterval = 'mensuel',
+  ): Promise<{ change: boolean }> {
+    const priceId = stripePriceIdFor(plan, interval);
+    if (!priceId) {
+      throw new ServiceUnavailableException(
+        `Aucun tarif Stripe n'est configuré pour le plan ${plan} en ${interval}`,
+      );
+    }
+
+    const abonnement = await this.abonnementEnCours(userId);
+    const item = abonnement.items.data[0];
+    if (!item) {
+      throw new BadRequestException(
+        "L'abonnement en cours ne comporte aucune ligne de facturation",
+      );
+    }
+
+    if (item.price.id === priceId && !abonnement.cancel_at_period_end) {
+      return { change: false };
+    }
+
+    const misAJour = await this.appelStripe(() =>
+      this.stripe.subscriptions.update(abonnement.id, {
+        items: [{ id: item.id, price: priceId }],
+        cancel_at_period_end: false,
+        // Le temps déjà payé est décompté et l'écart apparaît sur la prochaine
+        // facture : personne n'est prélevé sans l'avoir demandé au moment où
+        // il clique, et rien n'est perdu de ce qui a été réglé.
+        proration_behavior: 'create_prorations',
+        metadata: { ...abonnement.metadata, userId, plan, interval },
+      }),
+    );
+
+    // Même fonction que pour les webhooks, sur l'objet que Stripe vient de
+    // renvoyer : ce n'est pas la redirection de retour, qu'un visiteur peut
+    // atteindre sans avoir payé, mais la réponse à un appel serveur à serveur.
+    // Le webhook rejouera le même état, sans effet supplémentaire.
+    await this.syncSubscription(misAJour);
+    this.logger.log(
+      `Abonnement ${abonnement.id} : compte ${userId} passé au tarif ${plan} ${interval}`,
+    );
+    return { change: true };
+  }
+
   /** Portail Stripe : changement de moyen de paiement, factures, résiliation. */
   async createPortalSession(userId: string): Promise<{ url: string }> {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
