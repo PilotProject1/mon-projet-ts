@@ -17,6 +17,7 @@ import { CompanyModule } from './company/company.module';
 import { ClientsModule } from './clients/clients.module';
 import { InvoicesModule } from './invoices/invoices.module';
 import { SearchModule } from './search/search.module';
+import { ResiliationModule } from './resiliation/resiliation.module';
 import { RecurrencesModule } from './recurrences/recurrences.module';
 import { BriefingModule } from './briefing/briefing.module';
 import { MailModule } from './mail/mail.module';
@@ -62,6 +63,7 @@ import { AllExceptionsFilter } from './common/all-exceptions.filter';
     SearchModule,
     RecurrencesModule,
     BriefingModule,
+    ResiliationModule,
   ],
   controllers: [AppController],
   providers: [

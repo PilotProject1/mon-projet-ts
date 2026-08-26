@@ -21,6 +21,7 @@ import Securite from './pages/Securite'
 import MentionsLegales from './pages/MentionsLegales'
 import Confidentialite from './pages/Confidentialite'
 import Cgv from './pages/Cgv'
+import Resilier from './pages/Resilier'
 import BrandLogo from './components/BrandLogo'
 import Mesure from './components/Mesure'
 import {
@@ -309,6 +310,9 @@ function App() {
         <Route path="/mentions-legales" element={<MentionsLegales />} />
         <Route path="/confidentialite" element={<Confidentialite />} />
         <Route path="/cgv" element={<Cgv />} />
+        {/* Outil d'appel : accessible connecté ou non, puisqu'il s'adresse
+            d'abord à quelqu'un qui arrive d'une recherche. */}
+        <Route path="/resilier" element={<Resilier />} />
         <Route
           path="/connexion"
           element={

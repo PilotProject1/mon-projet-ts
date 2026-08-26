@@ -153,7 +153,34 @@ export default function Confidentialite() {
         transmise à ce prestataire et l'application bascule sur une analyse locale.
       </p>
 
-      <h2>5. Photographie d'un document</h2>
+      <h2>5. Outil public de résiliation</h2>
+      <p>
+        La page <strong>syneco.pro/resilier</strong> est accessible sans compte. Le document que
+        vous y déposez est lu <strong>en mémoire vive le temps de la requête, puis oublié</strong> :
+        il n'est écrit sur aucun disque, rattaché à aucun compte, et ne peut donc être ni retrouvé
+        ni consulté ensuite — y compris par l'éditeur. Aucun compte n'est créé, aucune adresse
+        e-mail n'est demandée.
+      </p>
+      <p>
+        Le texte extrait de ce document est transmis au prestataire mentionné à l'article 4 pour en
+        déduire l'organisme, la référence et la date d'échéance, puis rédiger la lettre. Lorsque la
+        fonctionnalité n'est pas disponible, l'analyse et la lettre sont produites localement, sans
+        transmission à un tiers. La base légale de ce traitement est votre demande explicite, le
+        dépôt du document valant demande d'analyse.
+      </p>
+      <p>
+        Le nombre d'analyses est limité par adresse IP afin de prévenir les usages abusifs. Cette
+        limitation repose sur un compteur temporaire, non conservé au-delà de sa durée de validité
+        et non associé à votre identité.
+      </p>
+      <p>
+        La lettre produite est un <strong>projet</strong>, à relire et à compléter. Elle n'est jamais
+        envoyée pour vous, et les délais de résiliation applicables dépendent de votre contrat :
+        l'outil reproduit la date lue sur votre document, il ne se prononce pas sur le droit qui
+        vous est applicable.
+      </p>
+
+      <h2>6. Photographie d'un document</h2>
       <p>
         L'application permet de photographier un document, dont les bords sont alors détectés,
         l'image redressée et l'éclairage corrigé. <strong>Ce traitement s'effectue entièrement sur votre
@@ -168,7 +195,7 @@ export default function Confidentialite() {
         pleinement utilisable.
       </p>
 
-      <h2>6. Rappels d'échéance</h2>
+      <h2>7. Rappels d'échéance</h2>
       <p>
         Lorsqu'une échéance approche, un rappel est créé dans l'application et, si vous ne l'avez
         pas désactivé, envoyé à votre adresse e-mail — trente jours, sept jours et un jour avant
@@ -202,7 +229,7 @@ export default function Confidentialite() {
         Échéances ou par le lien figurant à son pied.
       </p>
 
-      <h2>7. Destinataires et sous-traitants</h2>
+      <h2>8. Destinataires et sous-traitants</h2>
       <p>
         Aucun autre utilisateur n'accède à vos données : chaque requête vérifie que vous en êtes le propriétaire. Elles restent en revanche accessibles aux prestataires
         techniques nécessaires au fonctionnement du service :
@@ -279,7 +306,7 @@ export default function Confidentialite() {
         bout (HTTPS).
       </p>
 
-      <h2>8. Données de vos propres clients</h2>
+      <h2>9. Données de vos propres clients</h2>
       <p>
         Si vous utilisez le module de facturation, vous enregistrez des données concernant vos
         clients. Pour ces données, <strong>vous êtes responsable du traitement</strong> et SYNeco
@@ -287,7 +314,7 @@ export default function Confidentialite() {
         base légale pour enregistrer leurs coordonnées.
       </p>
 
-      <h2>9. Durée de conservation</h2>
+      <h2>10. Durée de conservation</h2>
       <ul>
         <li>
           <strong>Données de compte, documents et données associées</strong> : conservés tant que
@@ -297,6 +324,11 @@ export default function Confidentialite() {
           <strong>Après suppression du compte</strong> : l'ensemble de vos documents, échéances,
           contrats, partages, factures et notifications est supprimé automatiquement et de façon
           définitive.
+        </li>
+        <li>
+          <strong>Documents déposés sur l'outil public de résiliation</strong> : aucune
+          conservation. Le fichier n'existe qu'en mémoire vive pendant le traitement de la requête
+          et disparaît avec elle ; il n'apparaît donc dans aucune sauvegarde.
         </li>
         <li>
           <strong>Journaux techniques</strong> : 12 mois au maximum.
@@ -312,7 +344,7 @@ export default function Confidentialite() {
         </li>
       </ul>
 
-      <h2>10. Vos droits</h2>
+      <h2>11. Vos droits</h2>
       <p>
         Conformément au Règlement général sur la protection des données, vous disposez des droits
         d'accès, de rectification, d'effacement, de limitation, d'opposition et de portabilité de vos
@@ -336,7 +368,7 @@ export default function Confidentialite() {
         ).
       </p>
 
-      <h2>11. Cookies et traceurs</h2>
+      <h2>12. Cookies et traceurs</h2>
       <p>
         SYNeco n'utilise <strong>aucun cookie publicitaire</strong> et ne pratique aucun suivi
         d'un site à l'autre. Votre session est maintenue au moyen de jetons d'authentification
@@ -367,7 +399,7 @@ export default function Confidentialite() {
         mesure d'audience.
       </p>
 
-      <h2>12. Sécurité</h2>
+      <h2>13. Sécurité</h2>
       <ul>
         <li>Les échanges entre votre navigateur et le service sont chiffrés (HTTPS).</li>
         <li>
@@ -388,13 +420,13 @@ export default function Confidentialite() {
         </li>
       </ul>
 
-      <h2>13. Mineurs</h2>
+      <h2>14. Mineurs</h2>
       <p>
         Le service n'est pas destiné aux personnes de moins de 15 ans. Aucune inscription n'est
         sollicitée auprès de mineurs.
       </p>
 
-      <h2>14. Modification de cette politique</h2>
+      <h2>15. Modification de cette politique</h2>
       <p>
         Cette politique peut évoluer, notamment en cas d'ajout de nouvelles fonctionnalités. La date
         de dernière mise à jour figure en haut de cette page ; en cas de changement substantiel, vous

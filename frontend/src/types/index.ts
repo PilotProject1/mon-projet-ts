@@ -254,6 +254,19 @@ export interface PlanUsage {
   endsAtPeriodEnd: boolean
 }
 
+/** Résultat de l'outil public de résiliation, accessible sans compte. */
+export interface AnalyseResiliation {
+  prestataire: string | null
+  reference: string | null
+  /** Échéance repérée, au format AAAA-MM-JJ. */
+  echeance: string | null
+  /** Formule du document qui annonce cette date, citée telle quelle. */
+  echeanceLibelle: string | null
+  lettre: { objet: string; corps: string }
+  redigeeParIA: boolean
+  avertissement: string | null
+}
+
 /** Périodicité de facturation proposée à la souscription. */
 export type BillingInterval = 'mensuel' | 'annuel'
 
