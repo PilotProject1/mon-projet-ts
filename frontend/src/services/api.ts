@@ -482,17 +482,21 @@ export const billingApi = {
     }),
 
   /**
-   * Change l'offre ou la périodicité d'un abonnement déjà en cours. Rien
-   * n'est prélevé sur-le-champ : l'écart part sur la prochaine facture.
+   * Change l'offre ou la périodicité d'un abonnement déjà en cours. La
+   * différence est facturée aussitôt sur la carte enregistrée ; `paiementUrl`
+   * n'est renseigné que si ce prélèvement demande une intervention.
    */
   changerOffre: (
     plan: 'premium' | 'pro',
     interval: BillingInterval = 'mensuel',
   ) =>
-    request<{ change: boolean }>('/billing/subscription/change', {
-      method: 'POST',
-      body: JSON.stringify({ plan, interval }),
-    }),
+    request<{ change: boolean; paiementUrl?: string }>(
+      '/billing/subscription/change',
+      {
+        method: 'POST',
+        body: JSON.stringify({ plan, interval }),
+      },
+    ),
 
   /** Annule une résiliation programmée. */
   reprendre: () =>

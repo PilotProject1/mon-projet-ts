@@ -165,15 +165,41 @@ describe('BillingService — reprise et changement d’offre', () => {
     });
 
     /*
-     * Le temps déjà réglé est décompté et l'écart part sur la prochaine
-     * facture : nul n'est prélevé à l'instant du clic.
+     * Les CGV annoncent un prélèvement « d'avance et pour la période
+     * entière ». Reporter l'écart à l'échéance suivante donnerait douze mois
+     * d'accès annuel avant le moindre paiement.
      */
-    it('décompte le temps déjà payé', async () => {
+    it('facture la différence sur-le-champ', async () => {
       const { service, update } = monter();
       await service.changerOffre('u1', 'pro');
-      expect(update.mock.calls[0][1].proration_behavior).toBe(
-        'create_prorations',
+      expect(update.mock.calls[0][1].proration_behavior).toBe('always_invoice');
+    });
+
+    it('ne réclame rien quand la carte enregistrée a suffi', async () => {
+      const { service } = monter(
+        abonnement({
+          latest_invoice: { status: 'paid', hosted_invoice_url: 'https://f' },
+        }),
       );
+      const resultat = await service.changerOffre('u1', 'pro');
+      expect(resultat.paiementUrl).toBeUndefined();
+    });
+
+    /*
+     * Authentification bancaire ou carte refusée : annoncer un changement
+     * abouti laisserait croire que c'est payé.
+     */
+    it('renvoie où finir un paiement resté en suspens', async () => {
+      const { service } = monter(
+        abonnement({
+          latest_invoice: {
+            status: 'open',
+            hosted_invoice_url: 'https://stripe.test/facture',
+          },
+        }),
+      );
+      const resultat = await service.changerOffre('u1', 'pro');
+      expect(resultat.paiementUrl).toBe('https://stripe.test/facture');
     });
 
     it('bascule un abonné mensuel vers l’annuel du même plan', async () => {
