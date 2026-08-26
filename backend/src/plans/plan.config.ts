@@ -122,27 +122,43 @@ export function isPurchasablePlan(value: string): value is PurchasablePlan {
  * variable d'environnement pour que les mêmes sources servent en test et en
  * production.
  */
+// Les noms mensuels restent ceux d'origine : les renommer obligerait à
+// reconfigurer l'hébergeur au même instant que le déploiement, et tout
+// paiement passant entre les deux échouerait.
+const STRIPE_PRICE_ENV: Record<
+  PurchasablePlan,
+  Record<BillingInterval, string>
+> = {
+  premium: {
+    mensuel: 'STRIPE_PRICE_PREMIUM',
+    annuel: 'STRIPE_PRICE_PREMIUM_ANNUEL',
+  },
+  pro: {
+    mensuel: 'STRIPE_PRICE_PRO',
+    annuel: 'STRIPE_PRICE_PRO_ANNUEL',
+  },
+};
+
+/**
+ * Nom de la variable d'environnement portant un tarif, pour que les messages
+ * d'erreur désignent la ligne à corriger chez l'hébergeur plutôt que de
+ * laisser chercher.
+ */
+export function stripePriceEnvVar(
+  plan: PurchasablePlan,
+  interval: BillingInterval,
+): string {
+  return STRIPE_PRICE_ENV[plan][interval];
+}
+
 export function stripePriceIdFor(
   plan: PurchasablePlan,
   interval: BillingInterval = 'mensuel',
 ): string | undefined {
-  // Les noms mensuels restent ceux d'origine : les renommer obligerait à
-  // reconfigurer l'hébergeur au même instant que le déploiement, et tout
-  // paiement passant entre les deux échouerait.
-  const byPlan: Record<
-    PurchasablePlan,
-    Record<BillingInterval, string | undefined>
-  > = {
-    premium: {
-      mensuel: process.env.STRIPE_PRICE_PREMIUM,
-      annuel: process.env.STRIPE_PRICE_PREMIUM_ANNUEL,
-    },
-    pro: {
-      mensuel: process.env.STRIPE_PRICE_PRO,
-      annuel: process.env.STRIPE_PRICE_PRO_ANNUEL,
-    },
-  };
-  return byPlan[plan][interval];
+  // Relu à chaque appel : l'environnement fait foi, pas ce qu'il contenait au
+  // chargement du module.
+  const valeur = process.env[STRIPE_PRICE_ENV[plan][interval]];
+  return valeur === '' ? undefined : valeur;
 }
 
 /**

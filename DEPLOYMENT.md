@@ -173,11 +173,35 @@ Le rappel s'affiche alors sur l'écran de l'appareil, application fermée.
 ## Étape 10 — Paiement des abonnements (Stripe)
 
 1. Crée les deux produits dans Stripe (Premium et Professionnel), chacun avec un tarif **récurrent mensuel en euros**, et relève leur identifiant `price_...`.
+   Pour la formule annuelle, ajoute à ces mêmes produits un second tarif **récurrent annuel** — 49,90 € pour Premium, 199 € pour Professionnel — et relève aussi leur `price_...`.
 2. Déclare un webhook vers `https://ton-backend.example.com/billing/webhook`, abonné aux événements `checkout.session.completed`, `customer.subscription.created`, `customer.subscription.updated` et `customer.subscription.deleted`. Stripe fournit alors le secret `whsec_...`.
 3. Renseigne les quatre variables ci-dessus côté hébergeur, puis redéploie.
 4. Active le **portail client** dans les réglages Stripe : c'est lui qui permet à un abonné de changer de carte, récupérer ses factures et résilier sans intervention de ta part.
 
 > Le plan d'un compte n'est jamais modifié par la redirection de retour après paiement, qu'un visiteur peut atteindre sans avoir payé, mais uniquement par les webhooks dont la signature a été vérifiée. Un abonnement impayé ou résilié ramène automatiquement le compte au plan gratuit.
+
+### Contrôle des tarifs au démarrage
+
+Une erreur de configuration Stripe ne se voit pas à l'œil nu : un identifiant
+collé dans la mauvaise variable reste un identifiant valide, et le paiement
+aboutit — au mauvais montant, ou pour la mauvaise durée. L'application compare
+donc au démarrage chaque tarif configuré à ce que Stripe en dit (existence,
+activité, devise, périodicité, montant) et écrit dans les journaux ce qui ne
+concorde pas :
+
+```
+ERROR [BillingService] Tarif premium annuel (STRIPE_PRICE_PREMIUM_ANNUEL) : périodicité month au lieu de year, montant 4.99 € au lieu de 49.9 €
+```
+
+Après avoir renseigné les tarifs chez l'hébergeur, **relire les journaux de
+démarrage est la vérification la plus rapide** : sans ligne `Tarif …`, tout
+concorde. Le contrôle ne bloque jamais le démarrage — une panne Stripe au
+lancement empêcherait de servir des pages qui n'ont rien à voir avec le
+paiement — et se contente alors d'un avertissement.
+
+Une variable annuelle absente n'est pas une erreur : la formule n'est
+simplement pas vendue, et la bascule « Annuel » disparaît de la page
+Abonnement plutôt que de mener à un paiement refusé.
 
 **Frontend**
 ```

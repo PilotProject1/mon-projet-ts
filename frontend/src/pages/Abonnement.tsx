@@ -53,6 +53,16 @@ function moisOfferts(entry: PlanCatalogueEntry): number | null {
   return mois > 0 ? mois : null
 }
 
+/**
+ * Une offre n'est vendable à l'année que si le serveur en connaît le tarif :
+ * le prix annoncé au catalogue ne suffit pas, il faut qu'il existe aussi chez
+ * Stripe. Sans cette vérification, la bascule « Annuel » mènerait à un
+ * paiement refusé.
+ */
+function offreALAnnee(entry: PlanCatalogueEntry): boolean {
+  return entry.purchasable && entry.purchasableIntervals.includes('annuel')
+}
+
 const DATE_LONGUE = new Intl.DateTimeFormat('fr-FR', {
   day: 'numeric',
   month: 'long',
@@ -129,14 +139,12 @@ export default function Abonnement({
    * paiement refusé côté Stripe.
    */
   function intervalleDe(entry: PlanCatalogueEntry): BillingInterval {
-    return intervalle === 'annuel' && entry.yearlyPrice !== null ? 'annuel' : 'mensuel'
+    return intervalle === 'annuel' && offreALAnnee(entry) ? 'annuel' : 'mensuel'
   }
 
   const currentPlan = planUsage?.plan
   const hasPaidPlan = currentPlan && currentPlan !== 'gratuit'
-  const auMoinsUneOffreAnnuelle = catalogue.some(
-    (entry) => entry.purchasable && entry.yearlyPrice !== null,
-  )
+  const auMoinsUneOffreAnnuelle = catalogue.some(offreALAnnee)
   const echeance = planUsage?.renewsAt ? new Date(planUsage.renewsAt) : null
 
   return (

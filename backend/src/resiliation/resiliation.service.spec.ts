@@ -1,4 +1,5 @@
 import { ResiliationService } from './resiliation.service';
+import type { ExtractedFields } from '../analysis/extraction.service';
 
 /**
  * L'outil public sert de porte d'entrée : un visiteur venu d'une recherche
@@ -7,7 +8,10 @@ import { ResiliationService } from './resiliation.service';
  * la chaîne peut céder sans que le visiteur en pâtisse.
  */
 describe('ResiliationService', () => {
-  const CHAMPS_VIDES = {
+  // Typé sur ExtractedFields plutôt que déduit du littéral : sans cela chaque
+  // champ vaudrait le type « null » et aucun cas de test ne pourrait en
+  // renseigner un.
+  const CHAMPS_VIDES: ExtractedFields = {
     suggestedType: null,
     suggestedProvider: null,
     suggestedDates: [],

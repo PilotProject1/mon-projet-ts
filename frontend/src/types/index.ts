@@ -279,6 +279,13 @@ export interface PlanCatalogueEntry {
   maxDocuments: number | null
   features: PlanFeature[]
   purchasable: boolean
+  /**
+   * Périodicités réellement souscriptibles, telles que le serveur les
+   * connaît. Un prix annoncé au catalogue n'est vendable que si son tarif
+   * existe côté Stripe : c'est cette liste, et non `yearlyPrice`, qui dit ce
+   * qu'on peut proposer au client.
+   */
+  purchasableIntervals: BillingInterval[]
 }
 
 /** Compteurs de suivi du service, réservés à l'éditeur. */
