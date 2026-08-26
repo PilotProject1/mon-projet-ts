@@ -99,6 +99,9 @@ const OFFRES = [
     nom: 'Particulier Premium',
     prix: '4,99 €',
     detail: 'par mois, sans engagement',
+    // Deux mois offerts : le même montant que celui proposé sur la page
+    // Abonnement et facturé par Stripe, jamais un prix d'appel séparé.
+    annuel: '49,90 € par an, soit 2 mois offerts',
     inclus: [
       'Documents illimités',
       'Tout ce que contient l’offre gratuite',
@@ -111,6 +114,7 @@ const OFFRES = [
     nom: 'Professionnel',
     prix: '19,99 €',
     detail: 'par mois, sans engagement',
+    annuel: '199 € par an, soit 2 mois offerts',
     // Pas de devis dans le code : ne pas l'annoncer ici.
     inclus: ['Tout Premium', 'Entreprise et clients', 'Factures émises et suivies'],
   },
@@ -678,6 +682,9 @@ export default function Accueil() {
                 {offre.prix}
               </p>
               <p className="text-[12.5px] text-brand-muted">{offre.detail}</p>
+              {offre.annuel && (
+                <p className="mt-1 text-[12.5px] font-medium text-brand-green">{offre.annuel}</p>
+              )}
               <ul className="mt-4 space-y-2">
                 {offre.inclus.map((ligne) => (
                   <li key={ligne} className="flex items-start gap-2 text-[13px] text-brand-ink">

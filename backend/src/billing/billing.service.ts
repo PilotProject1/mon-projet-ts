@@ -9,6 +9,7 @@ import Stripe from 'stripe';
 import { Plan } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import {
+  intervalForStripePriceId,
   planForStripePriceId,
   stripePriceIdFor,
   type BillingInterval,
@@ -253,18 +254,29 @@ export class BillingService {
     const plan: Plan =
       grantsAccess && planFromPrice ? planFromPrice : 'gratuit';
 
+    // Relue du tarif effectivement facturé : c'est elle qui détermine si
+    // l'avis de reconduction annuelle est dû.
+    const interval =
+      grantsAccess && priceId ? intervalForStripePriceId(priceId) : null;
+
     const periodEnd = item?.current_period_end;
+    const renewsAt =
+      grantsAccess && periodEnd ? new Date(periodEnd * 1000) : null;
+
     await this.prisma.user.update({
       where: { id: user.id },
       data: {
         plan,
         stripeCustomerId: customerId,
         stripeSubscriptionId: grantsAccess ? subscription.id : null,
-        planRenewsAt:
-          grantsAccess && periodEnd ? new Date(periodEnd * 1000) : null,
+        planRenewsAt: renewsAt,
+        planInterval: interval,
         planCancelAtPeriodEnd: grantsAccess
           ? Boolean(subscription.cancel_at_period_end)
           : false,
+        // L'avis vaut pour une échéance précise : dès qu'elle change, il
+        // redevient dû pour la suivante.
+        ...(renewsAt === null ? { renewalNoticeSentFor: null } : {}),
       },
     });
 

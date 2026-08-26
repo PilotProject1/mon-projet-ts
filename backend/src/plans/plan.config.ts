@@ -161,3 +161,21 @@ export function planForStripePriceId(priceId: string): PurchasablePlan | null {
   }
   return null;
 }
+
+/**
+ * Périodicité correspondant à un identifiant de prix Stripe.
+ *
+ * Elle est relue du tarif, et non de ce que le client a demandé : c'est
+ * l'abonnement réellement souscrit qui décide si l'avis de reconduction
+ * annuelle est dû.
+ */
+export function intervalForStripePriceId(
+  priceId: string,
+): BillingInterval | null {
+  for (const plan of PURCHASABLE_PLANS) {
+    for (const interval of BILLING_INTERVALS) {
+      if (stripePriceIdFor(plan, interval) === priceId) return interval;
+    }
+  }
+  return null;
+}

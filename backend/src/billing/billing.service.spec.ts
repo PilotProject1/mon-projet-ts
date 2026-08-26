@@ -86,6 +86,33 @@ describe('BillingService — synchronisation des abonnements', () => {
     expect(data).toMatchObject({ plan, stripeSubscriptionId: 'sub_1' });
   });
 
+  /*
+   * La périodicité est relue du tarif facturé, et c'est elle seule qui
+   * décide si l'avis de reconduction de l'article L. 215-1 est dû. La
+   * confondre priverait l'abonné annuel de l'information qui lui est due, ou
+   * en enverrait une chaque mois à qui paie au mois.
+   */
+  it.each([
+    ['price_premium', 'mensuel'],
+    ['price_premium_annuel', 'annuel'],
+    ['price_pro_annuel', 'annuel'],
+  ])('enregistre la périodicité du tarif %s (%s)', async (priceId, attendu) => {
+    const data = await applySubscription(
+      subscription({ status: 'active', priceId }),
+    );
+    expect(data.planInterval).toBe(attendu);
+  });
+
+  it('oublie la périodicité et l’avis quand l’abonnement s’éteint', async () => {
+    const data = await applySubscription(subscription({ status: 'canceled' }));
+    expect(data).toMatchObject({
+      plan: 'gratuit',
+      planInterval: null,
+      planRenewsAt: null,
+      renewalNoticeSentFor: null,
+    });
+  });
+
   it('distingue les tarifs premium et professionnel', async () => {
     const data = await applySubscription(
       subscription({ status: 'active', priceId: 'price_pro' }),

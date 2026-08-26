@@ -46,19 +46,22 @@ export default function Cgv() {
         <thead>
           <tr>
             <th>Offre</th>
-            <th>Prix mensuel</th>
+            <th>Par mois</th>
+            <th>Par an</th>
             <th>Contenu</th>
           </tr>
         </thead>
         <tbody>
           <tr>
             <td>Gratuit</td>
-            <td>0 €</td>
+            <td className="whitespace-nowrap">0 €</td>
+            <td className="whitespace-nowrap">—</td>
             <td>Jusqu'à 10 documents, échéances, rappels et dépenses récurrentes</td>
           </tr>
           <tr>
             <td>Particulier Premium</td>
-            <td>4,99 €</td>
+            <td className="whitespace-nowrap">4,99 €</td>
+            <td className="whitespace-nowrap">49,90 €</td>
             <td>
               Documents illimités, assistant d'analyse automatique, recherche en langage naturel,
               partage sécurisé
@@ -66,13 +69,18 @@ export default function Cgv() {
           </tr>
           <tr>
             <td>Professionnel</td>
-            <td>19,99 €</td>
+            <td className="whitespace-nowrap">19,99 €</td>
+            <td className="whitespace-nowrap">199 €</td>
             <td>
               Offre Premium, complétée de la gestion d'entreprise, des clients et des factures
             </td>
           </tr>
         </tbody>
       </table>
+      <p>
+        La périodicité — mensuelle ou annuelle — est choisie à la souscription. À contenu
+        identique, la formule annuelle revient au prix de dix mois.
+      </p>
       <p>
         <strong>TVA non applicable, article 293 B du Code général des impôts.</strong> Les prix
         indiqués sont nets : aucune taxe ne s'ajoute au montant affiché, qui est celui réellement
@@ -96,7 +104,8 @@ export default function Cgv() {
         jamais accès à vos données bancaires et n'en conserve aucune.
       </p>
       <p>
-        L'abonnement est prélevé d'avance, à la souscription puis à chaque échéance mensuelle. En cas
+        L'abonnement est prélevé <strong>d'avance et pour la période entière</strong> : à la
+        souscription, puis à chaque échéance — mensuelle ou annuelle selon la formule choisie. En cas
         d'échec de paiement, l'accès aux fonctionnalités payantes est suspendu et le compte revient à
         l'offre gratuite ; les documents déjà déposés restent accessibles dans la limite de cette
         offre.
@@ -104,8 +113,16 @@ export default function Cgv() {
 
       <h2>6. Durée et reconduction</h2>
       <p>
-        L'abonnement est conclu pour un mois, <strong>reconduit tacitement</strong> chaque mois à sa
-        date anniversaire, sans engagement de durée.
+        L'abonnement est conclu pour la période choisie — un mois ou un an — et{' '}
+        <strong>reconduit tacitement</strong> pour une période identique à sa date anniversaire,
+        sans engagement de durée au-delà.
+      </p>
+      <p>
+        Pour un abonnement annuel, conformément à l'article L. 215-1 du Code de la consommation,
+        vous êtes informé par écrit, au plus tôt trois mois et au plus tard un mois avant le terme
+        de la période, de votre faculté de ne pas reconduire le contrat. À défaut d'une telle
+        information, vous pouvez y mettre fin à tout moment à compter de la date de reconduction,
+        les sommes versées après cette date vous étant remboursées au prorata.
       </p>
 
       <h2>7. Résiliation</h2>
