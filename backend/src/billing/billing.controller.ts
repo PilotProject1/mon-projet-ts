@@ -28,7 +28,36 @@ export class BillingController {
   @UseGuards(JwtAuthGuard)
   @Post('checkout')
   checkout(@Body() dto: CheckoutDto, @CurrentUser() user: CurrentUserPayload) {
-    return this.billing.createCheckoutSession(user.userId, dto.plan);
+    return this.billing.createCheckoutSession(
+      user.userId,
+      dto.plan,
+      dto.interval ?? 'mensuel',
+    );
+  }
+
+  /**
+   * Changement d'offre ou de périodicité pour un abonnement déjà en cours.
+   * Distinct de `checkout`, qui ouvre une souscription : ici il n'y a rien à
+   * payer sur-le-champ, la différence part sur la prochaine facture.
+   */
+  @UseGuards(JwtAuthGuard)
+  @Post('subscription/change')
+  changerOffre(
+    @Body() dto: CheckoutDto,
+    @CurrentUser() user: CurrentUserPayload,
+  ) {
+    return this.billing.changerOffre(
+      user.userId,
+      dto.plan,
+      dto.interval ?? 'mensuel',
+    );
+  }
+
+  /** Annule une résiliation programmée. */
+  @UseGuards(JwtAuthGuard)
+  @Post('subscription/resume')
+  reprendre(@CurrentUser() user: CurrentUserPayload) {
+    return this.billing.reprendreAbonnement(user.userId);
   }
 
   @UseGuards(JwtAuthGuard)

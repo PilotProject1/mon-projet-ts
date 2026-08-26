@@ -3,6 +3,7 @@ User-agent: *
 Allow: /$
 Allow: /connexion
 Allow: /inscription
+Allow: /resilier
 Allow: /mentions-legales
 Allow: /confidentialite
 Allow: /cgv

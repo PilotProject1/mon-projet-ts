@@ -89,6 +89,13 @@ Une fois l'URL du frontend connue, mets à jour la variable `FRONTEND_ORIGIN` c�
 
 Déjà en place : [.github/workflows/ci.yml](.github/workflows/ci.yml) fait tourner les tests (backend + frontend) à chaque push sur `main`. Une fois ton dépôt connecté à Vercel et à ton hébergeur backend, chaque push sur `main` redéploie automatiquement — il n'y a rien de plus à configurer.
 
+Les deux plateformes redéploient en parallèle, et rien ne garantit laquelle
+finit la première. L'interface doit donc rester debout devant une API encore
+antérieure : lorsqu'un champ attendu manque, elle s'en passe — la formule
+annuelle, par exemple, n'apparaît qu'une fois le backend à jour — plutôt que
+de tomber. C'est une contrainte à garder en tête pour toute donnée nouvelle
+servie par l'API et lue par le frontend.
+
 ## Checklist des variables d'environnement en production
 
 **Backend**
@@ -113,6 +120,10 @@ STRIPE_SECRET_KEY=...
 STRIPE_WEBHOOK_SECRET=...
 STRIPE_PRICE_PREMIUM=...
 STRIPE_PRICE_PRO=...
+# tarifs annuels (récurrence « yearly » côté Stripe) — sans eux, seul le
+# mensuel est proposé et la bascule « Annuel » ne s'affiche pas
+STRIPE_PRICE_PREMIUM_ANNUEL=...
+STRIPE_PRICE_PRO_ANNUEL=...
 # optionnel — rappels d'échéance par e-mail
 # sans ces variables, les rappels restent visibles dans l'application mais aucun e-mail ne part
 SMTP_HOST=...
@@ -169,11 +180,37 @@ Le rappel s'affiche alors sur l'écran de l'appareil, application fermée.
 ## Étape 10 — Paiement des abonnements (Stripe)
 
 1. Crée les deux produits dans Stripe (Premium et Professionnel), chacun avec un tarif **récurrent mensuel en euros**, et relève leur identifiant `price_...`.
+   Pour la formule annuelle, ajoute à ces mêmes produits un second tarif **récurrent annuel** — 49,90 € pour Premium, 199 € pour Professionnel — et relève aussi leur `price_...`.
 2. Déclare un webhook vers `https://ton-backend.example.com/billing/webhook`, abonné aux événements `checkout.session.completed`, `customer.subscription.created`, `customer.subscription.updated` et `customer.subscription.deleted`. Stripe fournit alors le secret `whsec_...`.
 3. Renseigne les quatre variables ci-dessus côté hébergeur, puis redéploie.
 4. Active le **portail client** dans les réglages Stripe : c'est lui qui permet à un abonné de changer de carte, récupérer ses factures et résilier sans intervention de ta part.
+   Le portail a une **configuration par mode** : celle du mode test ne vaut pas pour la production, et inversement. Sans elle, le bouton « Ouvrir le portail de facturation » échoue.
+   Le changement d'offre, lui, ne dépend pas du portail : il passe par l'API depuis la page Abonnement, et fonctionne y compris sur un abonnement dont la résiliation est programmée — cas que le portail refuse.
 
 > Le plan d'un compte n'est jamais modifié par la redirection de retour après paiement, qu'un visiteur peut atteindre sans avoir payé, mais uniquement par les webhooks dont la signature a été vérifiée. Un abonnement impayé ou résilié ramène automatiquement le compte au plan gratuit.
+
+### Contrôle des tarifs au démarrage
+
+Une erreur de configuration Stripe ne se voit pas à l'œil nu : un identifiant
+collé dans la mauvaise variable reste un identifiant valide, et le paiement
+aboutit — au mauvais montant, ou pour la mauvaise durée. L'application compare
+donc au démarrage chaque tarif configuré à ce que Stripe en dit (existence,
+activité, devise, périodicité, montant) et écrit dans les journaux ce qui ne
+concorde pas :
+
+```
+ERROR [BillingService] Tarif premium annuel (STRIPE_PRICE_PREMIUM_ANNUEL) : périodicité month au lieu de year, montant 4.99 € au lieu de 49.9 €
+```
+
+Après avoir renseigné les tarifs chez l'hébergeur, **relire les journaux de
+démarrage est la vérification la plus rapide** : sans ligne `Tarif …`, tout
+concorde. Le contrôle ne bloque jamais le démarrage — une panne Stripe au
+lancement empêcherait de servir des pages qui n'ont rien à voir avec le
+paiement — et se contente alors d'un avertissement.
+
+Une variable annuelle absente n'est pas une erreur : la formule n'est
+simplement pas vendue, et la bascule « Annuel » disparaît de la page
+Abonnement plutôt que de mener à un paiement refusé.
 
 **Frontend**
 ```

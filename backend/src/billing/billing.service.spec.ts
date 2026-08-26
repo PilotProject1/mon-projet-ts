@@ -16,6 +16,8 @@ describe('BillingService — synchronisation des abonnements', () => {
       ...OLD_ENV,
       STRIPE_PRICE_PREMIUM: 'price_premium',
       STRIPE_PRICE_PRO: 'price_pro',
+      STRIPE_PRICE_PREMIUM_ANNUEL: 'price_premium_annuel',
+      STRIPE_PRICE_PRO_ANNUEL: 'price_pro_annuel',
     };
     prisma = {
       user: {
@@ -66,6 +68,48 @@ describe('BillingService — synchronisation des abonnements', () => {
     expect(data).toMatchObject({
       plan: 'premium',
       stripeSubscriptionId: 'sub_1',
+    });
+  });
+
+  /*
+   * Un abonné à l'année a les mêmes droits qu'un abonné au mois. Si le tarif
+   * annuel n'était pas reconnu, son propre webhook de souscription le
+   * ramènerait au plan gratuit : il aurait payé douze mois pour rien.
+   */
+  it.each([
+    ['price_premium_annuel', 'premium'],
+    ['price_pro_annuel', 'pro'],
+  ])('reconnaît le tarif annuel %s comme le plan %s', async (priceId, plan) => {
+    const data = await applySubscription(
+      subscription({ status: 'active', priceId }),
+    );
+    expect(data).toMatchObject({ plan, stripeSubscriptionId: 'sub_1' });
+  });
+
+  /*
+   * La périodicité est relue du tarif facturé, et c'est elle seule qui
+   * décide si l'avis de reconduction de l'article L. 215-1 est dû. La
+   * confondre priverait l'abonné annuel de l'information qui lui est due, ou
+   * en enverrait une chaque mois à qui paie au mois.
+   */
+  it.each([
+    ['price_premium', 'mensuel'],
+    ['price_premium_annuel', 'annuel'],
+    ['price_pro_annuel', 'annuel'],
+  ])('enregistre la périodicité du tarif %s (%s)', async (priceId, attendu) => {
+    const data = await applySubscription(
+      subscription({ status: 'active', priceId }),
+    );
+    expect(data.planInterval).toBe(attendu);
+  });
+
+  it('oublie la périodicité et l’avis quand l’abonnement s’éteint', async () => {
+    const data = await applySubscription(subscription({ status: 'canceled' }));
+    expect(data).toMatchObject({
+      plan: 'gratuit',
+      planInterval: null,
+      planRenewsAt: null,
+      renewalNoticeSentFor: null,
     });
   });
 

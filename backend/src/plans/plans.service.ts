@@ -8,7 +8,9 @@ import { PrismaService } from '../prisma/prisma.service';
 import {
   FEATURE_LABELS,
   PLANS,
+  isBillingInterval,
   plansWithFeature,
+  type BillingInterval,
   type PlanFeature,
 } from './plan.config';
 
@@ -22,6 +24,12 @@ export interface PlanUsage {
     max: number | null;
     remaining: number | null;
   };
+  /**
+   * Périodicité facturée, null sur le plan gratuit. Elle distingue un abonné
+   * mensuel d'un abonné annuel au même plan : sans elle, l'interface les
+   * confondrait et ne proposerait à personne de passer à l'année.
+   */
+  interval: BillingInterval | null;
   /** Échéance de l'abonnement, null sur le plan gratuit. */
   renewsAt: string | null;
   /** true si l'abonnement se termine à cette date au lieu d'être reconduit. */
@@ -47,7 +55,12 @@ export class PlansService {
     const [user, documentCount] = await Promise.all([
       this.prisma.user.findUnique({
         where: { id: userId },
-        select: { plan: true, planRenewsAt: true, planCancelAtPeriodEnd: true },
+        select: {
+          plan: true,
+          planInterval: true,
+          planRenewsAt: true,
+          planCancelAtPeriodEnd: true,
+        },
       }),
       this.prisma.document.count({ where: { userId } }),
     ]);
@@ -70,6 +83,9 @@ export class PlansService {
             ? null
             : Math.max(definition.maxDocuments - documentCount, 0),
       },
+      interval: isBillingInterval(user.planInterval ?? '')
+        ? (user.planInterval as BillingInterval)
+        : null,
       renewsAt: user.planRenewsAt?.toISOString() ?? null,
       endsAtPeriodEnd: user.planCancelAtPeriodEnd,
     };

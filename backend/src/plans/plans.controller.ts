@@ -1,6 +1,12 @@
 import { Controller, Get, UseGuards } from '@nestjs/common';
 import { PlansService } from './plans.service';
-import { PLANS, PURCHASABLE_PLANS } from './plan.config';
+import {
+  BILLING_INTERVALS,
+  PLANS,
+  PURCHASABLE_PLANS,
+  stripePriceIdFor,
+  type PurchasablePlan,
+} from './plan.config';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import {
   CurrentUser,
@@ -26,11 +32,29 @@ export class PlansController {
   @Get('catalogue')
   getCatalogue() {
     return {
-      plans: (Object.keys(PLANS) as (keyof typeof PLANS)[]).map((key) => ({
-        plan: key,
-        ...PLANS[key],
-        purchasable: (PURCHASABLE_PLANS as readonly string[]).includes(key),
-      })),
+      plans: (Object.keys(PLANS) as (keyof typeof PLANS)[]).map((key) => {
+        const purchasable = (PURCHASABLE_PLANS as readonly string[]).includes(
+          key,
+        );
+        return {
+          plan: key,
+          ...PLANS[key],
+          purchasable,
+          /*
+           * Périodicités réellement souscriptibles, c'est-à-dire celles dont
+           * le tarif Stripe est configuré chez l'hébergeur. Le catalogue
+           * annonce un prix annuel pour les deux offres payantes, mais un
+           * prix n'est vendable que s'il existe chez Stripe : sans cette
+           * distinction, l'interface proposerait une bascule « Annuel » qui
+           * ne mène qu'à un paiement refusé.
+           */
+          purchasableIntervals: purchasable
+            ? BILLING_INTERVALS.filter((interval) =>
+                stripePriceIdFor(key as PurchasablePlan, interval),
+              )
+            : [],
+        };
+      }),
     };
   }
 }

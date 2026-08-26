@@ -87,6 +87,14 @@ model User {
   // true lorsque l'abonnement est résilié mais court jusqu'à son échéance :
   // planRenewsAt désigne alors une date de fin, non de reconduction.
   planCancelAtPeriodEnd Boolean   @default(false)
+  /// Périodicité facturée, « mensuel » ou « annuel », relue du tarif Stripe.
+  /// Nulle sur le plan gratuit. Elle décide à elle seule si l'avis de
+  /// reconduction de l'article L. 215-1 est dû : il ne l'est qu'à l'année.
+  planInterval          String?
+  /// Date de la reconduction pour laquelle l'avis a été envoyé. Comparée à
+  /// planRenewsAt plutôt qu'à un simple booléen : sans cela, l'avis de la
+  /// première année empêcherait celui de la deuxième.
+  renewalNoticeSentFor  DateTime?
 
   // Rappels d'échéance envoyés par e-mail. Désactivable par l'utilisateur ;
   // les rappels restent alors visibles dans l'application.

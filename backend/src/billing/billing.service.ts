@@ -4,18 +4,61 @@ import {
   Logger,
   NotFoundException,
   ServiceUnavailableException,
+  type OnApplicationBootstrap,
 } from '@nestjs/common';
 import Stripe from 'stripe';
 import { Plan } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import {
+  BILLING_INTERVALS,
+  PLANS,
+  PURCHASABLE_PLANS,
+  intervalForStripePriceId,
   planForStripePriceId,
+  stripePriceEnvVar,
   stripePriceIdFor,
+  type BillingInterval,
   type PurchasablePlan,
 } from '../plans/plan.config';
 
+/** Verdict du contrôle d'un tarif configuré. */
+export type StatutTarif =
+  | 'absent'
+  | 'conforme'
+  | 'introuvable'
+  | 'inactif'
+  | 'incoherent';
+
+export interface ControleTarif {
+  plan: PurchasablePlan;
+  interval: BillingInterval;
+  variable: string;
+  statut: StatutTarif;
+  detail?: string;
+}
+
+/**
+ * Distingue « ce tarif n'existe pas » de tout autre échec Stripe (clé
+ * refusée, réseau, panne). La confusion ferait passer une panne passagère
+ * pour une erreur de configuration, et enverrait chercher au mauvais
+ * endroit.
+ */
+function estTarifInexistant(error: unknown): boolean {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    (error as { code?: string }).code === 'resource_missing'
+  );
+}
+
+/** Périodicité Stripe attendue pour chacune de nos périodicités. */
+const INTERVALLE_STRIPE: Record<BillingInterval, 'month' | 'year'> = {
+  mensuel: 'month',
+  annuel: 'year',
+};
+
 @Injectable()
-export class BillingService {
+export class BillingService implements OnApplicationBootstrap {
   private readonly logger = new Logger(BillingService.name);
   private client: Stripe | null = null;
 
@@ -74,11 +117,12 @@ export class BillingService {
   async createCheckoutSession(
     userId: string,
     plan: PurchasablePlan,
+    interval: BillingInterval = 'mensuel',
   ): Promise<{ url: string }> {
-    const priceId = stripePriceIdFor(plan);
+    const priceId = stripePriceIdFor(plan, interval);
     if (!priceId) {
       throw new ServiceUnavailableException(
-        `Aucun tarif Stripe n'est configuré pour le plan ${plan}`,
+        `Aucun tarif Stripe n'est configuré pour le plan ${plan} en ${interval}`,
       );
     }
 
@@ -91,7 +135,7 @@ export class BillingService {
       // Rattache la session au compte : le webhook s'en sert pour retrouver
       // l'utilisateur même si le client Stripe venait à changer.
       client_reference_id: userId,
-      subscription_data: { metadata: { userId, plan } },
+      subscription_data: { metadata: { userId, plan, interval } },
       success_url: `${this.frontendUrl}/abonnement?paiement=succes`,
       cancel_url: `${this.frontendUrl}/abonnement?paiement=annule`,
     } satisfies Stripe.Checkout.SessionCreateParams;
@@ -143,6 +187,130 @@ export class BillingService {
         );
       }
     }
+  }
+
+  /**
+   * Abonnement Stripe en cours pour un compte, ou null.
+   *
+   * Relu chez Stripe et non en base : entre deux webhooks, seule la réponse
+   * de Stripe dit l'état réel de l'abonnement qu'on s'apprête à modifier.
+   */
+  private async abonnementEnCours(
+    userId: string,
+  ): Promise<Stripe.Subscription> {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user?.stripeSubscriptionId) {
+      throw new BadRequestException(
+        "Aucun abonnement en cours n'est rattaché à ce compte",
+      );
+    }
+    return this.appelStripe(() =>
+      this.stripe.subscriptions.retrieve(user.stripeSubscriptionId!),
+    );
+  }
+
+  /**
+   * Exécute un appel Stripe en traduisant ses pannes en indisponibilité.
+   *
+   * Sans cela, une clé refusée ou un réseau coupé remonte en « erreur interne
+   * du serveur » : l'abonné croit à un bogue de l'application et abandonne,
+   * alors qu'il suffisait de réessayer.
+   */
+  private async appelStripe<T>(action: () => Promise<T>): Promise<T> {
+    try {
+      return await action();
+    } catch (error) {
+      this.logger.error(
+        `Appel Stripe en échec : ${error instanceof Error ? error.message : String(error)}`,
+      );
+      throw new ServiceUnavailableException(
+        "Le service de paiement est momentanément indisponible. Votre abonnement n'a pas été modifié : réessayez dans un moment.",
+      );
+    }
+  }
+
+  /**
+   * Annule une résiliation programmée : l'abonnement reprend son cours.
+   *
+   * Tant qu'il court encore, revenir sur sa décision doit se faire d'un
+   * geste. Sans cela, le seul chemin praticable est d'attendre la fin de la
+   * période puis de tout re-souscrire — c'est-à-dire, en pratique, de partir.
+   */
+  async reprendreAbonnement(userId: string): Promise<{ repris: boolean }> {
+    const abonnement = await this.abonnementEnCours(userId);
+    if (!abonnement.cancel_at_period_end) {
+      // Déjà en cours : le dire plutôt que d'échouer, l'utilisateur ayant
+      // obtenu ce qu'il demandait.
+      return { repris: false };
+    }
+
+    const misAJour = await this.appelStripe(() =>
+      this.stripe.subscriptions.update(abonnement.id, {
+        cancel_at_period_end: false,
+      }),
+    );
+    await this.syncSubscription(misAJour);
+    this.logger.log(`Abonnement ${abonnement.id} repris par le compte ${userId}`);
+    return { repris: true };
+  }
+
+  /**
+   * Change l'offre ou la périodicité d'un abonnement en cours.
+   *
+   * Passe par l'API plutôt que par le portail Stripe : le portail dépend
+   * d'une configuration propre à chaque mode (test et production en ont
+   * chacun une), et refuse de changer d'offre un abonnement dont la
+   * résiliation est programmée. Le client se retrouvait alors sans aucun
+   * chemin pour changer d'offre depuis l'application.
+   *
+   * Une résiliation programmée est levée au passage : demander une autre
+   * offre, c'est vouloir rester.
+   */
+  async changerOffre(
+    userId: string,
+    plan: PurchasablePlan,
+    interval: BillingInterval = 'mensuel',
+  ): Promise<{ change: boolean }> {
+    const priceId = stripePriceIdFor(plan, interval);
+    if (!priceId) {
+      throw new ServiceUnavailableException(
+        `Aucun tarif Stripe n'est configuré pour le plan ${plan} en ${interval}`,
+      );
+    }
+
+    const abonnement = await this.abonnementEnCours(userId);
+    const item = abonnement.items.data[0];
+    if (!item) {
+      throw new BadRequestException(
+        "L'abonnement en cours ne comporte aucune ligne de facturation",
+      );
+    }
+
+    if (item.price.id === priceId && !abonnement.cancel_at_period_end) {
+      return { change: false };
+    }
+
+    const misAJour = await this.appelStripe(() =>
+      this.stripe.subscriptions.update(abonnement.id, {
+        items: [{ id: item.id, price: priceId }],
+        cancel_at_period_end: false,
+        // Le temps déjà payé est décompté et l'écart apparaît sur la prochaine
+        // facture : personne n'est prélevé sans l'avoir demandé au moment où
+        // il clique, et rien n'est perdu de ce qui a été réglé.
+        proration_behavior: 'create_prorations',
+        metadata: { ...abonnement.metadata, userId, plan, interval },
+      }),
+    );
+
+    // Même fonction que pour les webhooks, sur l'objet que Stripe vient de
+    // renvoyer : ce n'est pas la redirection de retour, qu'un visiteur peut
+    // atteindre sans avoir payé, mais la réponse à un appel serveur à serveur.
+    // Le webhook rejouera le même état, sans effet supplémentaire.
+    await this.syncSubscription(misAJour);
+    this.logger.log(
+      `Abonnement ${abonnement.id} : compte ${userId} passé au tarif ${plan} ${interval}`,
+    );
+    return { change: true };
   }
 
   /** Portail Stripe : changement de moyen de paiement, factures, résiliation. */
@@ -251,23 +419,164 @@ export class BillingService {
     const plan: Plan =
       grantsAccess && planFromPrice ? planFromPrice : 'gratuit';
 
+    // Relue du tarif effectivement facturé : c'est elle qui détermine si
+    // l'avis de reconduction annuelle est dû.
+    const interval =
+      grantsAccess && priceId ? intervalForStripePriceId(priceId) : null;
+
     const periodEnd = item?.current_period_end;
+    const renewsAt =
+      grantsAccess && periodEnd ? new Date(periodEnd * 1000) : null;
+
     await this.prisma.user.update({
       where: { id: user.id },
       data: {
         plan,
         stripeCustomerId: customerId,
         stripeSubscriptionId: grantsAccess ? subscription.id : null,
-        planRenewsAt:
-          grantsAccess && periodEnd ? new Date(periodEnd * 1000) : null,
+        planRenewsAt: renewsAt,
+        planInterval: interval,
         planCancelAtPeriodEnd: grantsAccess
           ? Boolean(subscription.cancel_at_period_end)
           : false,
+        // L'avis vaut pour une échéance précise : dès qu'elle change, il
+        // redevient dû pour la suivante.
+        ...(renewsAt === null ? { renewalNoticeSentFor: null } : {}),
       },
     });
 
     this.logger.log(
       `Abonnement ${subscription.id} (${subscription.status}) : compte ${user.id} passé en plan ${plan}`,
     );
+  }
+
+  /**
+   * Contrôle des tarifs configurés, au démarrage.
+   *
+   * Une erreur de configuration Stripe ne se voit pas : un identifiant de
+   * prix collé dans la mauvaise variable reste un identifiant valide, et le
+   * paiement aboutit — au mauvais montant, ou pour la mauvaise durée. Le
+   * client, lui, découvre l'écart sur son relevé.
+   *
+   * Ce contrôle ne bloque jamais le démarrage : une panne Stripe au
+   * lancement empêcherait l'application de servir des pages qui n'ont rien à
+   * voir avec le paiement.
+   */
+  async onApplicationBootstrap(): Promise<void> {
+    if (!this.available) return;
+    try {
+      const controles = await this.verifierTarifs();
+      for (const c of controles) {
+        if (c.statut === 'conforme') continue;
+        const message = `Tarif ${c.plan} ${c.interval} (${c.variable}) : ${c.detail ?? c.statut}`;
+        // Un tarif absent est un choix possible — l'offre n'est simplement
+        // pas proposée. Un tarif présent mais faux est une anomalie.
+        if (c.statut === 'absent') this.logger.warn(message);
+        else this.logger.error(message);
+      }
+    } catch (error) {
+      this.logger.warn(
+        `Contrôle des tarifs Stripe impossible au démarrage : ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
+    }
+  }
+
+  /**
+   * Compare chaque tarif configuré à ce que Stripe en dit : existence,
+   * activité, devise, périodicité et montant. Le catalogue du code fait foi —
+   * c'est lui qui est affiché au client et repris dans les CGV.
+   */
+  async verifierTarifs(): Promise<ControleTarif[]> {
+    const controles: ControleTarif[] = [];
+
+    for (const plan of PURCHASABLE_PLANS) {
+      for (const interval of BILLING_INTERVALS) {
+        const variable = stripePriceEnvVar(plan, interval);
+        const priceId = stripePriceIdFor(plan, interval);
+        const attenduEuros =
+          interval === 'annuel'
+            ? PLANS[plan].yearlyPrice
+            : PLANS[plan].monthlyPrice;
+
+        if (!priceId) {
+          // Sans prix annuel, la formule n'est pas vendue : ce n'est une
+          // anomalie que si le catalogue, lui, l'annonce.
+          controles.push({
+            plan,
+            interval,
+            variable,
+            statut: 'absent',
+            detail:
+              attenduEuros !== null
+                ? `le catalogue annonce ${attenduEuros} €, mais aucun identifiant n'est configuré : la formule ne peut pas être souscrite`
+                : 'aucun identifiant configuré',
+          });
+          continue;
+        }
+
+        // Seul « ce tarif n'existe pas » est un verdict. Une clé refusée ou
+        // un réseau coupé ne dit rien des tarifs : on laisse remonter, pour
+        // ne pas accuser une configuration correcte.
+        const price = await this.stripe.prices
+          .retrieve(priceId)
+          .catch((error: unknown) => {
+            if (estTarifInexistant(error)) return null;
+            throw error;
+          });
+
+        if (!price) {
+          controles.push({
+            plan,
+            interval,
+            variable,
+            statut: 'introuvable',
+            detail: `identifiant ${priceId} inconnu de ce compte Stripe (clé de test et clé de production ne partagent pas leurs tarifs)`,
+          });
+          continue;
+        }
+
+        const ecarts: string[] = [];
+        const attendu = INTERVALLE_STRIPE[interval];
+        if (price.recurring?.interval !== attendu) {
+          ecarts.push(
+            `périodicité ${price.recurring?.interval ?? 'ponctuelle'} au lieu de ${attendu}`,
+          );
+        }
+        if (price.currency !== 'eur') {
+          ecarts.push(`devise ${price.currency} au lieu de eur`);
+        }
+        if (attenduEuros !== null) {
+          const centimes = Math.round(attenduEuros * 100);
+          if (price.unit_amount !== centimes) {
+            ecarts.push(
+              `montant ${(price.unit_amount ?? 0) / 100} € au lieu de ${attenduEuros} €`,
+            );
+          }
+        }
+
+        if (!price.active) {
+          controles.push({
+            plan,
+            interval,
+            variable,
+            statut: 'inactif',
+            detail: `le tarif ${priceId} est archivé chez Stripe`,
+          });
+          continue;
+        }
+
+        controles.push({
+          plan,
+          interval,
+          variable,
+          statut: ecarts.length ? 'incoherent' : 'conforme',
+          detail: ecarts.length ? ecarts.join(', ') : undefined,
+        });
+      }
+    }
+
+    return controles;
   }
 }

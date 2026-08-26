@@ -248,19 +248,46 @@ export interface PlanUsage {
     max: number | null
     remaining: number | null
   }
+  /** Périodicité facturée, null sur le plan gratuit. */
+  interval: BillingInterval | null
   /** Échéance de l'abonnement, null sur le plan gratuit. */
   renewsAt: string | null
   /** true si l'abonnement se termine à cette date au lieu d'être reconduit. */
   endsAtPeriodEnd: boolean
 }
 
+/** Résultat de l'outil public de résiliation, accessible sans compte. */
+export interface AnalyseResiliation {
+  prestataire: string | null
+  reference: string | null
+  /** Échéance repérée, au format AAAA-MM-JJ. */
+  echeance: string | null
+  /** Formule du document qui annonce cette date, citée telle quelle. */
+  echeanceLibelle: string | null
+  lettre: { objet: string; corps: string }
+  redigeeParIA: boolean
+  avertissement: string | null
+}
+
+/** Périodicité de facturation proposée à la souscription. */
+export type BillingInterval = 'mensuel' | 'annuel'
+
 export interface PlanCatalogueEntry {
   plan: Plan
   label: string
   monthlyPrice: number
+  /** Prix annuel, null quand le plan n'est pas vendu à l'année. */
+  yearlyPrice: number | null
   maxDocuments: number | null
   features: PlanFeature[]
   purchasable: boolean
+  /**
+   * Périodicités réellement souscriptibles, telles que le serveur les
+   * connaît. Un prix annoncé au catalogue n'est vendable que si son tarif
+   * existe côté Stripe : c'est cette liste, et non `yearlyPrice`, qui dit ce
+   * qu'on peut proposer au client.
+   */
+  purchasableIntervals?: BillingInterval[]
 }
 
 /** Compteurs de suivi du service, réservés à l'éditeur. */

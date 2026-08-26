@@ -21,6 +21,8 @@ import type {
   Briefing,
   PlanUsage,
   PlanCatalogueEntry,
+  BillingInterval,
+  AnalyseResiliation,
   StatistiquesAdmin,
   EtatDeuxiemeFacteur,
   PreparationDeuxiemeFacteur,
@@ -445,12 +447,57 @@ export const planApi = {
   catalogue: () => request<{ plans: PlanCatalogueEntry[] }>('/plan/catalogue'),
 }
 
+/**
+ * Outil public de résiliation : aucune authentification, donc `request()`
+ * n'a pas lieu d'être — il pose un jeton et tente un rafraîchissement au
+ * premier 401, ce qui n'a pas de sens ici.
+ */
+export const resiliationApi = {
+  analyser: async (fichier: File): Promise<AnalyseResiliation> => {
+    const corps = new FormData()
+    corps.append('file', fichier)
+    const reponse = await fetch(`${API_URL}/public/resiliation`, {
+      method: 'POST',
+      body: corps,
+    })
+    if (!reponse.ok) {
+      const detail = await reponse.json().catch(() => null)
+      throw new ApiError(
+        reponse.status,
+        reponse.status === 429
+          ? 'Vous avez analysé plusieurs documents d’affilée. Réessayez dans un quart d’heure.'
+          : (detail?.message ?? 'L’analyse a échoué'),
+      )
+    }
+    return reponse.json() as Promise<AnalyseResiliation>
+  },
+}
+
 export const billingApi = {
   /** Ouvre une session de paiement Stripe et renvoie l'URL de redirection. */
-  checkout: (plan: 'premium' | 'pro') =>
+  checkout: (plan: 'premium' | 'pro', interval: BillingInterval = 'mensuel') =>
     request<{ url: string }>('/billing/checkout', {
       method: 'POST',
-      body: JSON.stringify({ plan }),
+      body: JSON.stringify({ plan, interval }),
+    }),
+
+  /**
+   * Change l'offre ou la périodicité d'un abonnement déjà en cours. Rien
+   * n'est prélevé sur-le-champ : l'écart part sur la prochaine facture.
+   */
+  changerOffre: (
+    plan: 'premium' | 'pro',
+    interval: BillingInterval = 'mensuel',
+  ) =>
+    request<{ change: boolean }>('/billing/subscription/change', {
+      method: 'POST',
+      body: JSON.stringify({ plan, interval }),
+    }),
+
+  /** Annule une résiliation programmée. */
+  reprendre: () =>
+    request<{ repris: boolean }>('/billing/subscription/resume', {
+      method: 'POST',
     }),
 
   /** Portail Stripe : moyen de paiement, factures, résiliation. */
