@@ -73,6 +73,15 @@ export default function Confidentialite() {
             </td>
           </tr>
           <tr>
+            <td>Abonnement (si vous souscrivez)</td>
+            <td>
+              Offre souscrite, périodicité mensuelle ou annuelle, date de reconduction, et les
+              identifiants qui vous désignent chez notre prestataire de paiement. Aucune donnée
+              bancaire n'est enregistrée par SYNeco : le numéro de votre carte est saisi chez
+              Stripe et ne transite jamais par nos serveurs
+            </td>
+          </tr>
+          <tr>
             <td>Partages</td>
             <td>
               Liens de partage créés, leur date d'expiration, et un journal des consultations (date
@@ -269,6 +278,14 @@ export default function Confidentialite() {
             <td>États-Unis</td>
           </tr>
           <tr>
+            <td>Stripe Payments Europe, Ltd.</td>
+            <td>
+              Paiement des abonnements : coordonnées bancaires, factures et état de l'abonnement.
+              SYNeco n'a jamais accès au numéro de votre carte
+            </td>
+            <td>Irlande (Union européenne)</td>
+          </tr>
+          <tr>
             <td>Brevo (Sendinblue SAS)</td>
             <td>Acheminement des rappels d'échéance et du point hebdomadaire par e-mail</td>
             <td>France (Union européenne)</td>
@@ -324,6 +341,13 @@ export default function Confidentialite() {
           <strong>Après suppression du compte</strong> : l'ensemble de vos documents, échéances,
           contrats, partages, factures et notifications est supprimé automatiquement et de façon
           définitive.
+        </li>
+        <li>
+          <strong>Données de paiement</strong> : votre abonnement est résilié et votre client
+          Stripe effacé lors de la suppression du compte — le moyen de paiement enregistré
+          disparaît avec lui. Les factures déjà émises restent conservées chez Stripe : la loi
+          impose à l'éditeur de tenir ses pièces comptables pendant dix ans, et cette obligation
+          ne dépend pas de votre compte.
         </li>
         <li>
           <strong>Documents déposés sur l'outil public de résiliation</strong> : aucune
