@@ -70,6 +70,7 @@ Une fois l'URL du frontend connue, mets à jour la variable `FRONTEND_ORIGIN` c�
 - Si tu as un nom de domaine, connecte-le dans les réglages de ton projet Vercel (frontend) et éventuellement de ton hébergeur backend.
 - HTTPS est mis en place automatiquement par Vercel/Render/Railway (certificat généré et renouvelé pour toi), rien à faire de plus.
 - Pense à mettre à jour `FRONTEND_ORIGIN` avec le domaine final une fois connecté.
+- **Ajoute les deux variantes** (`ton-domaine.example.com` et `www.ton-domaine.example.com`) aux domaines du projet Vercel. Sans redirection entre les deux, Vercel les sert toutes les deux avec le même contenu : un moteur de recherche peut indexer l'une ou l'autre, au hasard, quel que soit ce que dit la balise `canonical`. `vercel.json` redirige déjà `www.syneco.pro` vers `syneco.pro` (règle `redirects` avec condition sur l'en-tête `host`) — pense à l'adapter si tu changes de domaine, plutôt que de chercher l'option côté interface Vercel : elle n'est pas toujours accessible depuis l'app mobile, et le fichier fait la même chose de façon vérifiable et versionnée.
 
 ## Étape 7 — Monitoring
 
