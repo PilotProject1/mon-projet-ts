@@ -61,7 +61,7 @@ export const SECTEURS: Record<Secteur, DescriptionSecteur> = {
     ],
     source: {
       libelle: 'service-public.fr — résiliation d’un contrat de téléphonie',
-      url: 'https://www.service-public.fr/particuliers/vosdroits/F10896',
+      url: 'https://www.service-public.gouv.fr/particuliers/vosdroits/F22486',
     },
   },
   energie: {
