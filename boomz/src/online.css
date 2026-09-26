@@ -1282,3 +1282,42 @@ textarea {
 #lobby.offline #invite-link {
   display: none;
 }
+
+/* ---- Chat vocal ---- */
+
+.voice-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.voice-row .secondary-btn {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.voice-hint:empty {
+  display: none;
+}
+
+.voice-tag {
+  flex: none;
+  padding: 2px 6px;
+  border: none;
+  border-radius: 999px;
+  background: var(--panel);
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1.2;
+}
+
+button.voice-tag {
+  cursor: pointer;
+}
+
+/* Joueur en train de parler : son personnage s'entoure de vert. */
+.player-list li.speaking .avatar,
+.scores li.speaking .avatar {
+  border-radius: 50%;
+  box-shadow: 0 0 0 2px #3ddc84;
+}

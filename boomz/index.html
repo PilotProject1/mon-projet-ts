@@ -184,6 +184,11 @@
           <strong class="arena-name" id="arena-name" hidden></strong>
         </div>
         <ul class="player-list" id="player-list"></ul>
+        <div class="voice-row" id="voice-row" hidden>
+          <button class="secondary-btn" id="voice-btn" type="button">🎙 Rejoindre le vocal</button>
+          <button class="secondary-btn" id="mic-btn" type="button" hidden>Couper mon micro</button>
+        </div>
+        <p class="hint voice-hint" id="voice-hint"></p>
         <p class="hint skin-hint" id="skin-hint"></p>
         <button class="primary-btn" id="ready-btn" type="button">Je suis prêt</button>
         <button class="primary-btn" id="start-btn" type="button">Lancer la partie</button>
@@ -209,6 +214,9 @@
       <header class="hud">
         <ul class="scores" id="scores"></ul>
         <span class="hud-timer" id="timer"></span>
+        <button class="icon-btn small" id="game-mic-btn" type="button" aria-pressed="true" aria-label="Mon micro" hidden>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a3 3 0 0 1 3 3v6a3 3 0 0 1-6 0V6a3 3 0 0 1 3-3z" /><path class="waves" d="M6 11a6 6 0 0 0 12 0M12 17v4" /><path class="cross" d="M4 4l16 16" /></svg>
+        </button>
         <button class="icon-btn small" id="game-sound-btn" type="button" aria-pressed="true" aria-label="Son">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h4l5-4v14l-5-4H4z" /><path class="waves" d="M16 8.5a5 5 0 0 1 0 7M18.5 6a8.5 8.5 0 0 1 0 12" /><path class="cross" d="M16 9l6 6M22 9l-6 6" /></svg>
         </button>

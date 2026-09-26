@@ -11,6 +11,7 @@ import { ARENA_IDS, Bonus, type Direction, type Player } from './game/types';
 import { KeyboardInput } from './input/keyboard';
 import { TouchPad } from './input/touch';
 import { Connection, SnapshotBuffer } from './net/connection';
+import { VoiceChat } from './voice/voice';
 import { nearbyAvailable, NearbyGuestLink, NearbyHostLink, NearbyScanner, type Link, type NearbyHost } from './net/nearby';
 import { MIN_PLAYERS, RECONNECT_GRACE_SECONDS, type LobbyPlayer, type ServerMessage } from './net/protocol';
 import { BONUS_INFO, BONUS_ORDER, paintBonusCanvas } from './render/bonuses';
@@ -285,6 +286,7 @@ function giveUp(message: string): void {
 }
 
 function resetRoomState(): void {
+  voice.leave(false);
   session = null;
   you = null;
   lobby = null;
@@ -305,6 +307,8 @@ function onMessage(message: ServerMessage): void {
         history.replaceState(null, '', `/?salon=${message.room}`);
       }
       reconnectUntil = 0;
+      voice.setIdentity(message.you, message.iceServers);
+      voice.rejoin();
       connectionBanner.hidden = true;
       setText(homeError, '');
       setText(roomCodeText, message.room);
@@ -313,7 +317,11 @@ function onMessage(message: ServerMessage): void {
     case 'lobby':
       lobby = message;
       renderLobby();
+      voice.sync(message.players);
       decideScreen();
+      return;
+    case 'signal':
+      void voice.onSignal(message.from, message.data);
       return;
     case 'snapshot': {
       // Vérifications automatisées : l'état peut être figé sur une scène injectée.
@@ -399,6 +407,7 @@ function renderLobby(): void {
   setText(lobbyHint, hint);
   setText(skinHint, 'Touchez votre personnage pour changer d’apparence.');
   setText(lobbyError, '');
+  renderVoice();
 }
 
 function arenaLabel(choice: ArenaChoice): string {
@@ -407,6 +416,7 @@ function arenaLabel(choice: ArenaChoice): string {
 
 function lobbyRow(player: LobbyPlayer, index: number, host: boolean, self: boolean): HTMLLIElement {
   const item = document.createElement('li');
+  item.dataset.id = player.id;
   const avatar = document.createElement('canvas');
   avatar.className = 'avatar';
   const name = document.createElement('span');
@@ -443,9 +453,78 @@ function lobbyRow(player: LobbyPlayer, index: number, host: boolean, self: boole
   } else {
     item.append(avatar, name, character, status);
   }
+  if (player.voice) item.append(voiceTag(player.id, self));
   requestAnimationFrame(() => drawAvatar(avatar, index, player.skin));
   return item;
 }
+
+// ---- Chat vocal (parties en ligne) ----
+
+const voiceRow = required<HTMLElement>('#voice-row');
+const voiceButton = required<HTMLButtonElement>('#voice-btn');
+const micButton = required<HTMLButtonElement>('#mic-btn');
+const gameMicButton = required<HTMLButtonElement>('#game-mic-btn');
+const voiceHint = required<HTMLElement>('#voice-hint');
+const voice = new VoiceChat((message) => connection?.send(message), renderVoice);
+
+/** Pastille vocale d'un joueur du salon : toucher celle d'un autre joueur le rend muet pour soi. */
+function voiceTag(id: string, self: boolean): HTMLElement {
+  const muted = voice.mutedPlayers.has(id);
+  if (self || !voice.active) {
+    const tag = document.createElement('span');
+    tag.className = 'voice-tag';
+    tag.textContent = self && voice.micMuted ? '🎙✕' : '🎙';
+    tag.setAttribute('aria-label', 'Dans le vocal');
+    return tag;
+  }
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = 'voice-tag';
+  button.textContent = muted ? '🔇' : '🔊';
+  button.setAttribute('aria-label', muted ? 'Réentendre ce joueur' : 'Ne plus entendre ce joueur');
+  button.addEventListener('click', () => {
+    voice.togglePlayer(id);
+    renderLobby();
+  });
+  return button;
+}
+
+/** Met à jour les boutons du vocal et les indicateurs « en train de parler ». */
+function renderVoice(): void {
+  voiceRow.hidden = offline || !VoiceChat.supported;
+  voiceButton.textContent = voice.active ? 'Quitter le vocal' : '🎙 Rejoindre le vocal';
+  micButton.hidden = !voice.active;
+  micButton.textContent = voice.micMuted ? 'Réactiver mon micro' : 'Couper mon micro';
+  gameMicButton.hidden = !voice.active;
+  gameMicButton.setAttribute('aria-pressed', String(!voice.micMuted));
+  for (const item of playerList.querySelectorAll<HTMLElement>('li[data-id]')) {
+    item.classList.toggle('speaking', voice.speaking.has(item.dataset.id ?? ''));
+  }
+  const seats = lobby?.seats ?? {};
+  const speakingSeats = new Set([...voice.speaking].map((id) => seats[id]).filter((seat) => seat !== undefined));
+  for (const item of scoresList.querySelectorAll<HTMLElement>('li[data-seat]')) {
+    item.classList.toggle('speaking', speakingSeats.has(Number(item.dataset.seat)));
+  }
+}
+
+voiceButton.addEventListener('click', async () => {
+  setText(voiceHint, '');
+  if (voice.active) {
+    voice.leave();
+  } else {
+    voiceButton.disabled = true;
+    const error = await voice.join();
+    voiceButton.disabled = false;
+    if (error) setText(voiceHint, error);
+    else if (lobby) voice.sync(lobby.players);
+  }
+  renderLobby();
+});
+micButton.addEventListener('click', () => {
+  voice.toggleMic();
+  renderLobby();
+});
+gameMicButton.addEventListener('click', () => voice.toggleMic());
 
 // ---- Partie ----
 
@@ -467,6 +546,7 @@ function renderScores(match: MatchState): void {
   scoresList.replaceChildren(
     ...match.round.players.map((player) => {
       const item = document.createElement('li');
+      item.dataset.seat = String(player.id);
       if (player.id === me) item.classList.add('me');
       if (!player.alive) item.classList.add('out');
       const avatar = document.createElement('canvas');
@@ -959,6 +1039,8 @@ if (import.meta.env.DEV) {
     boomz: {
       getMatch: () => snapshots.latest(),
       getLobby: () => lobby,
+      /** Chat vocal (vérifications automatisées). */
+      voice,
       /** Injecte un état, pour vérifier l'affichage de situations rares (bonus, détonateur). */
       inject: (match: MatchState) => snapshots.push(match, performance.now()),
       /** Ignore désormais les états du serveur (captures d'écran). */

@@ -1,5 +1,5 @@
 import { ARENA_IDS } from '../game/types';
-import type { ClientMessage, ServerMessage } from './protocol';
+import type { ClientMessage, ServerMessage, VoiceSignal } from './protocol';
 import { createPeer, type Peer, type Room } from './room';
 
 const ROOM_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
@@ -16,6 +16,20 @@ export function newRoomCode(taken: (code: string) => boolean = () => false): str
 export function cleanName(raw: unknown): string {
   const name = typeof raw === 'string' ? raw.replace(/\s+/g, ' ').trim().slice(0, 16) : '';
   return name || 'Joueur';
+}
+
+/** Taille maximale d'un message de mise en relation vocale (description de session comprise). */
+const MAX_SIGNAL_CHARS = 12_000;
+
+function isSignal(data: unknown): data is VoiceSignal {
+  if (typeof data !== 'object' || data === null) return false;
+  const { description, candidate } = data as VoiceSignal;
+  const valid =
+    (description !== undefined &&
+      (description.type === 'offer' || description.type === 'answer') &&
+      typeof description.sdp === 'string') ||
+    (candidate !== undefined && typeof candidate.candidate === 'string');
+  return valid && JSON.stringify(data).length <= MAX_SIGNAL_CHARS;
 }
 
 /** Salons connus de celui qui les héberge : tous ceux du serveur, ou l'unique salon du téléphone hôte. */
@@ -115,6 +129,12 @@ export class Session {
         return;
       case 'detonate':
         room.requestDetonation(peer.id);
+        return;
+      case 'voice':
+        room.setVoice(peer.id, message.on === true);
+        return;
+      case 'signal':
+        if (typeof message.to === 'string' && isSignal(message.data)) room.relaySignal(peer.id, message.to, message.data);
         return;
     }
   }

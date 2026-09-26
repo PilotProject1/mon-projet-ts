@@ -349,6 +349,28 @@ npm run build        # vérification des types + version de production dans dist
 npm start            # serveur de production : sert dist/ et les parties (variable PORT)
 ```
 
+## Chat vocal (parties en ligne)
+
+Dans le salon, « 🎙 Rejoindre le vocal » ouvre le micro (l'iPhone demande
+l'autorisation la première fois). La voix passe **directement d'un téléphone
+à l'autre** (WebRTC, `src/voice/voice.ts`) : le serveur ne fait que relayer
+leur mise en relation (messages `voice` et `signal`), il ne reçoit pas le son
+et rien n'est enregistré. Un lien par autre joueur présent dans le vocal.
+
+- Chacun peut **couper son micro** (dans le salon, ou bouton micro en haut de
+  l'écran en partie) et **ne plus entendre un joueur** (toucher sa pastille
+  🔊 dans le salon). Le personnage de celui qui parle s'entoure de vert.
+- Pas de vocal en local (sans connexion) : on est à côté les uns des autres.
+- **Relais TURN** : certains réseaux mobiles empêchent la liaison directe.
+  Si des joueurs ne s'entendent pas en 4G/5G, renseigner chez Render
+  `TURN_URLS` (adresses séparées par des virgules, ex.
+  `turn:relais.exemple:3478,turns:relais.exemple:443`), `TURN_USERNAME` et
+  `TURN_CREDENTIAL` d'un service de relais : le serveur les transmet aux
+  téléphones, sans nouvelle version de l'application.
+- Vérifié dans le navigateur avec des micros simulés (liaison établie, son
+  transmis dans les deux sens, détection de la parole) ; à vérifier sur de
+  vrais iPhone : qualité, écho, volume du jeu pendant le vocal.
+
 ## Jouer sans internet (Bluetooth et Wi-Fi direct)
 
 Dans l'**application iPhone**, le bouton « Jouer en local »

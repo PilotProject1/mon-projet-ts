@@ -4,14 +4,15 @@ import { createServer, type ServerResponse } from 'node:http';
 import { extname, join, normalize, resolve } from 'node:path';
 import { WebSocketServer, type WebSocket } from 'ws';
 import { TICK_SECONDS } from '../src/game/constants';
-import { WS_PATH, type ClientMessage, type ServerMessage } from '../src/net/protocol';
+import { WS_PATH, type ClientMessage, type IceServer, type ServerMessage } from '../src/net/protocol';
 import { Room } from '../src/net/room';
 import { newRoomCode, Session, type RoomDirectory } from '../src/net/session';
 import { GameStats } from './stats';
 
 const PORT = Number(process.env.PORT ?? 8787);
 const DIST = resolve(import.meta.dirname, '../dist');
-const MAX_MESSAGE_BYTES = 1024;
+// Assez pour une description de session WebRTC (chat vocal).
+const MAX_MESSAGE_BYTES = 16 * 1024;
 /** Identifiant de l'application installée (voir capacitor.config.ts). */
 const APP_ID = 'fr.boomz.jeu';
 
@@ -29,9 +30,23 @@ const CONTENT_TYPES: Record<string, string> = {
 const rooms = new Map<string, Room>();
 const stats = new GameStats();
 
+/**
+ * Serveurs qui aident les téléphones à se joindre pour le chat vocal : STUN
+ * public, plus un relais TURN si l'hébergeur en fournit un (certains réseaux
+ * mobiles empêchent la liaison directe).
+ */
+const iceServers: IceServer[] = [{ urls: 'stun:stun.l.google.com:19302' }];
+if (process.env.TURN_URLS) {
+  iceServers.push({
+    urls: process.env.TURN_URLS.split(',').map((url) => url.trim()),
+    username: process.env.TURN_USERNAME,
+    credential: process.env.TURN_CREDENTIAL,
+  });
+}
+
 const directory: RoomDirectory = {
   create() {
-    const room = new Room(newRoomCode((code) => rooms.has(code)), undefined, stats);
+    const room = new Room(newRoomCode((code) => rooms.has(code)), undefined, stats, iceServers);
     rooms.set(room.code, room);
     return room;
   },

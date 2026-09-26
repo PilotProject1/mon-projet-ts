@@ -57,6 +57,8 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Boomz utilise le micro pour le chat vocal avec les joueurs de votre partie en ligne.</string>
 	<key>NSLocalNetworkUsageDescription</key>
 	<string>Boomz cherche les téléphones à proximité pour jouer ensemble sans internet.</string>
 	<key>NSBonjourServices</key>

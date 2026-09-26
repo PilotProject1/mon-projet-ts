@@ -17,6 +17,24 @@ export interface LobbyPlayer {
   ready: boolean;
   /** Apparence choisie (cosmétique). */
   skin: number;
+  /** Présent dans le chat vocal du salon. */
+  voice: boolean;
+}
+
+/**
+ * Message de mise en relation WebRTC entre deux téléphones (chat vocal) :
+ * description de session ou candidat réseau. Le serveur le relaie sans le lire.
+ */
+export interface VoiceSignal {
+  description?: { type: 'offer' | 'answer'; sdp: string };
+  candidate?: { candidate: string; sdpMid?: string | null; sdpMLineIndex?: number | null };
+}
+
+/** Serveurs STUN/TURN proposés aux téléphones pour se joindre (chat vocal). */
+export interface IceServer {
+  urls: string | string[];
+  username?: string;
+  credential?: string;
 }
 
 export type ClientMessage =
@@ -36,10 +54,14 @@ export type ClientMessage =
   /** Déclenche ses bombes (bonus Détonateur). */
   | { type: 'detonate' }
   /** Mesure de la latence : le serveur renvoie aussitôt `sent`. */
-  | { type: 'ping'; sent: number };
+  | { type: 'ping'; sent: number }
+  /** Rejoint ou quitte le chat vocal du salon. */
+  | { type: 'voice'; on: boolean }
+  /** Mise en relation vocale avec un autre joueur du salon (relayée telle quelle). */
+  | { type: 'signal'; to: string; data: VoiceSignal };
 
 export type ServerMessage =
-  | { type: 'welcome'; room: string; you: string; token: string }
+  | { type: 'welcome'; room: string; you: string; token: string; iceServers?: IceServer[] }
   | {
       type: 'lobby';
       host: string;
@@ -52,5 +74,6 @@ export type ServerMessage =
     }
   | { type: 'snapshot'; match: MatchState }
   | { type: 'pong'; sent: number }
+  | { type: 'signal'; from: string; data: VoiceSignal }
   /** `closed` : l'hôte d'une partie sans internet a fermé son salon. */
   | { type: 'error'; message: string; code?: 'resume-failed' | 'closed' };

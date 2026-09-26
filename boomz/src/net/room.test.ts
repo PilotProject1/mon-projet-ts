@@ -144,4 +144,42 @@ describe('salon', () => {
     const { alice } = startedRoom();
     expect(JSON.stringify(alice.inbox)).not.toContain('secret-bob');
   });
+
+  describe('chat vocal', () => {
+    const offer = { description: { type: 'offer' as const, sdp: 'v=0' } };
+
+    it('annonce qui est dans le vocal et relaie la mise en relation entre eux seuls', () => {
+      const room = new Room('ABCDE', () => 1, null, [{ urls: 'stun:exemple' }]);
+      const alice = fakePeer('alice');
+      const bob = fakePeer('bob');
+      const carol = fakePeer('carol');
+      room.join(alice);
+      room.join(bob);
+      room.join(carol);
+      expect(lastOf(alice, 'welcome').iceServers).toEqual([{ urls: 'stun:exemple' }]);
+
+      room.setVoice('alice', true);
+      room.setVoice('bob', true);
+      expect(lastOf(carol, 'lobby').players.map((player) => player.voice)).toEqual([true, true, false]);
+
+      room.relaySignal('alice', 'bob', offer);
+      expect(lastOf(bob, 'signal')).toEqual({ type: 'signal', from: 'alice', data: offer });
+      // Carol n'est pas dans le vocal : rien ne lui parvient, et elle ne peut rien envoyer.
+      room.relaySignal('alice', 'carol', offer);
+      room.relaySignal('carol', 'bob', offer);
+      expect(carol.inbox.some((message) => message.type === 'signal')).toBe(false);
+      expect(bob.inbox.filter((message) => message.type === 'signal')).toHaveLength(1);
+    });
+
+    it('sort du vocal un joueur dont la connexion est perdue', () => {
+      const room = new Room('ABCDE');
+      const alice = fakePeer('alice');
+      const bob = fakePeer('bob');
+      room.join(alice);
+      room.join(bob);
+      room.setVoice('bob', true);
+      room.disconnect('bob');
+      expect(lastOf(alice, 'lobby').players[1].voice).toBe(false);
+    });
+  });
 });

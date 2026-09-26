@@ -90,9 +90,13 @@ captures sont dans [`captures/`](captures/), aux formats exigés.
 ## App Store
 
 - **Catégorie** : Jeux › Action (secondaire : Famille ou Arcade).
-- **Âge** : violence de dessin animé ou fantastique « rare/légère » → 9+.
+- **Âge** : violence de dessin animé ou fantastique « rare/légère », et
+  **communication entre utilisateurs** (chat vocal non modéré, limité aux
+  joueurs d'un salon privé, que chacun peut rendre muet) → probablement 12+.
 - **Confidentialité de l'app** : « Données non collectées » (le pseudo n'est
-  utilisé que le temps de la partie, sans être conservé).
+  utilisé que le temps de la partie, sans être conservé ; la voix du chat
+  vocal passe en direct d'un téléphone à l'autre, sans être enregistrée ni
+  reçue par l'éditeur).
 - **URL de confidentialité** : https://boomz.onrender.com/confidentialite
 - **URL d'assistance** : la même page (contact : boomz-service@outlook.com).
 - **Captures** : `captures/iphone-6.9-*.png` (1290 × 2796 et 2796 × 1290,

@@ -2,7 +2,15 @@ import { SKIN_COUNT, TICK_RATE } from '../game/constants';
 import { createMatch, stepMatch, type ArenaChoice, type MatchState } from '../game/match';
 import { eliminatePlayer } from '../game/round';
 import type { Direction, PlayerInput, RoundEvent } from '../game/types';
-import { MAX_PLAYERS, MIN_PLAYERS, RECONNECT_GRACE_SECONDS, SNAPSHOT_EVERY_TICKS, type ServerMessage } from './protocol';
+import {
+  MAX_PLAYERS,
+  MIN_PLAYERS,
+  RECONNECT_GRACE_SECONDS,
+  SNAPSHOT_EVERY_TICKS,
+  type IceServer,
+  type ServerMessage,
+  type VoiceSignal,
+} from './protocol';
 
 /** Statistiques de jeu tenues par le serveur en ligne (voir server/stats.ts). */
 export interface RoomStats {
@@ -34,13 +42,15 @@ export interface Peer {
   ready: boolean;
   /** Apparence choisie (cosmétique). */
   skin: number;
+  /** Présent dans le chat vocal du salon. */
+  voice: boolean;
   /** Horloge du salon au moment de la coupure. */
   disconnectedAt: number | null;
   send(message: ServerMessage): void;
 }
 
 export function createPeer(id: string, token: string, name: string, send: (message: ServerMessage) => void): Peer {
-  return { id, token, name, connected: true, ready: false, skin: 0, disconnectedAt: null, send };
+  return { id, token, name, connected: true, ready: false, skin: 0, voice: false, disconnectedAt: null, send };
 }
 
 /**
@@ -64,15 +74,23 @@ export class Room {
   private matchTicks = 0;
   private readonly randomSeed: () => number;
   private readonly stats: RoomStats | null;
+  /** Serveurs STUN/TURN transmis aux téléphones pour le chat vocal. */
+  private readonly iceServers: IceServer[];
 
   constructor(
     code: string,
     randomSeed: () => number = () => Math.floor(Math.random() * 2 ** 31),
     stats: RoomStats | null = null,
+    iceServers: IceServer[] = [],
   ) {
     this.code = code;
     this.randomSeed = randomSeed;
     this.stats = stats;
+    this.iceServers = iceServers;
+  }
+
+  private welcome(peer: Peer): ServerMessage {
+    return { type: 'welcome', room: this.code, you: peer.id, token: peer.token, iceServers: this.iceServers };
   }
 
   get isEmpty(): boolean {
@@ -88,7 +106,7 @@ export class Room {
     if (this.peers.length >= MAX_PLAYERS) return `Ce salon est complet (${MAX_PLAYERS} joueurs maximum).`;
     this.peers.push(peer);
     this.hostId ??= peer.id;
-    peer.send({ type: 'welcome', room: this.code, you: peer.id, token: peer.token });
+    peer.send(this.welcome(peer));
     this.broadcastLobby();
     if (this.match) peer.send(snapshotMessage(this.match));
     return null;
@@ -101,7 +119,7 @@ export class Room {
     peer.connected = true;
     peer.disconnectedAt = null;
     peer.send = send;
-    peer.send({ type: 'welcome', room: this.code, you: peer.id, token: peer.token });
+    peer.send(this.welcome(peer));
     this.broadcastLobby();
     if (this.match) peer.send(snapshotMessage(this.match));
     return peer;
@@ -113,6 +131,8 @@ export class Room {
     if (!peer || !peer.connected) return;
     peer.connected = false;
     peer.disconnectedAt = this.clock;
+    // Le téléphone rejoindra de lui-même le vocal à son retour.
+    peer.voice = false;
     const seat = this.seats.get(peerId);
     if (seat !== undefined) this.directions[seat] = null;
     this.broadcastLobby();
@@ -138,6 +158,22 @@ export class Room {
     if (!peer || this.inMatch || !Number.isInteger(skin) || skin < 0 || skin >= SKIN_COUNT) return;
     peer.skin = skin;
     this.broadcastLobby();
+  }
+
+  /** Entre dans le chat vocal du salon, ou en sort (possible aussi en pleine partie). */
+  setVoice(peerId: string, on: boolean): void {
+    const peer = this.peers.find((candidate) => candidate.id === peerId);
+    if (!peer || peer.voice === on) return;
+    peer.voice = on;
+    this.broadcastLobby();
+  }
+
+  /** Relaie la mise en relation vocale entre deux joueurs présents dans le vocal. */
+  relaySignal(fromId: string, toId: string, data: VoiceSignal): void {
+    const from = this.peers.find((candidate) => candidate.id === fromId);
+    const to = this.peers.find((candidate) => candidate.id === toId);
+    if (!from?.voice || !to?.voice || !to.connected || from === to) return;
+    to.send({ type: 'signal', from: fromId, data });
   }
 
   setArena(peerId: string, arena: ArenaChoice): void {
@@ -234,7 +270,7 @@ export class Room {
     this.broadcast({
       type: 'lobby',
       host: this.hostId ?? '',
-      players: this.peers.map(({ id, name, connected, ready, skin }) => ({ id, name, connected, ready, skin })),
+      players: this.peers.map(({ id, name, connected, ready, skin, voice }) => ({ id, name, connected, ready, skin, voice })),
       seats: Object.fromEntries(this.seats),
       inMatch: this.inMatch,
       arena: this.arena,
