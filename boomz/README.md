@@ -255,8 +255,11 @@ l'application embarque le jeu compilé et se connecte à
   du compte développeur), et une clé d'API App Store Connect de rôle
   **Admin** (Utilisateurs et accès › Intégrations › Clés) : `ASC_KEY_ID`,
   `ASC_ISSUER_ID` et `ASC_KEY_P8` (contenu complet du fichier `.p8`, qui ne
-  se télécharge qu'une fois). Les certificats et profils de signature sont
-  alors créés et gérés par Apple. L'application cible l'iPhone seul (elle
+  se télécharge qu'une fois). La signature est préparée à chaque envoi par
+  l'API App Store Connect (`scripts/asc-signing.mjs`) : un certificat de
+  distribution neuf (le plus ancien est révoqué si Apple en refuse un de
+  plus, sans effet sur les versions déjà envoyées) et le profil « Boomz App
+  Store (GitHub) ». L'application cible l'iPhone seul (elle
   tourne aussi sur iPad, en mode iPhone) : pas de captures iPad à fournir.
 - **En local** : `npm run build:app` (compile le jeu pour l'application et le
   copie dans les projets natifs), puis `npx cap open android` (Android Studio)
