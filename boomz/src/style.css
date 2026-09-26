@@ -1,0 +1,335 @@
+:root {
+  --bg: #1b1f2e;
+  --panel: #252a3d;
+  --panel-border: #363d57;
+  --text: #f3f4f8;
+  --muted: #a3a9c2;
+  --accent: #ffcf33;
+  --bomb: #ef5a2e;
+  --pad-min: 150px;
+  --board-ratio: calc(13 / 11);
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  background: var(--bg);
+  color: var(--text);
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  /* Aucun geste du navigateur (zoom, défilement) ne doit voler un contact au jeu. */
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+button {
+  font: inherit;
+}
+
+/* ---- Disposition : portrait (téléphone posé entre deux joueurs face à face) ---- */
+
+.layout {
+  display: grid;
+  grid-template-areas: 'p2' 'board' 'p1';
+  grid-template-rows: minmax(var(--pad-min), 1fr) auto minmax(var(--pad-min), 1fr);
+  grid-template-columns: minmax(0, 1fr);
+  height: 100dvh;
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+}
+
+.pad[data-player='0'] {
+  grid-area: p1;
+}
+
+.pad[data-player='1'] {
+  grid-area: p2;
+  /* Le joueur 2 est assis en face : sa manette est tournée vers lui. */
+  transform: rotate(180deg);
+}
+
+.board {
+  grid-area: board;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  min-height: 0;
+  padding: 4px 8px;
+}
+
+.board-frame {
+  position: relative;
+  width: min(100%, (100dvh - 2 * var(--pad-min) - 16px) * var(--board-ratio));
+  aspect-ratio: 13 / 11;
+}
+
+/* ---- Disposition : paysage (téléphone tenu à deux, ou ordinateur) ---- */
+
+@media (orientation: landscape) {
+  .layout {
+    grid-template-areas: 'p1 board p2';
+    grid-template-rows: minmax(0, 1fr);
+    grid-template-columns: minmax(var(--pad-min), 1fr) auto minmax(var(--pad-min), 1fr);
+  }
+
+  .pad[data-player='1'] {
+    transform: none;
+  }
+
+  .board-frame {
+    width: min(
+      (100dvh - 16px) * var(--board-ratio),
+      100vw - 2 * var(--pad-min) - 32px,
+      1100px
+    );
+  }
+
+  .pad-controls {
+    flex-direction: column;
+  }
+}
+
+canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 10px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+}
+
+/* ---- Manettes ---- */
+
+.pad {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  min-height: 0;
+  padding: 10px 12px;
+}
+
+.pad-info {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 10px;
+  min-width: 0;
+  font-size: 14px;
+}
+
+.pad-name {
+  font-weight: 700;
+}
+
+.pad[data-player='0'] .pad-name {
+  color: #7fa9ff;
+}
+
+.pad[data-player='1'] .pad-name {
+  color: #ff8a84;
+}
+
+.pad-score {
+  letter-spacing: 2px;
+  color: var(--accent);
+}
+
+.pad-status {
+  flex-basis: 100%;
+  min-width: 0;
+  min-height: 1.2em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 600;
+}
+
+.pad-keys {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+@media (hover: none) {
+  .pad-keys {
+    display: none;
+  }
+}
+
+.pad-controls {
+  display: flex;
+  flex: 1;
+  gap: 12px;
+  min-height: 0;
+  align-items: stretch;
+}
+
+.stick-zone {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  min-height: 90px;
+  overflow: hidden;
+  border: 2px dashed var(--panel-border);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.03);
+  touch-action: none;
+}
+
+.stick-hint {
+  position: absolute;
+  left: 50%;
+  bottom: 6px;
+  transform: translateX(-50%);
+  font-size: 11px;
+  color: var(--muted);
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.stick-base {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 92px;
+  height: 92px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.08);
+  border: 2px solid rgba(255, 255, 255, 0.18);
+  transform: translate(-50%, -50%);
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+.stick-base.active {
+  opacity: 1;
+}
+
+.stick-knob {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--text);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.4);
+  transform: translate(-50%, -50%);
+}
+
+.bomb-btn {
+  flex: none;
+  align-self: center;
+  width: 88px;
+  height: 88px;
+  border: none;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #ff8a5c, var(--bomb) 60%, #b83a17);
+  color: #fff;
+  font-weight: 800;
+  font-size: 15px;
+  box-shadow: 0 6px 0 #8f2c10, 0 10px 18px rgba(0, 0, 0, 0.4);
+  touch-action: none;
+  cursor: pointer;
+}
+
+.bomb-btn.pressed {
+  transform: translateY(4px);
+  box-shadow: 0 2px 0 #8f2c10, 0 4px 10px rgba(0, 0, 0, 0.4);
+}
+
+/* ---- Superpositions sur l'arène ---- */
+
+.overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px;
+  border-radius: 10px;
+  background: rgba(15, 18, 30, 0.74);
+}
+
+.overlay[hidden],
+.countdown[hidden],
+.hud-timer[hidden] {
+  display: none;
+}
+
+.overlay-card {
+  max-width: 440px;
+  text-align: center;
+}
+
+.title {
+  margin: 0 0 6px;
+  font-size: clamp(32px, 8vw, 64px);
+  font-weight: 900;
+  letter-spacing: 1px;
+  color: var(--accent);
+  text-shadow: 0 4px 0 #b8541c;
+}
+
+.overlay-text {
+  margin: 0 0 14px;
+  font-size: clamp(13px, 2.4vw, 16px);
+  line-height: 1.4;
+  color: var(--text);
+}
+
+.primary-btn {
+  padding: 12px 30px;
+  border: none;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #2a1d00;
+  font-weight: 800;
+  font-size: 17px;
+  box-shadow: 0 4px 0 #b88a00;
+  cursor: pointer;
+}
+
+.primary-btn:active {
+  transform: translateY(3px);
+  box-shadow: 0 1px 0 #b88a00;
+}
+
+.countdown {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: clamp(48px, 14vw, 120px);
+  font-weight: 900;
+  color: #fff;
+  text-shadow: 0 5px 0 rgba(0, 0, 0, 0.45);
+  pointer-events: none;
+}
+
+.hud-timer {
+  position: absolute;
+  top: 6px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: rgba(15, 18, 30, 0.7);
+  font-size: 13px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  pointer-events: none;
+}
+
+.hud-timer.danger {
+  color: #ff6b5a;
+}
