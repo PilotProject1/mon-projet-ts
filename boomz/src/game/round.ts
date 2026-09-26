@@ -5,6 +5,7 @@ import {
   BASE_SPEED,
   BOMB_FUSE_TICKS,
   BOMB_SLIDE_SPEED,
+  BONUS_DURATION_TICKS,
   CONVEYOR_SPEED,
   CORNER_ASSIST,
   FLAME_TICKS,
@@ -56,6 +57,8 @@ export function createPlayer(id: number, x: number, y: number): Player {
     wallPass: false,
     bombPass: false,
     kick: false,
+    buffUntil: new Array<number>(9).fill(0),
+    buffLevel: new Array<number>(9).fill(0),
     teleportLock: -1,
     diedAt: null,
   };
@@ -267,32 +270,52 @@ function killPlayer(state: RoundState, player: Player, events: RoundEvent[]): vo
   events.push({ type: 'playerDied', player: player.id });
 }
 
-export function applyBonus(player: Player, bonus: Bonus): void {
-  switch (bonus) {
-    case Bonus.Flame:
-      player.range = Math.min(MAX_RANGE, player.range + 1);
-      break;
-    case Bonus.Bomb:
-      player.maxBombs = Math.min(MAX_BOMBS, player.maxBombs + 1);
-      break;
-    case Bonus.Speed:
-      player.speed = Math.min(MAX_SPEED, player.speed + SPEED_STEP);
-      break;
-    case Bonus.Vest:
-      player.vest = true;
-      break;
-    case Bonus.Detonator:
-      player.detonator = true;
-      break;
-    case Bonus.WallPass:
-      player.wallPass = true;
-      break;
-    case Bonus.BombPass:
-      player.bombPass = true;
-      break;
-    case Bonus.Kick:
-      player.kick = true;
-      break;
+/** Niveau maximal des bonus cumulables (au-delà, seul le compteur est relancé). */
+const MAX_LEVEL: Partial<Record<Bonus, number>> = {
+  [Bonus.Flame]: MAX_RANGE - BASE_RANGE,
+  [Bonus.Bomb]: MAX_BOMBS - BASE_MAX_BOMBS,
+  [Bonus.Speed]: Math.round((MAX_SPEED - BASE_SPEED) / SPEED_STEP),
+};
+
+/**
+ * Ramassage d'un bonus : actif pendant 10 secondes à partir de `tick`.
+ * Reprendre le même relance le compteur (et monte d'un niveau s'il se cumule).
+ */
+export function applyBonus(player: Player, bonus: Bonus, tick = 0): void {
+  if (bonus === Bonus.None) return;
+  const active = player.buffUntil[bonus] > tick;
+  const max = MAX_LEVEL[bonus] ?? 1;
+  player.buffLevel[bonus] = Math.min(max, (active ? player.buffLevel[bonus] : 0) + 1);
+  player.buffUntil[bonus] = tick + BONUS_DURATION_TICKS;
+  refreshBuffs(player, tick);
+}
+
+/** Recalcule les caractéristiques du joueur d'après ses bonus encore actifs. */
+function refreshBuffs(player: Player, tick: number): void {
+  const level = (bonus: Bonus) => (player.buffUntil[bonus] > tick ? player.buffLevel[bonus] : 0);
+  player.range = BASE_RANGE + level(Bonus.Flame);
+  player.maxBombs = BASE_MAX_BOMBS + level(Bonus.Bomb);
+  player.speed = Math.min(MAX_SPEED, BASE_SPEED + level(Bonus.Speed) * SPEED_STEP);
+  player.vest = level(Bonus.Vest) > 0;
+  player.detonator = level(Bonus.Detonator) > 0;
+  player.wallPass = level(Bonus.WallPass) > 0;
+  player.bombPass = level(Bonus.BombPass) > 0;
+  player.kick = level(Bonus.Kick) > 0;
+}
+
+/** Fin des bonus arrivés à expiration ; les bombes télécommandées redeviennent normales. */
+function expireBuffs(state: RoundState): void {
+  for (const player of state.players) {
+    const hadDetonator = player.detonator;
+    refreshBuffs(player, state.tick);
+    if (hadDetonator && !player.detonator) {
+      for (const bomb of state.bombs) {
+        if (bomb.owner === player.id && bomb.remote) {
+          bomb.remote = false;
+          bomb.fuse = Math.min(bomb.fuse, BOMB_FUSE_TICKS);
+        }
+      }
+    }
   }
 }
 
@@ -367,6 +390,7 @@ function applyArenaFeatures(state: RoundState, events: RoundEvent[]): void {
 export function stepRound(state: RoundState, inputs: ReadonlyArray<PlayerInput>): RoundEvent[] {
   const events: RoundEvent[] = [];
   state.tick++;
+  expireBuffs(state);
 
   for (const player of state.players) {
     if (!player.alive) continue;
@@ -379,7 +403,8 @@ export function stepRound(state: RoundState, inputs: ReadonlyArray<PlayerInput>)
     if (input.direction) {
       player.facing = input.direction;
       const blocker = movePlayer(state, player, input.direction, player.speed);
-      if (blocker && player.kick && !blocker.slide) {
+      // On pousse toujours ses propres bombes ; le bonus Kick permet de pousser celles des autres.
+      if (blocker && !blocker.slide && (blocker.owner === player.id || player.kick)) {
         blocker.slide = input.direction;
         blocker.slideProgress = 0;
         events.push({ type: 'bombKicked', player: player.id });
@@ -429,6 +454,7 @@ export function stepRound(state: RoundState, inputs: ReadonlyArray<PlayerInput>)
     const index = py * state.width + px;
     if (state.flames[index] > 0 && state.tick >= player.invulnerableUntil) {
       if (player.vest) {
+        player.buffUntil[Bonus.Vest] = 0;
         player.vest = false;
         player.invulnerableUntil = state.tick + VEST_GRACE_TICKS;
         events.push({ type: 'vestLost', player: player.id });
@@ -439,7 +465,7 @@ export function stepRound(state: RoundState, inputs: ReadonlyArray<PlayerInput>)
     }
     const bonus = state.bonuses[index];
     if (bonus !== Bonus.None && state.tiles[index] === Tile.Floor) {
-      applyBonus(player, bonus);
+      applyBonus(player, bonus, state.tick);
       state.bonuses[index] = Bonus.None;
       events.push({ type: 'bonusPicked', player: player.id, bonus });
     }

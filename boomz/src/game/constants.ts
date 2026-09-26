@@ -20,6 +20,8 @@ export const BASE_MAX_BOMBS = 1;
 // Bonus : plafonds et effets.
 export const SPEED_STEP = 0.5 / TICK_RATE;
 export const MAX_SPEED = 5.9 / TICK_RATE;
+/** Durée d'un bonus ramassé : reprendre le même bonus relance le compteur. */
+export const BONUS_DURATION_TICKS = 10 * TICK_RATE;
 export const MAX_RANGE = 8;
 export const MAX_BOMBS = 8;
 /** Probabilité qu'une caisse cache un bonus. */

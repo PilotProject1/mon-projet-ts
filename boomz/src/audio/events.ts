@@ -24,17 +24,12 @@ export type SoundEvent =
 /** Au-delà de ce saut entre deux états (en cases), c'est une téléportation. */
 const TELEPORT_JUMP = 1.5;
 
-/** Bonus ramassé par un joueur, déduit de l'évolution de ses caractéristiques. */
+/** Bonus ramassés : leur compteur de 10 secondes a été (re)lancé entre les deux états. */
 function bonusGained(before: Player, after: Player): Exclude<Bonus, 0>[] {
   const gained: Exclude<Bonus, 0>[] = [];
-  if (after.range > before.range) gained.push(Bonus.Flame);
-  if (after.maxBombs > before.maxBombs) gained.push(Bonus.Bomb);
-  if (after.speed > before.speed + 1e-9) gained.push(Bonus.Speed);
-  if (after.vest && !before.vest) gained.push(Bonus.Vest);
-  if (after.detonator && !before.detonator) gained.push(Bonus.Detonator);
-  if (after.wallPass && !before.wallPass) gained.push(Bonus.WallPass);
-  if (after.bombPass && !before.bombPass) gained.push(Bonus.BombPass);
-  if (after.kick && !before.kick) gained.push(Bonus.Kick);
+  for (let bonus = 1; bonus < after.buffUntil.length; bonus++) {
+    if (after.buffUntil[bonus] > (before.buffUntil[bonus] ?? 0)) gained.push(bonus as Exclude<Bonus, 0>);
+  }
   return gained;
 }
 
@@ -101,7 +96,8 @@ export function soundEvents(before: MatchState | null, after: MatchState, me: nu
     if (Math.hypot(player.x - previous.x, player.y - previous.y) > TELEPORT_JUMP) {
       events.push({ kind: 'teleport', mine });
     }
-    if (previous.vest && !player.vest) events.push({ kind: 'vestLost', mine });
+    // Gilet brisé par une explosion (son compteur est remis à zéro), et non simplement expiré.
+    if (previous.vest && !player.vest && player.buffUntil[Bonus.Vest] === 0) events.push({ kind: 'vestLost', mine });
     // Chaque bonus a son propre son, joué pour ses propres ramassages seulement.
     if (mine) for (const bonus of bonusGained(previous, player)) events.push({ kind: 'bonus', bonus });
   }

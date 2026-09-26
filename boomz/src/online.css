@@ -1235,3 +1235,21 @@ textarea {
   font-size: 16px;
   resize: vertical;
 }
+
+/* Bonus sur le point d'expirer. */
+.power.ending {
+  animation: power-ending 0.5s steps(2, jump-none) infinite;
+}
+
+@keyframes power-ending {
+  50% {
+    opacity: 0.35;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .power.ending {
+    animation: none;
+    outline: 2px solid var(--danger);
+  }
+}

@@ -92,6 +92,13 @@ export interface Player {
   wallPass: boolean;
   bombPass: boolean;
   kick: boolean;
+  /**
+   * Bonus actifs, indexés par `Bonus` : tick de fin (0 = inactif) et niveau
+   * (Flamme+, Bombe+ et Vitesse+ se cumulent). Les caractéristiques ci-dessus
+   * (portée, gilet…) en sont déduites à chaque tick.
+   */
+  buffUntil: number[];
+  buffLevel: number[];
   /** Case d'arrivée d'une téléportation : pas de retour avant d'en être sorti. */
   teleportLock: number;
   /** Tick de l'élimination, pour l'animation. */

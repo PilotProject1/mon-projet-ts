@@ -2,8 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { suddenDeathOrder } from './arena';
 import { BOMB_FUSE_TICKS, FLAME_TICKS, GRID_HEIGHT, GRID_WIDTH, SUDDEN_DEATH_TICKS } from './constants';
 import { createMatch, stepMatch } from './match';
-import { bombAt, cellOf, createRound, stepRound } from './round';
-import { NO_INPUT, Tile, type Direction, type PlayerInput, type RoundState } from './types';
+import { applyBonus, bombAt, cellOf, createRound, stepRound } from './round';
+import { Bonus, NO_INPUT, Tile, type Direction, type PlayerInput, type RoundState } from './types';
 
 function clearArena(state: RoundState): void {
   state.tiles = state.tiles.map((tile) => (tile === Tile.Wall ? Tile.Wall : Tile.Floor));
@@ -119,7 +119,7 @@ describe('bombes', () => {
     clearArena(state);
     stepRound(state, [BOMB]);
     run(state, 20, [walk('right')]);
-    state.players[0].maxBombs = 2;
+    applyBonus(state.players[0], Bonus.Bomb, state.tick);
     stepRound(state, [BOMB]);
     expect(state.bombs).toHaveLength(2);
     run(state, 200, [walk('right')]);
@@ -133,7 +133,7 @@ describe('bombes', () => {
     clearArena(state);
     state.players[0].x = 1.5;
     state.players[0].y = 3.5;
-    state.players[0].range = 5;
+    for (let i = 0; i < 3; i++) applyBonus(state.players[0], Bonus.Flame, state.tick);
     stepRound(state, [BOMB]);
     run(state, BOMB_FUSE_TICKS);
     // Colonne 1, les flammes montent jusqu'à la bordure mais ne la franchissent pas.

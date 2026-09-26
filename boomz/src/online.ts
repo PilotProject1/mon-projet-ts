@@ -5,7 +5,7 @@ import { composeFeedback, describeDevice, median, type FeedbackAnswers } from '.
 import { drawMascot, MenuDemo } from './menu/demo';
 import { COUNTDOWN_TICKS, SUDDEN_DEATH_TICKS, TICK_RATE, WINS_TO_TAKE_MATCH } from './game/constants';
 import { ARENA_NAMES } from './game/arena';
-import { BASE_MAX_BOMBS, BASE_RANGE, BASE_SPEED, SKIN_COUNT, SPEED_STEP } from './game/constants';
+import { SKIN_COUNT } from './game/constants';
 import type { ArenaChoice, MatchState } from './game/match';
 import { ARENA_IDS, Bonus, type Direction, type Player } from './game/types';
 import { KeyboardInput } from './input/keyboard';
@@ -454,7 +454,7 @@ function updateGameHud(match: MatchState): void {
   }
 
   const mine = me === null ? undefined : match.round.players[me];
-  renderPowers(mine);
+  renderPowers(mine, match.round.tick);
   detonateButton.hidden = !(mine?.alive && mine.detonator && match.phase === 'playing');
 
   const remaining = SUDDEN_DEATH_TICKS - match.round.tick;
@@ -496,39 +496,33 @@ detonateButton.addEventListener('pointerdown', (event) => {
 
 let renderedPowersKey = '';
 
-/** Rangée des bonus de ce joueur : niveaux de portée, de bombes et de vitesse, puis pouvoirs. */
-function renderPowers(player: Player | undefined): void {
-  const entries: Array<[Bonus, string]> = [];
+/** Rangée des bonus actifs de ce joueur, avec leur niveau et les secondes restantes. */
+function renderPowers(player: Player | undefined, tick: number): void {
+  const entries: Array<{ bonus: Exclude<Bonus, 0>; level: string; seconds: number }> = [];
   if (player) {
-    entries.push([Bonus.Flame, String(player.range)]);
-    entries.push([Bonus.Bomb, String(player.maxBombs)]);
-    const speedLevel = Math.round((player.speed - BASE_SPEED) / SPEED_STEP);
-    if (speedLevel > 0) entries.push([Bonus.Speed, `+${speedLevel}`]);
-    if (player.vest) entries.push([Bonus.Vest, '']);
-    if (player.detonator) entries.push([Bonus.Detonator, '']);
-    if (player.kick) entries.push([Bonus.Kick, '']);
-    if (player.bombPass) entries.push([Bonus.BombPass, '']);
-    if (player.wallPass) entries.push([Bonus.WallPass, '']);
+    for (const bonus of BONUS_ORDER) {
+      const left = player.buffUntil[bonus] - tick;
+      if (left <= 0) continue;
+      const level = player.buffLevel[bonus];
+      const stacked = bonus === Bonus.Flame || bonus === Bonus.Bomb || bonus === Bonus.Speed;
+      entries.push({ bonus, level: stacked && level > 1 ? `×${level}` : '', seconds: Math.ceil(left / TICK_RATE) });
+    }
   }
   const key = JSON.stringify(entries);
   if (key === renderedPowersKey) return;
   renderedPowersKey = key;
-  // Rien à montrer tant que le joueur n'a que ses caractéristiques de départ.
-  const upgraded =
-    player && (player.range > BASE_RANGE || player.maxBombs > BASE_MAX_BOMBS || entries.length > 2);
   powers.replaceChildren(
-    ...(upgraded ? entries : []).map(([bonus, level]) => {
+    ...entries.map(({ bonus, level, seconds }) => {
       const chip = document.createElement('span');
       chip.className = 'power';
-      chip.title = BONUS_INFO[bonus as Exclude<Bonus, 0>].name;
+      // Les 3 dernières secondes, la pastille clignote.
+      chip.classList.toggle('ending', seconds <= 3);
+      chip.title = BONUS_INFO[bonus].name;
       const icon = document.createElement('canvas');
       icon.className = 'power-icon';
-      chip.append(icon);
-      if (level) {
-        const text = document.createElement('span');
-        text.textContent = level;
-        chip.append(text);
-      }
+      const text = document.createElement('span');
+      text.textContent = `${level ? `${level} ` : ''}${seconds}s`;
+      chip.append(icon, text);
       requestAnimationFrame(() => paintBonusCanvas(icon, bonus));
       return chip;
     }),

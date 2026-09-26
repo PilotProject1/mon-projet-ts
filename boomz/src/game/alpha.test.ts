@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { generateArena } from './arena';
 import {
   BASE_SPEED,
+  BONUS_DURATION_TICKS,
   BOMB_FUSE_TICKS,
   FLAME_TICKS,
   GRID_HEIGHT,
@@ -243,5 +244,77 @@ describe('arènes', () => {
     expect(match.round.arena).toBe(seen[0]);
     const fixed = createMatch(2, 5, 'temple');
     expect([1, 2, 3].map((round) => arenaForRound(fixed, round))).toEqual(['temple', 'temple', 'temple']);
+  });
+});
+
+describe('bonus limités à 10 secondes', () => {
+  it('un bonus s’arrête au bout de 10 s', () => {
+    const state = createRound(2, 1);
+    clearArena(state);
+    applyBonus(state.players[0], Bonus.Flame, state.tick);
+    applyBonus(state.players[0], Bonus.Kick, state.tick);
+    run(state, BONUS_DURATION_TICKS - 1);
+    expect(state.players[0].range).toBe(3);
+    expect(state.players[0].kick).toBe(true);
+    run(state, 1);
+    expect(state.players[0].range).toBe(2);
+    expect(state.players[0].kick).toBe(false);
+  });
+
+  it('reprendre le même bonus relance le compteur et le cumule', () => {
+    const state = createRound(2, 1);
+    clearArena(state);
+    const player = state.players[0];
+    applyBonus(player, Bonus.Bomb, state.tick);
+    run(state, BONUS_DURATION_TICKS / 2);
+    applyBonus(player, Bonus.Bomb, state.tick);
+    expect(player.maxBombs).toBe(3);
+    run(state, BONUS_DURATION_TICKS - 1);
+    expect(player.maxBombs).toBe(3);
+    run(state, 1);
+    expect(player.maxBombs).toBe(1);
+  });
+
+  it('à la fin du Détonateur, les bombes posées redeviennent des bombes normales', () => {
+    const state = createRound(2, 1);
+    clearArena(state);
+    applyBonus(state.players[0], Bonus.Detonator, state.tick);
+    stepRound(state, [BOMB]);
+    expect(state.bombs[0].remote).toBe(true);
+    run(state, 60, [walk('down')]);
+    run(state, BONUS_DURATION_TICKS);
+    // Le compteur de la bombe est reparti d'au plus 2,5 s : elle a explosé.
+    expect(state.bombs).toHaveLength(0);
+  });
+});
+
+describe('pousser sa bombe', () => {
+  it('on pose sa bombe, on revient dessus : elle glisse jusqu’au prochain obstacle', () => {
+    const state = createRound(2, 1);
+    clearArena(state);
+    const player = state.players[0];
+    player.x = 3.5;
+    stepRound(state, [BOMB]);
+    expect(bombAt(state, 3, 1)).toBeDefined();
+    // On s'écarte vers la gauche, puis on revient pousser vers la droite.
+    run(state, 30, [walk('left')]);
+    run(state, 40, [walk('right')]);
+    run(state, 60);
+    const bomb = state.bombs[0];
+    expect(bomb.cx).toBe(W - 2);
+    expect(bomb.slide).toBeNull();
+  });
+
+  it('la bombe poussée s’arrête contre un joueur', () => {
+    const state = createRound(2, 1);
+    clearArena(state);
+    state.players[0].x = 3.5;
+    state.players[1].x = 8.5;
+    state.players[1].y = 1.5;
+    stepRound(state, [BOMB]);
+    run(state, 30, [walk('left')]);
+    run(state, 40, [walk('right')]);
+    run(state, 60);
+    expect(state.bombs[0].cx).toBe(7);
   });
 });

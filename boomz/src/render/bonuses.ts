@@ -14,7 +14,7 @@ export const BONUS_INFO: Record<Exclude<Bonus, 0>, BonusInfo> = {
   [Bonus.Detonator]: { name: 'Détonateur', effect: 'Vos bombes explosent sur commande', color: '#d8372b' },
   [Bonus.WallPass]: { name: 'Traverse-mur', effect: 'Passe à travers les caisses', color: '#9b6a3d' },
   [Bonus.BombPass]: { name: 'Traverse-bombe', effect: 'Passe sur ses propres bombes', color: '#7a4fd6' },
-  [Bonus.Kick]: { name: 'Kick', effect: 'Pousse les bombes en marchant dessus', color: '#e2a51a' },
+  [Bonus.Kick]: { name: 'Kick', effect: 'Pousse aussi les bombes des autres', color: '#e2a51a' },
 };
 
 export const BONUS_ORDER: Array<Exclude<Bonus, 0>> = [

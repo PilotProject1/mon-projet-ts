@@ -26,6 +26,8 @@ déployé ni relié à leur code.
 - Bombes à retardement (2,5 s), flammes en croix (portée 2) arrêtées par les
   murs, première caisse touchée détruite, réactions en chaîne.
 - Une bombe à la fois au départ ; on peut quitter sa bombe mais pas y revenir.
+- On peut **pousser sa propre bombe** : en revenant marcher dessus, elle glisse
+  jusqu'au premier obstacle (mur, caisse, joueur ou autre bombe).
 - Élimination au contact d'une flamme, manche au dernier survivant, match en
   3 manches gagnantes.
 - Resserrement de l'arène : à 2:00, des murs tombent en spirale.
@@ -33,7 +35,10 @@ déployé ni relié à leur code.
 ### Bonus (phase 3)
 
 Environ une caisse sur trois cache un bonus, révélé quand elle a brûlé. On le
-ramasse en marchant dessus ; une flamme le détruit. Le tirage est fait par le
+ramasse en marchant dessus ; une flamme le détruit. **Chaque bonus dure
+10 secondes** ; reprendre le même relance le compteur (et, pour Flamme+,
+Bombe+ et Vitesse+, ajoute un niveau). Les bonus actifs s'affichent avec leurs
+secondes restantes et clignotent les 3 dernières. Le tirage est fait par le
 serveur, qui ne dévoile jamais aux téléphones ce que cachent les caisses.
 
 | Bonus | Effet |
@@ -41,11 +46,11 @@ serveur, qui ne dévoile jamais aux téléphones ce que cachent les caisses.
 | Flamme+ | Portée des explosions +1 (jusqu'à 8) |
 | Bombe+ | Une bombe de plus en même temps (jusqu'à 8) |
 | Vitesse+ | Déplacement plus rapide (plafonné) |
-| Gilet pare-flamme | Encaisse une explosion ; clignote 1 s ensuite |
-| Détonateur | Les bombes n'explosent que sur commande (bouton **Boum**, touche E), ou au bout de 10 s |
+| Gilet pare-flamme | Encaisse une explosion (il disparaît alors) ; clignote 1 s ensuite |
+| Détonateur | Les bombes n'explosent que sur commande (bouton **Boum**, touche E) ; à la fin des 10 s, celles encore posées redeviennent des bombes normales |
 | Traverse-mur | Passe à travers les caisses (pas les piliers) |
 | Traverse-bombe | Passe sur ses propres bombes |
-| Kick | Pousse une bombe en marchant dessus : elle glisse jusqu'au prochain obstacle |
+| Kick | Pousse aussi les bombes des **autres** joueurs (les siennes se poussent toujours) |
 
 Les bonus du joueur s'affichent sous l'arène (portrait) ou au-dessus du
 joystick (paysage). Les « nouvelles idées » de la roadmap (bombe téléguidée,
