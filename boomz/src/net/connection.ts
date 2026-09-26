@@ -1,14 +1,14 @@
 import type { MatchState } from '../game/match';
 import { DIRECTION_VECTORS, type Bomb } from '../game/types';
 import { WS_PATH, type ClientMessage, type ServerMessage } from './protocol';
+import { websocketUrl } from './server';
 
 export class Connection {
   private readonly socket: WebSocket;
   private readonly queue: ClientMessage[] = [];
 
   constructor(onMessage: (message: ServerMessage) => void, onClose: () => void) {
-    const protocol = location.protocol === 'https:' ? 'wss' : 'ws';
-    this.socket = new WebSocket(`${protocol}://${location.host}${WS_PATH}`);
+    this.socket = new WebSocket(websocketUrl(WS_PATH));
     this.socket.addEventListener('open', () => {
       for (const message of this.queue.splice(0)) this.socket.send(JSON.stringify(message));
     });

@@ -9,9 +9,12 @@
     "build": "tsc --noEmit && vite build",
     "start": "tsx server/index.ts",
     "preview": "vite preview",
-    "test": "vitest run"
+    "test": "vitest run",
+    "build:app": "VITE_SERVER_URL=https://boomz.onrender.com npm run build && cap sync"
   },
   "devDependencies": {
+    "@capacitor/assets": "^3.0.5",
+    "@capacitor/cli": "^8.5.2",
     "@types/node": "^26.6.3",
     "@types/ws": "^8.18.1",
     "typescript": "~6.0.2",
@@ -19,6 +22,10 @@
     "vitest": "^5.0.2"
   },
   "dependencies": {
+    "@capacitor/android": "^8.5.2",
+    "@capacitor/app": "^8.1.1",
+    "@capacitor/core": "^8.5.2",
+    "@capacitor/ios": "^8.5.2",
     "tsx": "^4.23.15",
     "ws": "^8.21.3"
   },

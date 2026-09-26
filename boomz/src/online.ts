@@ -16,6 +16,9 @@ import { BONUS_INFO, BONUS_ORDER, paintBonusCanvas } from './render/bonuses';
 import { drawAvatar, PLAYER_LOOKS, SKIN_NAMES } from './render/characters';
 import { Renderer } from './render/renderer';
 import { screenToGrid } from './render/view';
+import { PUBLIC_ORIGIN } from './net/server';
+import { App } from '@capacitor/app';
+import { Capacitor } from '@capacitor/core';
 
 // ---- Éléments de la page ----
 
@@ -70,6 +73,7 @@ const renderer = new Renderer(canvas);
 const audio = new GameAudio();
 const demo = new MenuDemo(required<HTMLCanvasElement>('#home-bg'));
 const homeCard = required<HTMLElement>('#home-card');
+const homeStatus = required<HTMLElement>('#home-status');
 const helpDialog = required<HTMLDialogElement>('#help');
 const soundButton = required<HTMLButtonElement>('#sound-btn');
 const musicButton = required<HTMLButtonElement>('#music-btn');
@@ -181,16 +185,33 @@ function mySeat(): number | null {
 }
 
 function inviteLink(room: string): string {
-  return `${location.origin}/?salon=${room}`;
+  return `${PUBLIC_ORIGIN}/?salon=${room}`;
 }
 
 // ---- Connexion ----
 
+/** Au-delà de ce délai sans réponse, on prévient que le serveur se réveille. */
+const WAKE_HINT_MS = 2500;
+let wakeHintTimer: number | null = null;
+
+function clearWakeHint(): void {
+  if (wakeHintTimer !== null) window.clearTimeout(wakeHintTimer);
+  wakeHintTimer = null;
+  setText(homeStatus, '');
+}
+
 function connect(first: () => void): void {
   connection?.close();
+  clearWakeHint();
+  // Serveur gratuit endormi : la première connexion peut prendre jusqu'à une minute.
+  wakeHintTimer = window.setTimeout(() => {
+    setText(homeStatus, 'Réveil du serveur… Le premier lancement peut prendre jusqu’à une minute.');
+  }, WAKE_HINT_MS);
   const current = new Connection(
     (message) => {
-      if (connection === current) onMessage(message);
+      if (connection !== current) return;
+      clearWakeHint();
+      onMessage(message);
     },
     () => {
       if (connection === current) onConnectionLost();
@@ -202,7 +223,12 @@ function connect(first: () => void): void {
 
 function onConnectionLost(): void {
   connection = null;
-  if (!session) return;
+  if (!session) {
+    // La connexion n'a jamais abouti (réseau coupé, serveur indisponible).
+    clearWakeHint();
+    if (screen === 'home') setText(homeError, 'Impossible de joindre le serveur. Vérifiez la connexion et réessayez.');
+    return;
+  }
   // Le serveur garde la place quelques secondes : on tente de la reprendre.
   if (reconnectUntil === 0) reconnectUntil = Date.now() + (RECONNECT_GRACE_SECONDS + 2) * 1000;
   if (Date.now() > reconnectUntil) {
@@ -792,12 +818,41 @@ if (previous && (!invited || invited === previous.room)) {
   session = previous;
   resume(previous);
 } else if (invited) {
+  showInvitation(invited);
+}
+
+/** Arrivée par un lien d'invitation : « Rejoindre » devient l'action principale. */
+function showInvitation(code: string): void {
+  codeInput.value = code;
   setText(homeError, '');
-  // Arrivée par un lien d'invitation : « Rejoindre » devient l'action principale.
   homeCard.classList.add('invited');
   required<HTMLElement>('#invite-banner').hidden = false;
-  setText(required<HTMLElement>('#invite-code'), invited);
+  setText(required<HTMLElement>('#invite-code'), code);
   required<HTMLButtonElement>('#join-btn').textContent = 'Rejoindre le salon';
+}
+
+// Application installée : un lien d'invitation touché ailleurs (WhatsApp, SMS…)
+// ouvre l'application au lieu du navigateur.
+if (Capacitor.isNativePlatform()) {
+  const openLink = (url: string | undefined) => {
+    if (!url || session) return;
+    const code = new URL(url).searchParams.get('salon')?.toUpperCase();
+    if (code) showInvitation(code);
+  };
+  void App.getLaunchUrl().then((launch) => openLink(launch?.url));
+  void App.addListener('appUrlOpen', (event) => openLink(event.url));
+}
+
+// Dans l'application, la page de confidentialité est celle du site (ouverte dans le navigateur).
+for (const link of document.querySelectorAll<HTMLAnchorElement>('.privacy-link')) {
+  link.href = `${PUBLIC_ORIGIN}/confidentialite`;
+}
+
+// Jeu installable depuis le navigateur (pas dans l'application, déjà installée).
+if ('serviceWorker' in navigator && !Capacitor.isNativePlatform() && location.protocol === 'https:') {
+  void navigator.serviceWorker.register('/sw.js').catch(() => {
+    // Sans service worker, le jeu fonctionne normalement ; il n'est juste pas installable.
+  });
 }
 
 drawMascot(required<HTMLCanvasElement>('#mascot'));

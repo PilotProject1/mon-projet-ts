@@ -1,0 +1,45 @@
+name: Boomz Android
+
+# Fabrique l'application Android de test (APK signé avec la clé de débogage) à
+# chaque changement du jeu. L'APK se télécharge dans l'onglet « Actions » de
+# GitHub, section « Artifacts » de l'exécution.
+on:
+  push:
+    paths:
+      - 'boomz/**'
+      - '.github/workflows/boomz-android.yml'
+  workflow_dispatch:
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: boomz
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: boomz/package-lock.json
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - run: npm ci
+
+      # Jeu compilé pour l'application (il se connecte à boomz.onrender.com), copié dans le projet Android.
+      - run: npm run build:app
+
+      - run: ./gradlew assembleDebug --no-daemon
+        working-directory: boomz/android
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: boomz-android-debug
+          path: boomz/android/app/build/outputs/apk/debug/app-debug.apk
+          retention-days: 30

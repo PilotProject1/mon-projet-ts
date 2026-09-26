@@ -14,6 +14,8 @@ const DIST = resolve(import.meta.dirname, '../dist');
 const ROOM_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
 const ROOM_CODE_LENGTH = 5;
 const MAX_MESSAGE_BYTES = 1024;
+/** Identifiant de l'application installée (voir capacitor.config.ts). */
+const APP_ID = 'fr.boomz.jeu';
 
 const CONTENT_TYPES: Record<string, string> = {
   '.html': 'text/html; charset=utf-8',
@@ -22,6 +24,8 @@ const CONTENT_TYPES: Record<string, string> = {
   '.svg': 'image/svg+xml',
   '.png': 'image/png',
   '.ico': 'image/x-icon',
+  '.webmanifest': 'application/manifest+json',
+  '.json': 'application/json',
 };
 
 const rooms = new Map<string, Room>();
@@ -48,6 +52,30 @@ const server = createServer(async (request, response) => {
     response.writeHead(200, { 'content-type': 'text/plain' }).end('ok');
     return;
   }
+  // Liens d'invitation ouverts dans l'application installée : Android et iOS
+  // vérifient que ce site autorise l'application (empreinte du certificat de
+  // signature Android, identifiant d'équipe Apple). Tant que les variables ne
+  // sont pas renseignées chez l'hébergeur, les liens s'ouvrent dans le navigateur.
+  if (path === '/.well-known/assetlinks.json' && process.env.ANDROID_CERT_SHA256) {
+    const fingerprints = process.env.ANDROID_CERT_SHA256.split(',').map((value) => value.trim());
+    response.writeHead(200, { 'content-type': 'application/json' }).end(
+      JSON.stringify([
+        {
+          relation: ['delegate_permission/common.handle_all_urls'],
+          target: { namespace: 'android_app', package_name: APP_ID, sha256_cert_fingerprints: fingerprints },
+        },
+      ]),
+    );
+    return;
+  }
+  if (path === '/.well-known/apple-app-site-association' && process.env.APPLE_TEAM_ID) {
+    response.writeHead(200, { 'content-type': 'application/json' }).end(
+      JSON.stringify({
+        applinks: { details: [{ appIDs: [`${process.env.APPLE_TEAM_ID}.${APP_ID}`], components: [{ '?': { salon: '?*' } }] }] },
+      }),
+    );
+    return;
+  }
   if (path === '/stats') {
     // Statistiques anonymes pour l'équilibrage (voir server/stats.ts).
     response
@@ -55,7 +83,9 @@ const server = createServer(async (request, response) => {
       .end(JSON.stringify({ salonsOuverts: rooms.size, ...stats.summary() }, null, 2));
     return;
   }
-  const file = normalize(join(DIST, path === '/' ? 'index.html' : path));
+  // Adresses courtes des pages publiques (celle-ci est exigée par les stores).
+  const pages: Record<string, string> = { '/': 'index.html', '/confidentialite': 'confidentialite.html' };
+  const file = normalize(join(DIST, pages[path] ?? path));
   if (!file.startsWith(DIST)) {
     response.writeHead(403).end();
     return;
