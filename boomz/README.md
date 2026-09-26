@@ -343,7 +343,7 @@ npm start            # serveur de production : sert dist/ et les parties (variab
 
 ## Jouer sans internet (Bluetooth et Wi-Fi direct)
 
-Dans l'**application iPhone**, le bouton « Jouer sans internet, à côté »
+Dans l'**application iPhone**, le bouton « Jouer en local »
 permet de jouer à quelques mètres les uns des autres, sans réseau mobile ni
 box : un téléphone crée le salon, les autres le voient apparaître (« Rejoindre
 le salon de Léa ») et le touchent. Jusqu'à 6 joueurs, mêmes règles, arènes et

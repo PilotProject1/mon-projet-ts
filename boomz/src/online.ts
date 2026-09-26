@@ -390,7 +390,7 @@ function renderLobby(): void {
   let hint = '';
   if (players.length < MIN_PLAYERS) {
     hint = offline
-      ? 'Sur les autres téléphones : « Jouer sans internet », puis touchez ce salon. Il faut au moins 2 joueurs.'
+      ? 'Sur les autres téléphones : « Jouer en local », puis touchez ce salon. Il faut au moins 2 joueurs.'
       : 'Partagez le lien : il faut au moins 2 joueurs.';
   }
   else if (!allHere) hint = 'Un joueur se reconnecte…';

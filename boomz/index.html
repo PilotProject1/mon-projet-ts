@@ -9,7 +9,7 @@
     <link rel="manifest" href="/manifest.webmanifest?v=2" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    <meta name="description" content="Boomz : posez des bombes, faites sauter les caisses, piégez vos amis. Chacun sur son téléphone, jusqu'à 6 joueurs, sans rien installer." />
+    <meta name="description" content="Boomz : posez des bombes, faites sauter les caisses, piégez vos amis ! Jeu multijoueur en ligne, jusqu'à 6 joueurs." />
     <title>Boomz</title>
   </head>
   <body>
@@ -30,7 +30,7 @@
         <div class="home-hero">
           <img class="mascot" src="/icons/icon-512.png?v=2" alt="" width="512" height="512" />
           <h1 class="logo">Boomz</h1>
-          <p class="tagline" id="tagline">Posez des bombes, faites sauter les caisses, piégez vos amis. Chacun sur son téléphone, jusqu'à 6.</p>
+          <p class="tagline" id="tagline">Posez des bombes, faites sauter les caisses, piégez vos amis !</p>
         </div>
         <div class="card home-card" id="home-card">
           <p class="invite-banner" id="invite-banner" hidden>Vous êtes invité dans le salon <strong id="invite-code"></strong></p>
@@ -44,7 +44,7 @@
             <input id="code" type="text" maxlength="5" autocapitalize="characters" autocomplete="off" placeholder="CODE" aria-label="Code du salon" />
             <button class="secondary-btn" id="join-btn" type="submit">Rejoindre</button>
           </form>
-          <button class="secondary-btn wide nearby-btn" id="nearby-btn" type="button" hidden>Jouer sans internet, à côté</button>
+          <button class="secondary-btn wide nearby-btn" id="nearby-btn" type="button" hidden>Jouer en local</button>
           <p class="hint" id="home-status" role="status"></p>
           <p class="error" id="home-error" role="alert"></p>
           <div class="home-links">
@@ -155,11 +155,11 @@
       </div>
     </dialog>
 
-    <!-- Sans internet : salons des téléphones proches -->
+    <!-- En local, sans connexion : salons des téléphones proches -->
     <dialog class="help" id="nearby" aria-labelledby="nearby-title">
       <div class="help-card">
-        <h2 id="nearby-title">Jouer sans internet</h2>
-        <p class="legend-intro">Pour jouer à quelques mètres les uns des autres, sans réseau : activez le Bluetooth et le Wi-Fi (inutile d'être connecté à une box). Un téléphone crée le salon, les autres le rejoignent.</p>
+        <h2 id="nearby-title">Jouer en local</h2>
+        <p class="legend-intro">Pour jouer ensemble au même endroit, sans connexion : activez le Bluetooth et le Wi-Fi (inutile d'être connecté à une box). Un téléphone crée le salon, les autres le rejoignent.</p>
         <button class="primary-btn" id="nearby-host-btn" type="button">Créer un salon ici</button>
         <h3>Salons à proximité</h3>
         <p class="hint" id="nearby-searching">Recherche des salons…</p>

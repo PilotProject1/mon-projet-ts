@@ -112,7 +112,10 @@ export class GameAudio {
   private lastPlayed = new Map<string, number>();
 
   constructor() {
-    // Les navigateurs mobiles n'autorisent le son qu'après un geste de l'utilisateur.
+    // Contexte créé dès le lancement : dans l'application, la musique démarre
+    // aussitôt. Un navigateur le laisse en pause jusqu'au premier geste de
+    // l'utilisateur, qui le relance ci-dessous.
+    void this.ensureContext()?.resume();
     const unlock = () => {
       const ctx = this.ensureContext();
       void ctx?.resume();
