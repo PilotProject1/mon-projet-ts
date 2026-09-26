@@ -77,7 +77,7 @@ captures sont dans [`captures/`](captures/), aux formats exigés.
   - Données chiffrées en transit : oui (HTTPS / WSS).
   - Suppression des données : rien n'est conservé après la partie.
 - **Règles de confidentialité** : https://boomz.onrender.com/confidentialite
-- **Images** : icône 512 × 512 (`../public/icons/icon-512.png`), bannière
+- **Images** : icône 512 × 512 (`icone-play-512.png`), bannière
   1024 × 500 (`captures/play-banniere-1024x500.png`), captures
   `captures/play-*.png` (1080 × 1920 et 1920 × 1080).
 

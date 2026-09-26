@@ -251,7 +251,8 @@ l'application embarque le jeu compilé et se connecte à
 - **En local** : `npm run build:app` (compile le jeu pour l'application et le
   copie dans les projets natifs), puis `npx cap open android` (Android Studio)
   ou `npx cap open ios` (Xcode, sur Mac).
-- **Icônes et écrans de démarrage** : sources dans `assets/`, déclinés avec
+- **Icônes et écrans de démarrage** : sources dans `assets/` (icône d'origine :
+  `assets/source/icone-originale.png`), déclinés avec
   `npx capacitor-assets generate --android --ios`.
 - **Liens d'invitation** : quand l'application est installée, un lien
   `https://boomz.onrender.com/?salon=…` l'ouvre directement, une fois
