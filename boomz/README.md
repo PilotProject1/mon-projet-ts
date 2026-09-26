@@ -23,6 +23,18 @@ déployé ni relié à leur code.
 Pas encore de bonus : ils arrivent en phase 3 (Alpha). Les caractéristiques
 des joueurs (`speed`, `range`, `maxBombs`) sont déjà en place pour les recevoir.
 
+## Personnages
+
+La planche de référence est dans [`docs/personnages.jpg`](docs/personnages.jpg) :
+Boomer (01, personnage principal) puis les 19 autres, avec les pouvoirs
+décrits dans la roadmap.
+
+Dans le prototype, le joueur 1 incarne **Boomer** et le joueur 2 **Blaster**
+(03), dessinés en version simplifiée à partir de la planche (couleurs, casquette,
+pompon, grands yeux). Leurs pouvoirs ne sont pas encore actifs : les capacités
+avec temps de recharge viendront dans une phase ultérieure, sur la base des
+mêmes règles communes.
+
 ## Commandes
 
 | | Joueur 1 | Joueur 2 |

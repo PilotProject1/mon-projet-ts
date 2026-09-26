@@ -3,19 +3,29 @@ import type { MatchState } from '../game/match';
 import { DIRECTION_VECTORS, Tile, type Bomb, type Player, type RoundState } from '../game/types';
 
 export interface PlayerLook {
-  body: string;
-  accent: string;
+  name: string;
+  /** Casquette ou casque. */
+  cap: string;
+  /** Panneau avant de la casquette. */
+  capFront: string;
+  /** Pompon au sommet et badge. */
+  ball: string;
+  /** Tenue. */
+  suit: string;
+  /** Liseré de la tenue. */
+  trim: string;
 }
 
-// Joueur 1 : Boomer (bleu/jaune). Les autres couleurs sont provisoires, en
-// attendant les personnages et skins des phases suivantes.
+// D'après la planche de personnages (docs/personnages.jpg). Seuls Boomer (01)
+// et Blaster (03) jouent dans le prototype ; les pouvoirs viennent plus tard.
+// Les places 3 à 6 reprennent déjà des couleurs de la planche.
 export const PLAYER_LOOKS: PlayerLook[] = [
-  { body: '#2f6fe4', accent: '#ffcf33' },
-  { body: '#e2463f', accent: '#ffffff' },
-  { body: '#2fb36b', accent: '#fff3c4' },
-  { body: '#9b51e0', accent: '#ffd6f5' },
-  { body: '#f28c28', accent: '#2b2b2b' },
-  { body: '#1fb5c4', accent: '#1d2a44' },
+  { name: 'Boomer', cap: '#2447a8', capFront: '#f2efe6', ball: '#ffc928', suit: '#1f2f6b', trim: '#ffc928' },
+  { name: 'Blaster', cap: '#d8342b', capFront: '#1d1d24', ball: '#ff9a1f', suit: '#1d1d24', trim: '#d8342b' },
+  { name: 'Frost', cap: '#5fb7f0', capFront: '#ffffff', ball: '#dff3ff', suit: '#2f6fb5', trim: '#ffffff' },
+  { name: 'Toxic', cap: '#4fb33a', capFront: '#2c3a22', ball: '#d7f23a', suit: '#2c3a22', trim: '#4fb33a' },
+  { name: 'Boomette', cap: '#e85aa8', capFront: '#ffd3ea', ball: '#ff8cc6', suit: '#b83a7e', trim: '#ffd3ea' },
+  { name: 'Omega', cap: '#c9d1dc', capFront: '#1d2a44', ball: '#48c6ff', suit: '#5a6478', trim: '#48c6ff' },
 ];
 
 const COLORS = {
@@ -207,47 +217,71 @@ export class Renderer {
     ctx.ellipse(player.x * cell, player.y * cell + r * 0.85, r * 0.85, r * 0.3, 0, 0, Math.PI * 2);
     ctx.fill();
 
-    // Corps
-    ctx.fillStyle = look.body;
+    // Corps (tenue et liseré), à demi caché sous la grosse tête.
+    ctx.fillStyle = look.suit;
     ctx.beginPath();
-    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.ellipse(cx, cy + r * 0.62, r * 0.62, r * 0.42, 0, 0, Math.PI * 2);
     ctx.fill();
+    ctx.fillStyle = look.trim;
+    ctx.fillRect(cx - r * 0.18, cy + r * 0.45, r * 0.36, r * 0.4);
+
+    const headY = cy - r * 0.12;
+    const headR = r * 0.72;
     // Visage
     ctx.fillStyle = '#ffd9b3';
     ctx.beginPath();
-    ctx.arc(cx, cy + r * 0.05, r * 0.68, 0, Math.PI * 2);
-    ctx.fill();
-    // Casquette
-    ctx.fillStyle = look.body;
-    ctx.beginPath();
-    ctx.arc(cx, cy - r * 0.15, r * 0.72, Math.PI, 0);
-    ctx.fill();
-    ctx.fillStyle = look.accent;
-    ctx.beginPath();
-    ctx.arc(cx, cy - r * 0.55, r * 0.16, 0, Math.PI * 2);
+    ctx.arc(cx, headY, headR, 0, Math.PI * 2);
     ctx.fill();
 
-    // Yeux tournés vers la direction du regard.
     const [fx, fy] = DIRECTION_VECTORS[player.facing];
-    if (player.facing !== 'up') {
-      ctx.fillStyle = '#1b1d29';
-      const ex = fx * r * 0.2;
-      const ey = r * 0.12 + fy * r * 0.12;
+    const facingUp = player.facing === 'up';
+
+    // Pompon au sommet.
+    ctx.fillStyle = look.ball;
+    ctx.beginPath();
+    ctx.arc(cx, headY - headR * 1.08, headR * 0.3, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Casquette : calotte, panneau avant, badge et visière orientée vers le regard.
+    ctx.fillStyle = look.cap;
+    ctx.beginPath();
+    ctx.arc(cx, headY - headR * 0.05, headR * 1.02, Math.PI, 0);
+    ctx.fill();
+    if (!facingUp) {
+      ctx.fillStyle = look.capFront;
+      ctx.beginPath();
+      ctx.arc(cx + fx * headR * 0.2, headY - headR * 0.05, headR * 0.62, Math.PI * 1.08, Math.PI * 1.92);
+      ctx.fill();
+      ctx.fillStyle = look.ball;
+      ctx.beginPath();
+      ctx.arc(cx + fx * headR * 0.35, headY - headR * 0.5, headR * 0.17, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = look.cap;
+      ctx.beginPath();
+      ctx.ellipse(cx + fx * headR * 0.55, headY - headR * 0.02, headR * (fx === 0 ? 0.95 : 0.7), headR * 0.16, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Grands yeux ovales, avec un reflet.
+      const ex = fx * headR * 0.28;
+      const ey = headR * 0.32 + fy * headR * 0.08;
       for (const side of [-1, 1]) {
+        if (fx !== 0 && side === -fx) continue; // de profil, un seul œil visible
+        const x = cx + side * headR * (fx === 0 ? 0.32 : 0.18) + ex;
+        ctx.fillStyle = '#15161f';
         ctx.beginPath();
-        ctx.arc(cx + side * r * 0.26 + ex, cy + ey, r * 0.1, 0, Math.PI * 2);
+        ctx.ellipse(x, headY + ey, headR * 0.15, headR * 0.27, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.arc(x - headR * 0.04, headY + ey - headR * 0.1, headR * 0.05, 0, Math.PI * 2);
         ctx.fill();
       }
+    } else {
+      // De dos : la casquette couvre toute la tête.
+      ctx.beginPath();
+      ctx.arc(cx, headY, headR * 1.02, 0, Math.PI * 2);
+      ctx.fill();
     }
-
-    // Pastille d'identification lisible à petite taille.
-    ctx.fillStyle = look.accent;
-    ctx.strokeStyle = look.body;
-    ctx.lineWidth = Math.max(1, cell * 0.04);
-    ctx.beginPath();
-    ctx.arc(cx + r * 0.75, cy + r * 0.7, r * 0.3, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.stroke();
     ctx.globalAlpha = 1;
   }
 
