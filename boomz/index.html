@@ -40,10 +40,87 @@
             <button class="secondary-btn" id="join-btn" type="submit">Rejoindre</button>
           </form>
           <p class="error" id="home-error" role="alert"></p>
-          <button class="link-btn" id="help-btn" type="button">Comment jouer ?</button>
+          <div class="home-links">
+            <button class="link-btn" id="help-btn" type="button">Comment jouer ?</button>
+            <button class="link-btn" id="feedback-btn" type="button">Donner mon avis</button>
+          </div>
         </div>
       </div>
     </section>
+
+    <!-- Avis des testeurs : envoyé par le partage du téléphone, rien n'est stocké en ligne -->
+    <dialog class="help feedback" id="feedback" aria-labelledby="feedback-title">
+      <form class="help-card" id="feedback-form" method="dialog">
+        <h2 id="feedback-title">Votre avis</h2>
+        <p class="legend-intro">Quelques touches suffisent. Votre avis sera envoyé par le partage de votre téléphone (WhatsApp, SMS…) à la personne qui vous a invité.</p>
+
+        <fieldset class="choice">
+          <legend>Note générale</legend>
+          <div class="stars" id="stars">
+            <label><input type="radio" name="note" value="1" /><span>★</span></label>
+            <label><input type="radio" name="note" value="2" /><span>★</span></label>
+            <label><input type="radio" name="note" value="3" /><span>★</span></label>
+            <label><input type="radio" name="note" value="4" /><span>★</span></label>
+            <label><input type="radio" name="note" value="5" /><span>★</span></label>
+          </div>
+        </fieldset>
+
+        <fieldset class="choice">
+          <legend>Prise en main</legend>
+          <label><input type="radio" name="priseEnMain" value="Compris tout seul" /> Compris tout seul</label>
+          <label><input type="radio" name="priseEnMain" value="Il a fallu m'expliquer" /> Il a fallu m'expliquer</label>
+          <label><input type="radio" name="priseEnMain" value="Pas compris" /> Pas compris</label>
+        </fieldset>
+
+        <fieldset class="choice">
+          <legend>Réactivité du personnage</legend>
+          <label><input type="radio" name="reactivite" value="Parfaite" /> Parfaite</label>
+          <label><input type="radio" name="reactivite" value="Petit décalage" /> Petit décalage</label>
+          <label><input type="radio" name="reactivite" value="Décalage gênant" /> Décalage gênant</label>
+        </fieldset>
+
+        <fieldset class="choice">
+          <legend>Sons et musique</legend>
+          <label><input type="radio" name="sons" value="J'aime" /> J'aime</label>
+          <label><input type="radio" name="sons" value="Trop forts" /> Trop forts</label>
+          <label><input type="radio" name="sons" value="Agaçants" /> Agaçants</label>
+          <label><input type="radio" name="sons" value="Pas entendus" /> Pas entendus</label>
+        </fieldset>
+
+        <label class="field">
+          <span>Un bonus trop fort ?</span>
+          <select name="bonusFort" id="feedback-bonus">
+            <option value="">Aucun / sans avis</option>
+          </select>
+        </label>
+
+        <label class="field">
+          <span>Arène préférée</span>
+          <select name="arene">
+            <option value="">Sans avis</option>
+            <option>Chantier</option>
+            <option>Laboratoire</option>
+            <option>Temple englouti</option>
+            <option>Station spatiale</option>
+          </select>
+        </label>
+
+        <label class="field">
+          <span>Un bug ou un affichage cassé ?</span>
+          <textarea name="bug" rows="2" maxlength="400"></textarea>
+        </label>
+
+        <label class="field">
+          <span>Autre remarque</span>
+          <textarea name="remarque" rows="2" maxlength="400"></textarea>
+        </label>
+
+        <p class="legend-intro">Joint automatiquement : modèle de téléphone, taille d'écran, type de réseau et délai mesuré avec le serveur. Aucune autre donnée.</p>
+        <p class="hint" id="feedback-status" role="status"></p>
+        <button class="primary-btn" id="feedback-send" type="button">Envoyer mon avis</button>
+        <button class="link-btn" id="feedback-close" type="button">Fermer</button>
+      </form>
+    </dialog>
 
     <!-- Règles, commandes, bonus et arènes -->
     <dialog class="help" id="help" aria-labelledby="help-title">
@@ -129,6 +206,7 @@
               <p class="banner-text" id="banner-text"></p>
               <p class="banner-sub" id="banner-sub"></p>
               <button class="primary-btn" id="back-btn" type="button" hidden>Retour au salon</button>
+              <button class="link-btn" id="feedback-end-btn" type="button" hidden>Donner mon avis</button>
             </div>
           </div>
         </div>

@@ -117,15 +117,42 @@ si les tests externes le jugent gênant (prédiction locale et réconciliation).
 
 ### Tests avec des joueurs externes
 
-Dernier jalon de l'Alpha, à organiser : faire jouer des personnes qui ne
-connaissent pas le jeu, sur leur propre téléphone et leur propre réseau, et
-noter :
+Objectif : savoir si des personnes qui ne connaissent pas le jeu le prennent en
+main seules, si le délai de réaction les gêne sur leur réseau, et quels bonus
+ou arènes sont trop forts ou mal aimés.
 
-- s'ils comprennent sans explication comment rejoindre, bouger et poser une
-  bombe ;
-- si le délai de réaction de leur personnage les gêne (réseau mobile) ;
-- les bonus qui paraissent trop forts ou inutiles, les arènes qu'ils préfèrent ;
-- tout affichage cassé, avec le modèle de téléphone.
+**Qui** : 4 à 6 personnes par session, idéalement des téléphones variés
+(iPhone et Android, récents et anciens), certaines en Wi-Fi, d'autres en 4G/5G,
+et au moins une qui ne joue jamais aux jeux vidéo.
+
+**Déroulé d'une session (≈ 20 minutes)**
+
+1. Ouvrir https://boomz.onrender.com une minute avant (le serveur gratuit met
+   30 à 60 secondes à se réveiller), puis créer une partie.
+2. Envoyer le lien d'invitation (bouton « Partager ») avec le message
+   ci-dessous. **Ne rien expliquer** : regarder qui bloque, et où.
+3. Jouer 2 ou 3 matchs, arène « Une différente à chaque manche », son activé.
+4. À la fin, chacun appuie sur **« Donner mon avis »** (fin de match ou
+   accueil) : réponse en quelques touches, envoyée par WhatsApp/SMS à celui qui
+   a invité, avec le modèle de téléphone, le réseau et le délai mesuré.
+5. Relever **https://boomz.onrender.com/stats** tout de suite après (elles
+   repartent à zéro quand le serveur s'endort, environ 15 minutes sans joueur).
+
+**Message d'invitation à copier**
+
+> Salut ! Je teste un petit jeu multijoueur, Boomz : pose des bombes, fais
+> sauter les caisses et piège les autres. Ça se joue dans le navigateur du
+> téléphone, rien à installer. Mets le son ! Clique ici pour rejoindre ma
+> partie : [lien d'invitation]. À la fin, un bouton « Donner mon avis » me
+> renvoie ton ressenti en 30 secondes. Merci !
+
+**À observer pendant la partie** : hésitations pour rejoindre ou bouger,
+remarques spontanées (« ça lag », « c'est quoi ce truc ? »), bonus ramassés
+puis incompris, parties qui s'éternisent ou finissent trop vite.
+
+**Ce qu'on en fera** : les avis et les chiffres de /stats décideront de
+l'équilibrage (bonus trop forts, durée des manches, arènes) et, si le délai
+gêne sur réseau mobile, de la prédiction des déplacements côté téléphone.
 
 ## Son et musique
 

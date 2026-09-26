@@ -135,6 +135,10 @@ wss.on('connection', (socket) => {
         peer = resumed;
         return;
       }
+      case 'ping':
+        // Mesure de latence, pour les avis des testeurs.
+        if (typeof message.sent === 'number') send({ type: 'pong', sent: message.sent });
+        return;
       case 'leave':
         if (room && peer) room.leave(peer.id);
         room = null;

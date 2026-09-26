@@ -1,6 +1,7 @@
 import './online.css';
 import { GameAudio } from './audio/audio';
 import { soundEvents } from './audio/events';
+import { composeFeedback, describeDevice, median, type FeedbackAnswers } from './feedback';
 import { drawMascot, MenuDemo } from './menu/demo';
 import { COUNTDOWN_TICKS, SUDDEN_DEATH_TICKS, TICK_RATE, WINS_TO_TAKE_MATCH } from './game/constants';
 import { ARENA_NAMES } from './game/arena';
@@ -269,6 +270,10 @@ function onMessage(message: ServerMessage): void {
       decideScreen();
       return;
     }
+    case 'pong':
+      latencies.push(performance.now() - message.sent);
+      if (latencies.length > 20) latencies.shift();
+      return;
     case 'error':
       if (message.code === 'resume-failed') {
         giveUp(session ? 'Votre place dans le salon a expiré.' : '');
@@ -477,6 +482,7 @@ function updateGameHud(match: MatchState): void {
   setText(bannerText, title);
   setText(bannerSub, subtitle);
   backButton.hidden = match.phase !== 'matchOver';
+  feedbackEndButton.hidden = match.phase !== 'matchOver';
 }
 
 let detonateRequested = false;
@@ -638,6 +644,87 @@ required<HTMLButtonElement>('#help-btn').addEventListener('click', () => {
   helpLegend.forEach((paint) => paint());
 });
 required<HTMLButtonElement>('#help-close').addEventListener('click', () => helpDialog.close());
+
+// ---- Avis des testeurs ----
+
+/** Délais aller-retour mesurés avec le serveur (ms), pour les avis. */
+const latencies: number[] = [];
+window.setInterval(() => {
+  if (connection && session) connection.send({ type: 'ping', sent: performance.now() });
+}, 3000);
+
+const feedbackDialog = required<HTMLDialogElement>('#feedback');
+const feedbackForm = required<HTMLFormElement>('#feedback-form');
+const feedbackStatus = required<HTMLElement>('#feedback-status');
+const feedbackEndButton = required<HTMLButtonElement>('#feedback-end-btn');
+
+required<HTMLSelectElement>('#feedback-bonus').append(
+  ...BONUS_ORDER.map((bonus) => {
+    const option = document.createElement('option');
+    option.textContent = BONUS_INFO[bonus].name;
+    return option;
+  }),
+);
+
+// Étoiles : toutes celles jusqu'à la note choisie s'allument.
+const stars = [...feedbackForm.querySelectorAll<HTMLInputElement>('input[name="note"]')];
+for (const star of stars) {
+  star.addEventListener('change', () => {
+    for (const other of stars) other.nextElementSibling?.classList.toggle('lit', Number(other.value) <= Number(star.value));
+  });
+}
+
+function openFeedback(): void {
+  setText(feedbackStatus, '');
+  feedbackDialog.showModal();
+}
+required<HTMLButtonElement>('#feedback-btn').addEventListener('click', openFeedback);
+feedbackEndButton.addEventListener('click', openFeedback);
+required<HTMLButtonElement>('#feedback-close').addEventListener('click', () => feedbackDialog.close());
+
+function lastMatchSummary(): string {
+  const match = snapshots.latest();
+  if (!match) return 'pas encore joué';
+  return `dernier match à ${match.playerCount} joueurs, arène ${ARENA_NAMES[match.round.arena]}`;
+}
+
+required<HTMLButtonElement>('#feedback-send').addEventListener('click', async () => {
+  const data = new FormData(feedbackForm);
+  const field = (name: keyof FeedbackAnswers) => String(data.get(name) ?? '');
+  const connectionInfo = (navigator as Navigator & { connection?: { effectiveType?: string; type?: string } }).connection;
+  const text = composeFeedback(
+    {
+      note: field('note'),
+      priseEnMain: field('priseEnMain'),
+      reactivite: field('reactivite'),
+      sons: field('sons'),
+      bonusFort: field('bonusFort'),
+      arene: field('arene'),
+      bug: field('bug'),
+      remarque: field('remarque'),
+    },
+    {
+      device: describeDevice(navigator.userAgent),
+      screen: `${innerWidth} × ${innerHeight} ${innerHeight > innerWidth ? 'portrait' : 'paysage'}`,
+      network: [connectionInfo?.type, connectionInfo?.effectiveType].filter(Boolean).join(' ') || 'inconnu',
+      latencyMs: median(latencies),
+      lastMatch: lastMatchSummary(),
+    },
+  );
+  try {
+    if (navigator.share) {
+      await navigator.share({ text });
+      setText(feedbackStatus, 'Merci pour votre avis !');
+      return;
+    }
+    await navigator.clipboard.writeText(text);
+    setText(feedbackStatus, 'Avis copié : collez-le dans un message à la personne qui vous a invité.');
+  } catch (error) {
+    // Partage annulé : on laisse le formulaire ouvert, rien n'est perdu.
+    if (error instanceof DOMException && error.name === 'AbortError') return;
+    setText(feedbackStatus, 'Impossible de partager ici : faites une capture d’écran de ce formulaire.');
+  }
+});
 
 // ---- Son ----
 

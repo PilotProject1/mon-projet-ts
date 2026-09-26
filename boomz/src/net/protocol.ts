@@ -34,7 +34,9 @@ export type ClientMessage =
   | { type: 'input'; direction: Direction | null }
   | { type: 'bomb' }
   /** Déclenche ses bombes (bonus Détonateur). */
-  | { type: 'detonate' };
+  | { type: 'detonate' }
+  /** Mesure de la latence : le serveur renvoie aussitôt `sent`. */
+  | { type: 'ping'; sent: number };
 
 export type ServerMessage =
   | { type: 'welcome'; room: string; you: string; token: string }
@@ -49,4 +51,5 @@ export type ServerMessage =
       arena: ArenaChoice;
     }
   | { type: 'snapshot'; match: MatchState }
+  | { type: 'pong'; sent: number }
   | { type: 'error'; message: string; code?: 'resume-failed' };

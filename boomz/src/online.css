@@ -1148,3 +1148,90 @@ select {
 .skin-hint:empty {
   display: none;
 }
+
+/* ---- Avis des testeurs ---- */
+
+.home-links {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px 16px;
+}
+
+.choice {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  border: none;
+}
+
+.choice legend {
+  margin-bottom: 6px;
+  padding: 0;
+  font-weight: 700;
+}
+
+.choice label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 32px;
+}
+
+.choice input[type='radio'] {
+  width: 20px;
+  height: 20px;
+  margin: 0;
+  accent-color: var(--accent);
+}
+
+.stars {
+  display: flex;
+  gap: 4px;
+}
+
+.stars label {
+  cursor: pointer;
+}
+
+/* Les étoiles : le bouton radio est caché, l'étoile sert de cible (44 px). */
+.stars input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.stars span {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  font-size: 30px;
+  color: var(--muted);
+  opacity: 0.45;
+}
+
+.stars span.lit {
+  color: var(--accent);
+  opacity: 1;
+}
+
+.stars input:focus-visible + span {
+  outline: 2px solid var(--text);
+  border-radius: 8px;
+}
+
+textarea {
+  width: 100%;
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--panel-border);
+  border-radius: 12px;
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+  font-size: 16px;
+  resize: vertical;
+}
