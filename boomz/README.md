@@ -248,6 +248,18 @@ l'application embarque le jeu compilé et se connecte à
   (un .zip contenant `app-debug.apk`). Sur le téléphone Android : ouvrir
   l'APK et autoriser l'installation depuis cette source. Il est signé avec
   une clé de débogage : bon pour tester, pas pour le Play Store.
+- **Application iPhone, sans Mac** : le workflow « Boomz iOS » compile
+  l'application sur un Mac de GitHub à chaque changement du jeu. Lancé à la
+  main (Actions › Boomz iOS › **Run workflow**), il la signe et l'envoie sur
+  **TestFlight**, d'où les testeurs l'installent sur leur iPhone. Il lui faut
+  quatre secrets du dépôt (Settings › Secrets and variables › Actions) :
+  `APPLE_TEAM_ID` (identifiant d'équipe, 10 caractères, page « Membership »
+  du compte développeur), et une clé d'API App Store Connect de rôle
+  **Admin** (Utilisateurs et accès › Intégrations › Clés) : `ASC_KEY_ID`,
+  `ASC_ISSUER_ID` et `ASC_KEY_P8` (contenu complet du fichier `.p8`, qui ne
+  se télécharge qu'une fois). Les certificats et profils de signature sont
+  alors créés et gérés par Apple. L'application cible l'iPhone seul (elle
+  tourne aussi sur iPad, en mode iPhone) : pas de captures iPad à fournir.
 - **En local** : `npm run build:app` (compile le jeu pour l'application et le
   copie dans les projets natifs), puis `npx cap open android` (Android Studio)
   ou `npx cap open ios` (Xcode, sur Mac).

@@ -99,7 +99,8 @@ captures sont dans [`captures/`](captures/), aux formats exigés.
 |---|---|---|
 | Compte développeur Google Play | toi | 25 $, une fois ; vérification d'identité (quelques jours) |
 | Compte développeur Apple | toi | 99 $ par an ; nécessaire aussi pour tester sur iPhone au-delà de 7 jours |
-| Mac avec Xcode, ou service de compilation en ligne (Codemagic, Ionic Appflow…) | toi | pour fabriquer et envoyer la version iOS |
+| Clé d'API App Store Connect (rôle Admin) et identifiant d'équipe → secrets GitHub `ASC_KEY_ID`, `ASC_ISSUER_ID`, `ASC_KEY_P8`, `APPLE_TEAM_ID` | toi | pas besoin de Mac : le workflow « Boomz iOS » fabrique, signe et envoie l'application sur TestFlight |
+| Fiche de l'app dans App Store Connect (Apps › + › Nouvelle app, identifiant `fr.boomz.jeu`) | toi | à créer avant le premier envoi sur TestFlight |
 | Identifiant de l'application | toi | `fr.boomz.jeu` par défaut ; **définitif** une fois publiée |
 | Champs « À REMPLIR » de /confidentialite | toi | éditeur, contact, région Render |
 | Recherche d'antériorité sur le nom « Boomz » (INPI, EUIPO) et avis sur la ressemblance de la mascotte avec un personnage existant | toi | à faire avant une publication publique |
