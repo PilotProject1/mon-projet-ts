@@ -369,6 +369,26 @@ réactions en chaîne, et les murs du resserrement. Simulations robot contre
 robot : l'Expert bat le Professionnel, qui bat le Débutant ; un robot ne se
 fait presque jamais sauter lui-même (`src/game/bot.test.ts`).
 
+## Petits plus de la 1.0
+
+- **Jouer contre des robots** (accueil) : un salon qui tourne entièrement sur
+  le téléphone, sans réseau ; l'hôte ajoute les robots de son choix.
+- **Tutoriel** proposé au premier lancement (et depuis « Comment jouer ? ») :
+  une vraie partie contre un robot Débutant, avec une bulle qui guide pas à
+  pas (bouger, poser une bombe, s'abriter, pousser sa bombe). Chaque étape se
+  valide en la faisant (`src/tutorial.ts`).
+- **Revanche** sur l'écran de victoire : les invités se disent partants,
+  l'hôte relance dès que tout le monde l'est (les robots le sont toujours).
+- **Émojis rapides** (bouton 😀 en partie) : bulle au-dessus du personnage,
+  visible par tous ; au plus un toutes les 0,8 s par joueur.
+- **Vibrations** (iPhone, module natif `HapticsPlugin.swift`) : explosion
+  proche, élimination, gilet perdu, victoire. Coupées avec les bruitages.
+
+## Mise à jour 1.1 (prévue)
+
+Pouvoirs propres à chaque personnage, mode défi solo avec étoiles, parties en
+équipes.
+
 ## Chat vocal (parties en ligne)
 
 Dans le salon, « 🎙 Rejoindre le vocal » ouvre le micro (l'iPhone demande

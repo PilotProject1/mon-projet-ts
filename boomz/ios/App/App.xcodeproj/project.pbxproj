@@ -18,6 +18,7 @@
 		9582B6832FE993A70072D4E8 /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9582B6822FE993A50072D4E8 /* SceneDelegate.swift */; };
 		B0A1E0010000000000000001 /* NearbyPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0A1E0010000000000000002 /* NearbyPlugin.swift */; };
 		B0A1E0010000000000000003 /* BoomzViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0A1E0010000000000000004 /* BoomzViewController.swift */; };
+		B0A1E0010000000000000005 /* HapticsPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0A1E0010000000000000006 /* HapticsPlugin.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -34,6 +35,7 @@
 		958DCC722DB07C7200EA8C5F /* debug.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = debug.xcconfig; path = ../debug.xcconfig; sourceTree = SOURCE_ROOT; };
 		B0A1E0010000000000000002 /* NearbyPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NearbyPlugin.swift; sourceTree = "<group>"; };
 		B0A1E0010000000000000004 /* BoomzViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BoomzViewController.swift; sourceTree = "<group>"; };
+		B0A1E0010000000000000006 /* HapticsPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HapticsPlugin.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -73,6 +75,7 @@
 				504EC3071FED79650016851F /* AppDelegate.swift */,
 				B0A1E0010000000000000004 /* BoomzViewController.swift */,
 				B0A1E0010000000000000002 /* NearbyPlugin.swift */,
+				B0A1E0010000000000000006 /* HapticsPlugin.swift */,
 				504EC30B1FED79650016851F /* Main.storyboard */,
 				504EC30E1FED79650016851F /* Assets.xcassets */,
 				504EC3101FED79650016851F /* LaunchScreen.storyboard */,
@@ -168,6 +171,7 @@
 				9582B6832FE993A70072D4E8 /* SceneDelegate.swift in Sources */,
 				B0A1E0010000000000000003 /* BoomzViewController.swift in Sources */,
 				B0A1E0010000000000000001 /* NearbyPlugin.swift in Sources */,
+				B0A1E0010000000000000005 /* HapticsPlugin.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

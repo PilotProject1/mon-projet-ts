@@ -5,6 +5,7 @@ import { createRng } from '../game/rng';
 import { eliminatePlayer } from '../game/round';
 import type { Direction, PlayerInput, RoundEvent } from '../game/types';
 import {
+  EMOTES,
   MAX_PLAYERS,
   MIN_PLAYERS,
   RECONNECT_GRACE_SECONDS,
@@ -22,6 +23,8 @@ export interface RoomStats {
 }
 
 const GRACE_TICKS = RECONNECT_GRACE_SECONDS * TICK_RATE;
+/** Au plus un émoji par joueur toutes les 0,8 s, pour éviter le spam. */
+const EMOTE_COOLDOWN_TICKS = Math.round(0.8 * TICK_RATE);
 /** Noms donnés aux robots, dans l'ordre. */
 const BOT_NAMES = ['Bip', 'Zorg', 'Nova', 'Tic', 'Rex', 'Pixel'];
 
@@ -50,13 +53,15 @@ export interface Peer {
   voice: boolean;
   /** Robot ajouté par l'hôte (son niveau), ou `null` pour un joueur humain. */
   bot: BotLevel | null;
+  /** Horloge du salon au dernier émoji envoyé. */
+  lastEmoteAt: number | null;
   /** Horloge du salon au moment de la coupure. */
   disconnectedAt: number | null;
   send(message: ServerMessage): void;
 }
 
 export function createPeer(id: string, token: string, name: string, send: (message: ServerMessage) => void): Peer {
-  return { id, token, name, connected: true, ready: false, skin: 0, voice: false, bot: null, disconnectedAt: null, send };
+  return { id, token, name, connected: true, ready: false, skin: 0, voice: false, bot: null, lastEmoteAt: null, disconnectedAt: null, send };
 }
 
 /**
@@ -208,6 +213,16 @@ export class Room {
     to.send({ type: 'signal', from: fromId, data });
   }
 
+  /** Émoji rapide d'un joueur de la partie, relayé à tous (lui compris). */
+  sendEmote(peerId: string, emote: number): void {
+    const peer = this.peers.find((candidate) => candidate.id === peerId);
+    const seat = this.seats.get(peerId);
+    if (!peer || seat === undefined || !this.match || !Number.isInteger(emote) || emote < 0 || emote >= EMOTES.length) return;
+    if (peer.lastEmoteAt !== null && this.clock - peer.lastEmoteAt < EMOTE_COOLDOWN_TICKS) return;
+    peer.lastEmoteAt = this.clock;
+    this.broadcast({ type: 'emote', seat, emote });
+  }
+
   setArena(peerId: string, arena: ArenaChoice): void {
     if (peerId !== this.hostId || this.inMatch) return;
     this.arena = arena;
@@ -225,7 +240,8 @@ export class Room {
     this.directions = this.peers.map(() => null);
     this.pendingBombs = this.peers.map(() => false);
     this.pendingDetonations = this.peers.map(() => false);
-    for (const peer of this.peers) peer.ready = false;
+    // Chacun redit s'il est partant pour la suivante ; les robots le sont toujours.
+    for (const peer of this.peers) peer.ready = peer.bot !== null;
     const seed = this.randomSeed();
     this.match = createMatch(this.peers.length, seed, this.arena);
     const botRandom = createRng(seed ^ 0x5bd1e995);

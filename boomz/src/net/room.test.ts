@@ -183,6 +183,17 @@ describe('salon', () => {
     });
   });
 
+  it('relaie les émojis des joueurs de la partie, sans spam', () => {
+    const { room, alice, bob } = startedRoom();
+    room.sendEmote('bob', 2);
+    room.sendEmote('bob', 3);
+    room.sendEmote('alice', 99);
+    expect(alice.inbox.filter((message) => message.type === 'emote')).toEqual([{ type: 'emote', seat: 1, emote: 2 }]);
+    for (let i = 0; i < TICK_RATE; i++) room.tick();
+    room.sendEmote('bob', 3);
+    expect(lastOf(bob, 'emote')).toEqual({ type: 'emote', seat: 1, emote: 3 });
+  });
+
   describe('robots', () => {
     it('ne sont ajoutés que par l’hôte, et permettent de jouer seul', () => {
       const room = new Room('ABCDE', () => 3);
@@ -214,6 +225,19 @@ describe('salon', () => {
       const moved = snapshot(alice).round.players.slice(1).some((player, i) => player.x !== spawns[i + 1][0] || player.y !== spawns[i + 1][1]);
       expect(moved).toBe(true);
       expect(bombs).toBeGreaterThan(0);
+    });
+
+    it('restent partants pour la revanche, contrairement aux humains qui doivent le redire', () => {
+      const room = new Room('ABCDE', () => 5);
+      const alice = fakePeer('alice');
+      const bob = fakePeer('bob');
+      room.join(alice);
+      room.join(bob);
+      room.addBot('alice', 'pro');
+      room.setReady('bob', true);
+      expect(room.start('alice')).toBeNull();
+      const players = lastOf(alice, 'lobby').players;
+      expect(players.map((player) => player.ready)).toEqual([false, false, true]);
     });
 
     it('disparaissent avec le dernier joueur humain', () => {

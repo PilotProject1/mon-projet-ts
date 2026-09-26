@@ -156,11 +156,16 @@ interface Particle {
   gravity: number;
 }
 
+/** Durée d'affichage d'un émoji au-dessus d'un personnage (ms). */
+const EMOTE_MS = 2600;
+
 export class Renderer {
   private readonly ctx: CanvasRenderingContext2D;
   private readonly canvas: HTMLCanvasElement;
   /** Taille de référence d'une case : son plus petit côté. */
   private cell = 32;
+  /** Émojis affichés au-dessus des personnages, par numéro de joueur. */
+  private emotes = new Map<number, { emoji: string; at: number }>();
   /** Dimensions réelles d'une case à l'écran (elle peut être étirée). */
   private cellW = 32;
   private cellH = 32;
@@ -256,6 +261,7 @@ export class Renderer {
     // Du fond vers l'avant : un personnage plus bas à l'écran passe devant.
     const players = [...round.players].sort((a, b) => a.y - b.y);
     for (const player of players) this.drawPlayer(player, tick, player.id === you, match.skins?.[player.id] ?? 0);
+    for (const player of players) this.drawEmote(player, now);
 
     this.drawParticles();
     this.drawSuddenDeathWarning(round);
@@ -809,6 +815,43 @@ export class Renderer {
     ctx.globalAlpha = 1;
 
     if (isYou && player.alive) this.drawYouMarker(cx, cy - r * 1.55, tick);
+  }
+
+  /** Émoji envoyé par un joueur : une bulle au-dessus de son personnage pendant quelques secondes. */
+  showEmote(seat: number, emoji: string, now = performance.now()): void {
+    this.emotes.set(seat, { emoji, at: now });
+  }
+
+  private drawEmote(player: Player, now: number): void {
+    const emote = this.emotes.get(player.id);
+    if (!emote) return;
+    // L'horloge des images peut être un peu en retard sur celle de l'arrivée de l'émoji.
+    const age = Math.max(0, now - emote.at);
+    if (age > EMOTE_MS || !player.alive) {
+      this.emotes.delete(player.id);
+      return;
+    }
+    const { ctx, cell, cellW, cellH } = this;
+    // Apparition avec rebond, disparition en fondu.
+    const pop = Math.min(1, age / 180);
+    const scale = pop < 1 ? pop * 1.15 : 1 + Math.max(0, 0.15 - (age - 180) / 1000);
+    const alpha = Math.min(1, (EMOTE_MS - age) / 300);
+    const size = Math.max(22, cell * 0.62) * scale;
+    const x = player.x * cellW;
+    const y = Math.max(size * 0.6, player.y * cellH - cell * 1.05 - size * 0.35);
+    ctx.globalAlpha = alpha;
+    ctx.fillStyle = '#ffffff';
+    ctx.strokeStyle = '#15161f';
+    ctx.lineWidth = Math.max(1, cell * 0.04);
+    ctx.beginPath();
+    ctx.arc(x, y, size * 0.62, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+    ctx.font = `${Math.round(size * 0.78)}px "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(emote.emoji, x, y + size * 0.04);
+    ctx.globalAlpha = 1;
   }
 
   private drawYouMarker(x: number, y: number, tick: number): void {

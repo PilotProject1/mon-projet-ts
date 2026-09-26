@@ -7,6 +7,7 @@ import WebKit
 class BoomzViewController: CAPBridgeViewController {
     override open func capacitorDidLoad() {
         bridge?.registerPluginInstance(NearbyPlugin())
+        bridge?.registerPluginInstance(HapticsPlugin())
     }
 
     /// La musique du menu démarre dès l'ouverture, sans attendre un premier toucher.

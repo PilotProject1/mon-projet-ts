@@ -1,6 +1,7 @@
 import './online.css';
 import { GameAudio } from './audio/audio';
 import { soundEvents } from './audio/events';
+import { hapticFor, Haptics, nearestNewFlame } from './audio/haptics';
 import { composeFeedback, describeDevice, median, type FeedbackAnswers } from './feedback';
 import { MenuDemo } from './menu/demo';
 import { COUNTDOWN_TICKS, SUDDEN_DEATH_TICKS, TICK_RATE, WINS_TO_TAKE_MATCH } from './game/constants';
@@ -13,9 +14,10 @@ import { TouchPad } from './input/touch';
 import { Connection, SnapshotBuffer } from './net/connection';
 import { VoiceChat } from './voice/voice';
 import { pickTaunt, VictoryDance } from './render/victory';
+import { Tutorial } from './tutorial';
 import { BOT_LEVEL_NAMES, BOT_LEVEL_SHORT, BOT_LEVELS, type BotLevel } from './game/bot';
 import { nearbyAvailable, NearbyGuestLink, NearbyHostLink, NearbyScanner, type Link, type NearbyHost } from './net/nearby';
-import { MAX_PLAYERS, MIN_PLAYERS, RECONNECT_GRACE_SECONDS, type LobbyPlayer, type ServerMessage } from './net/protocol';
+import { EMOTES, MAX_PLAYERS, MIN_PLAYERS, RECONNECT_GRACE_SECONDS, type LobbyPlayer, type ServerMessage } from './net/protocol';
 import { BONUS_INFO, BONUS_ORDER, paintBonusCanvas } from './render/bonuses';
 import { drawAvatar, lookFor, PLAYER_LOOKS, SKIN_NAMES } from './render/characters';
 import { Renderer } from './render/renderer';
@@ -75,6 +77,7 @@ const frame = required<HTMLElement>('#board-frame');
 
 const renderer = new Renderer(canvas);
 const audio = new GameAudio();
+const haptics = new Haptics(() => audio.settings.sound);
 const demo = new MenuDemo(required<HTMLCanvasElement>('#home-bg'));
 const homeCard = required<HTMLElement>('#home-card');
 const homeStatus = required<HTMLElement>('#home-status');
@@ -94,6 +97,8 @@ const touch = new TouchPad(
 
 const NAME_KEY = 'boomz.name';
 const SESSION_KEY = 'boomz.session';
+/** Tutoriel déjà fait (ou refusé) sur ce téléphone. */
+const TUTORIAL_KEY = 'boomz.tutorial';
 
 interface StoredSession {
   room: string;
@@ -135,8 +140,13 @@ let connection: Link | null = null;
 type LinkFactory = (onMessage: (message: ServerMessage) => void, onClose: () => void) => Link;
 const onlineLink: LinkFactory = (onMessage, onClose) => new Connection(onMessage, onClose);
 let linkFactory: LinkFactory = onlineLink;
+/** Partie seul contre des robots, simulée sur le téléphone (sans réseau). */
+const soloLink: LinkFactory = (onMessage) => new NearbyHostLink('', onMessage, false);
 /** Partie sans internet en cours (téléphones proches). */
 let offline = false;
+let solo = false;
+/** Tutoriel en cours (première partie contre un robot). */
+let tutorial: Tutorial | null = null;
 let session: StoredSession | null = null;
 let you: string | null = null;
 let lobby: Extract<ServerMessage, { type: 'lobby' }> | null = null;
@@ -154,6 +164,7 @@ function show(next: Screen): void {
   if (screen === next) return;
   screen = next;
   for (const [key, element] of Object.entries(screens)) element.hidden = key !== next;
+  required<HTMLElement>('#emote-picker').hidden = true;
   applyScreenAmbience();
   // Un bouton resté sélectionné capterait Espace et Entrée pendant la partie.
   if (next === 'game' && document.activeElement instanceof HTMLElement) document.activeElement.blur();
@@ -217,9 +228,11 @@ function connect(first: () => void, factory: LinkFactory = linkFactory): void {
   clearWakeHint();
   linkFactory = factory;
   offline = factory !== onlineLink;
+  solo = factory === soloLink;
   screens.lobby.classList.toggle('offline', offline);
+  screens.lobby.classList.toggle('solo', solo);
   // Réseau lent : on montre que la connexion est en cours.
-  wakeHintTimer = window.setTimeout(
+  if (!solo) wakeHintTimer = window.setTimeout(
     () => {
       setText(
         homeStatus,
@@ -289,6 +302,8 @@ function giveUp(message: string): void {
 
 function resetRoomState(): void {
   voice.leave(false);
+  tutorial = null;
+  document.getElementById('coach')?.setAttribute('hidden', '');
   session = null;
   you = null;
   lobby = null;
@@ -319,6 +334,7 @@ function onMessage(message: ServerMessage): void {
     case 'lobby':
       lobby = message;
       renderLobby();
+      renderRematch();
       voice.sync(message.players);
       decideScreen();
       return;
@@ -330,12 +346,18 @@ function onMessage(message: ServerMessage): void {
       if (import.meta.env.DEV && devFrozen) return;
       const previousState = snapshots.latest();
       if (screen === 'game') {
-        for (const event of soundEvents(previousState, message.match, mySeat())) audio.play(event);
+        const events = soundEvents(previousState, message.match, mySeat());
+        for (const event of events) audio.play(event);
+        if (events.length && previousState) haptics.play(hapticFor(events, nearestNewFlame(previousState, message.match, mySeat())));
+        if (tutorial?.update(message.match, mySeat(), events, performance.now())) renderCoach();
       }
       snapshots.push(message.match, performance.now());
       decideScreen();
       return;
     }
+    case 'emote':
+      if (screen === 'game') renderer.showEmote(message.seat, EMOTES[message.emote] ?? '');
+      return;
     case 'pong':
       latencies.push(performance.now() - message.sent);
       if (latencies.length > 20) latencies.shift();
@@ -398,7 +420,9 @@ function renderLobby(): void {
   startButton.disabled = players.length < MIN_PLAYERS || !othersReady || !allHere;
 
   let hint = '';
-  if (players.length < MIN_PLAYERS) {
+  if (solo) {
+    hint = players.length < MIN_PLAYERS ? 'Ajoutez un ou plusieurs robots, puis lancez la partie.' : 'Choisissez l’arène, puis lancez la partie.';
+  } else if (players.length < MIN_PLAYERS) {
     hint = offline
       ? 'Sur les autres téléphones : « Jouer en local », puis touchez ce salon. Ou ajoutez un robot.'
       : 'Partagez le lien, ou ajoutez un robot : il faut au moins 2 joueurs.';
@@ -694,6 +718,7 @@ function updateVictory(match: MatchState, me: number | null): void {
   if (celebrated && celebrated.scores.join() === match.scores.join() && celebrated.roundNumber === match.roundNumber) {
     // Retour sur les résultats : pas de nouvelle animation d'entrée.
     victory.hidden = false;
+    renderRematch();
     return;
   }
   celebrated = match;
@@ -707,6 +732,8 @@ function updateVictory(match: MatchState, me: number | null): void {
   setText(required<HTMLElement>('#victory-score'), [...match.scores].sort((a, b) => b - a).join(' – '));
   victory.classList.toggle('mine', mine);
   victory.hidden = false;
+  document.getElementById('coach')?.setAttribute('hidden', '');
+  renderRematch();
   victoryDance.play(lookFor(winner, match.skins?.[winner] ?? 0));
   // Les boutons arrivent après le spectacle.
   victoryActions.classList.remove('shown');
@@ -714,12 +741,109 @@ function updateVictory(match: MatchState, me: number | null): void {
   victoryActionsTimer = window.setTimeout(() => victoryActions.classList.add('shown'), 2200);
 }
 
+// ---- Revanche : on rejoue avec les mêmes joueurs sans repasser par le salon ----
+
+const rematchButton = required<HTMLButtonElement>('#victory-rematch');
+const rematchStatus = required<HTMLElement>('#victory-rematch-status');
+
+/** Humains absents ou pas encore partants pour la revanche (hors hôte). */
+function rematchWaitingFor(): LobbyPlayer[] {
+  if (!lobby) return [];
+  return lobby.players.filter((player) => player.id !== lobby?.host && (!player.ready || !player.connected));
+}
+
+function renderRematch(): void {
+  if (!lobby || victory.hidden) return;
+  const isHost = lobby.host === you;
+  const me = lobby.players.find((player) => player.id === you);
+  const waiting = rematchWaitingFor();
+  const enough = lobby.players.length >= MIN_PLAYERS;
+  let status = '';
+  if (!enough) {
+    status = 'Les autres joueurs sont partis.';
+    rematchButton.disabled = true;
+    rematchButton.textContent = 'Revanche !';
+  } else if (isHost) {
+    rematchButton.disabled = waiting.length > 0;
+    rematchButton.textContent = 'Revanche !';
+    if (waiting.length > 0) status = `En attente de ${waiting.map((player) => player.name).join(', ')}…`;
+  } else {
+    rematchButton.disabled = false;
+    rematchButton.textContent = me?.ready ? 'Partant ✓ (annuler)' : 'Revanche !';
+    if (me?.ready) status = 'L’hôte va relancer la partie.';
+    else if (lobby.players.some((player) => player.id !== you && !player.bot && player.ready)) status = 'D’autres joueurs veulent leur revanche !';
+  }
+  setText(rematchStatus, status);
+}
+
+rematchButton.addEventListener('click', () => {
+  if (!lobby || !connection) return;
+  if (lobby.host === you) {
+    connection.send({ type: 'start' });
+  } else {
+    const me = lobby.players.find((player) => player.id === you);
+    connection.send({ type: 'ready', ready: !me?.ready });
+  }
+});
+
 required<HTMLButtonElement>('#victory-back').addEventListener('click', () => {
   victory.hidden = true;
   victoryDance.stop();
   backButton.click();
 });
 required<HTMLButtonElement>('#victory-feedback').addEventListener('click', () => feedbackEndButton.click());
+
+// ---- Émojis rapides ----
+
+const emoteButton = required<HTMLButtonElement>('#emote-btn');
+const emotePicker = required<HTMLElement>('#emote-picker');
+
+function closeEmotes(): void {
+  emotePicker.hidden = true;
+  emoteButton.setAttribute('aria-expanded', 'false');
+}
+
+emotePicker.replaceChildren(
+  ...EMOTES.map((emoji, index) => {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'emote-choice';
+    button.setAttribute('role', 'menuitem');
+    button.textContent = emoji;
+    button.addEventListener('click', () => {
+      connection?.send({ type: 'emote', emote: index });
+      closeEmotes();
+      // Sinon la barre d'espace (bombe, au clavier) rouvrirait le choix.
+      button.blur();
+      emoteButton.blur();
+    });
+    return button;
+  }),
+);
+
+emoteButton.addEventListener('click', () => {
+  if (!emotePicker.hidden) {
+    closeEmotes();
+    return;
+  }
+  // Sous le bouton, ou à sa gauche quand le téléphone est couché (barre sur le côté).
+  const rect = emoteButton.getBoundingClientRect();
+  emotePicker.hidden = false;
+  const width = emotePicker.offsetWidth;
+  const height = emotePicker.offsetHeight;
+  const landscape = window.innerWidth > window.innerHeight;
+  const left = landscape ? rect.left - width - 8 : rect.right - width;
+  const top = landscape ? rect.top : rect.bottom + 8;
+  emotePicker.style.left = `${Math.max(8, Math.min(left, window.innerWidth - width - 8))}px`;
+  emotePicker.style.top = `${Math.max(8, Math.min(top, window.innerHeight - height - 8))}px`;
+  emoteButton.setAttribute('aria-expanded', 'true');
+});
+
+document.addEventListener('pointerdown', (event) => {
+  if (!emotePicker.hidden && event.target instanceof Node && !emotePicker.contains(event.target) && !emoteButton.contains(event.target)) {
+    closeEmotes();
+  }
+});
 
 let detonateRequested = false;
 detonateButton.addEventListener('pointerdown', (event) => {
@@ -1076,6 +1200,58 @@ required<HTMLButtonElement>('#leave-btn').addEventListener('click', () => {
   giveUp('');
 });
 
+// ---- Parties contre des robots et tutoriel ----
+
+const coach = required<HTMLElement>('#coach');
+const welcomeDialog = required<HTMLDialogElement>('#welcome');
+
+function renderCoach(): void {
+  if (!tutorial || tutorial.step === 'done') {
+    if (tutorial) endTutorial();
+    return;
+  }
+  coach.hidden = false;
+  setText(required<HTMLElement>('#coach-step'), `${tutorial.index}/5`);
+  setText(required<HTMLElement>('#coach-text'), tutorial.text);
+}
+
+function endTutorial(): void {
+  tutorial = null;
+  coach.hidden = true;
+  writeStorage(() => localStorage, TUTORIAL_KEY, '1');
+}
+
+/** Salon sur ce téléphone ; `tutorial` : un robot Débutant et la partie lancée aussitôt. */
+function playSolo(withTutorial: boolean): void {
+  setText(homeError, '');
+  const name = playerName();
+  coach.hidden = true;
+  tutorial = withTutorial ? new Tutorial(window.matchMedia?.('(pointer: coarse)').matches ?? true) : null;
+  connect(() => {
+    connection?.send({ type: 'create', name });
+    connection?.send({ type: 'addBot', level: withTutorial ? 'debutant' : 'pro' });
+    if (withTutorial) {
+      connection?.send({ type: 'start' });
+      renderCoach();
+    }
+  }, soloLink);
+}
+
+required<HTMLButtonElement>('#solo-btn').addEventListener('click', () => playSolo(false));
+required<HTMLButtonElement>('#coach-skip').addEventListener('click', endTutorial);
+required<HTMLButtonElement>('#welcome-start').addEventListener('click', () => {
+  welcomeDialog.close();
+  playSolo(true);
+});
+required<HTMLButtonElement>('#welcome-skip').addEventListener('click', () => {
+  writeStorage(() => localStorage, TUTORIAL_KEY, '1');
+  welcomeDialog.close();
+});
+required<HTMLButtonElement>('#help-tutorial').addEventListener('click', () => {
+  helpDialog.close();
+  playSolo(true);
+});
+
 backButton.addEventListener('click', () => {
   viewingResults = false;
   show('lobby');
@@ -1093,6 +1269,8 @@ if (previous && (!invited || invited === previous.room)) {
   resume(previous);
 } else if (invited) {
   showInvitation(invited);
+} else if (!readStorage(() => localStorage, TUTORIAL_KEY)) {
+  welcomeDialog.showModal();
 }
 
 /** Arrivée par un lien d'invitation : « Rejoindre » devient l'action principale. */

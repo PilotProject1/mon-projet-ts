@@ -42,6 +42,7 @@
             <button class="secondary-btn" id="join-btn" type="submit">Rejoindre</button>
           </form>
           <button class="secondary-btn wide nearby-btn" id="nearby-btn" type="button" hidden>Jouer en local</button>
+          <button class="secondary-btn wide" id="solo-btn" type="button">Jouer contre des robots</button>
           <p class="hint" id="home-status" role="status"></p>
           <p class="error" id="home-error" role="alert"></p>
           <div class="home-links">
@@ -149,6 +150,17 @@
           <li><strong>Station spatiale</strong> : les tapis roulants vous emportent.</li>
         </ul>
         <button class="primary-btn" id="help-close" type="button">C'est parti !</button>
+        <button class="link-btn" id="help-tutorial" type="button">Refaire le tutoriel contre un robot</button>
+      </div>
+    </dialog>
+
+    <!-- Premier lancement : proposition du tutoriel -->
+    <dialog class="help welcome" id="welcome" aria-labelledby="welcome-title">
+      <div class="help-card">
+        <h2 id="welcome-title">Bienvenue dans Boomz !</h2>
+        <p class="legend-intro">Apprenez à jouer en 20 secondes, dans une vraie partie contre un robot. Pas besoin de connexion.</p>
+        <button class="primary-btn" id="welcome-start" type="button">Lancer le tutoriel</button>
+        <button class="link-btn" id="welcome-skip" type="button">Plus tard</button>
       </div>
     </dialog>
 
@@ -223,6 +235,7 @@
       <header class="hud">
         <ul class="scores" id="scores"></ul>
         <span class="hud-timer" id="timer"></span>
+        <button class="icon-btn small emote-btn" id="emote-btn" type="button" aria-label="Envoyer un émoji" aria-expanded="false" aria-controls="emote-picker">😀</button>
         <button class="icon-btn small" id="game-mic-btn" type="button" aria-pressed="true" aria-label="Mon micro" hidden>
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a3 3 0 0 1 3 3v6a3 3 0 0 1-6 0V6a3 3 0 0 1 3-3z" /><path class="waves" d="M6 11a6 6 0 0 0 12 0M12 17v4" /><path class="cross" d="M4 4l16 16" /></svg>
         </button>
@@ -233,6 +246,11 @@
       <main class="board">
         <div class="board-frame" id="board-frame">
           <canvas id="arena" aria-label="Arène"></canvas>
+          <div class="coach" id="coach" role="status" hidden>
+            <span class="coach-step" id="coach-step"></span>
+            <p class="coach-text" id="coach-text"></p>
+            <button class="coach-skip" id="coach-skip" type="button">Passer</button>
+          </div>
           <div class="countdown" id="countdown" hidden>
             <span class="countdown-number" id="countdown-number"></span>
             <span class="countdown-arena" id="countdown-arena"></span>
@@ -247,6 +265,7 @@
           </div>
         </div>
       </main>
+      <div class="emote-picker" id="emote-picker" role="menu" aria-label="Émojis" hidden></div>
       <!-- Fin de match : le gagnant danse et nargue les autres -->
       <div class="victory" id="victory" hidden>
         <canvas class="victory-sky" id="victory-sky" aria-hidden="true"></canvas>
@@ -259,7 +278,9 @@
           </div>
           <p class="victory-score" id="victory-score"></p>
           <div class="victory-actions" id="victory-actions">
-            <button class="primary-btn" id="victory-back" type="button">Retour au salon</button>
+            <button class="primary-btn" id="victory-rematch" type="button">Revanche !</button>
+            <p class="victory-rematch-status" id="victory-rematch-status" aria-live="polite"></p>
+            <button class="secondary-btn" id="victory-back" type="button">Retour au salon</button>
             <button class="link-btn" id="victory-feedback" type="button">Donner mon avis</button>
           </div>
         </div>

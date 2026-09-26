@@ -9,6 +9,8 @@ export const SNAPSHOT_EVERY_TICKS = 3;
 /** Délai laissé à un téléphone qui a perdu la connexion pour revenir. */
 export const RECONNECT_GRACE_SECONDS = 8;
 export const WS_PATH = '/ws';
+/** Émojis rapides envoyés pendant une partie (on transmet leur numéro). */
+export const EMOTES = ['😂', '😡', '👋', '😎', '😱', '👍'] as const;
 
 export interface LobbyPlayer {
   /** Identifiant public du joueur, stable pendant la vie du salon. */
@@ -65,7 +67,9 @@ export type ClientMessage =
   /** Rejoint ou quitte le chat vocal du salon. */
   | { type: 'voice'; on: boolean }
   /** Mise en relation vocale avec un autre joueur du salon (relayée telle quelle). */
-  | { type: 'signal'; to: string; data: VoiceSignal };
+  | { type: 'signal'; to: string; data: VoiceSignal }
+  /** Émoji rapide (numéro dans `EMOTES`), montré à tous au-dessus de son personnage. */
+  | { type: 'emote'; emote: number };
 
 export type ServerMessage =
   | { type: 'welcome'; room: string; you: string; token: string; iceServers?: IceServer[] }
@@ -82,5 +86,6 @@ export type ServerMessage =
   | { type: 'snapshot'; match: MatchState }
   | { type: 'pong'; sent: number }
   | { type: 'signal'; from: string; data: VoiceSignal }
+  | { type: 'emote'; seat: number; emote: number }
   /** `closed` : l'hôte d'une partie sans internet a fermé son salon. */
   | { type: 'error'; message: string; code?: 'resume-failed' | 'closed' };

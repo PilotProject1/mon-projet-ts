@@ -143,6 +143,9 @@ export class Session {
       case 'voice':
         room.setVoice(peer.id, message.on === true);
         return;
+      case 'emote':
+        room.sendEmote(peer.id, Number(message.emote));
+        return;
       case 'signal':
         if (typeof message.to === 'string' && isSignal(message.data)) room.relaySignal(peer.id, message.to, message.data);
         return;

@@ -101,7 +101,8 @@ function newId(): string {
 /**
  * Téléphone hôte d'une partie sans internet : il fait tourner le salon (le
  * même code que le serveur en ligne), y joue lui-même, et relaie l'état aux
- * téléphones proches.
+ * téléphones proches. `advertise` à faux : partie seul contre des robots
+ * (tutoriel), sans Bluetooth ni réseau.
  */
 export class NearbyHostLink implements Link {
   private readonly room = new Room(newRoomCode());
@@ -109,10 +110,13 @@ export class NearbyHostLink implements Link {
   private readonly guests = new Map<string, Session>();
   private readonly listeners: Array<Promise<PluginListenerHandle>> = [];
   private readonly timer: number;
-  private readonly generation = begin();
+  private readonly generation: number;
+  private readonly advertise: boolean;
   private closed = false;
 
-  constructor(name: string, onMessage: (message: ServerMessage) => void) {
+  constructor(name: string, onMessage: (message: ServerMessage) => void, advertise = true) {
+    this.advertise = advertise;
+    this.generation = advertise ? begin() : generation;
     const directory: RoomDirectory = {
       create: () => this.room,
       find: (code) => (code === this.room.code ? this.room : undefined),
@@ -124,6 +128,24 @@ export class NearbyHostLink implements Link {
       });
     }, newId);
 
+    if (advertise) this.listen(directory, name);
+
+    // Simulation à pas fixe, comme sur le serveur.
+    const tickMs = TICK_SECONDS * 1000;
+    let last = performance.now();
+    let accumulator = 0;
+    this.timer = window.setInterval(() => {
+      const now = performance.now();
+      accumulator += Math.min(now - last, 250);
+      last = now;
+      while (accumulator >= tickMs) {
+        this.room.tick();
+        accumulator -= tickMs;
+      }
+    }, 4);
+  }
+
+  private listen(directory: RoomDirectory, name: string): void {
     this.listeners.push(
       Nearby.addListener('peerConnected', ({ id }) => {
         // Un téléphone revenu repart d'une connexion neuve (il reprendra sa place avec son jeton).
@@ -144,20 +166,6 @@ export class NearbyHostLink implements Link {
       }),
     );
     void Nearby.startHosting({ room: this.room.code, name });
-
-    // Simulation à pas fixe, comme sur le serveur.
-    const tickMs = TICK_SECONDS * 1000;
-    let last = performance.now();
-    let accumulator = 0;
-    this.timer = window.setInterval(() => {
-      const now = performance.now();
-      accumulator += Math.min(now - last, 250);
-      last = now;
-      while (accumulator >= tickMs) {
-        this.room.tick();
-        accumulator -= tickMs;
-      }
-    }, 4);
   }
 
   send(message: ClientMessage): void {
@@ -170,6 +178,7 @@ export class NearbyHostLink implements Link {
     if (this.closed) return;
     this.closed = true;
     window.clearInterval(this.timer);
+    if (!this.advertise) return;
     for (const listener of this.listeners) void listener.then((handle) => handle.remove());
     // Les invités sont prévenus tout de suite, au lieu d'attendre en vain le retour de l'hôte.
     const farewell = serialize({ type: 'error', code: 'closed', message: 'L’hôte a fermé le salon.' });
