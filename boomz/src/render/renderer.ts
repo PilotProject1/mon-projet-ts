@@ -13,7 +13,7 @@ import {
   type RoundState,
 } from '../game/types';
 import { drawBonusIcon } from './bonuses';
-import { drawCharacter, PLAYER_LOOKS } from './characters';
+import { drawCharacter, lookFor } from './characters';
 import { toScreenRound } from './view';
 
 interface Theme {
@@ -137,6 +137,7 @@ const TELEPORTER_COLORS = ['#35d6ff', '#ff4fd8', '#9dff5c'];
  */
 const DEPTH = 0.3;
 const MAX_PARTICLES = 320;
+const MAX_PIXEL_RATIO = 2;
 /**
  * Étirement maximal d’une case pour remplir l’écran (1,45 : une case peut être
  * 45 % plus haute que large, ou l’inverse). Au-delà, l’arène est centrée.
@@ -188,7 +189,9 @@ export class Renderer {
 
   /** Ajuste la résolution du canvas à sa taille affichée (écrans haute densité). */
   resize(width: number, height: number): void {
-    const ratio = window.devicePixelRatio || 1;
+    // Au-delà de 2 pixels par point, la différence ne se voit pas mais coûte
+    // cher en calcul et en batterie (un écran « 3x » a 2,25 fois plus de pixels).
+    const ratio = Math.min(window.devicePixelRatio || 1, MAX_PIXEL_RATIO);
     this.canvas.width = Math.round(width * ratio);
     this.canvas.height = Math.round(height * ratio);
     this.floor = null;
@@ -252,7 +255,7 @@ export class Renderer {
     for (const bomb of round.bombs) this.drawBomb(bomb, tick);
     // Du fond vers l'avant : un personnage plus bas à l'écran passe devant.
     const players = [...round.players].sort((a, b) => a.y - b.y);
-    for (const player of players) this.drawPlayer(player, tick, player.id === you);
+    for (const player of players) this.drawPlayer(player, tick, player.id === you, match.skins?.[player.id] ?? 0);
 
     this.drawParticles();
     this.drawSuddenDeathWarning(round);
@@ -760,9 +763,9 @@ export class Renderer {
 
   // ---- Personnages ----
 
-  private drawPlayer(player: Player, tick: number, isYou: boolean): void {
+  private drawPlayer(player: Player, tick: number, isYou: boolean, skin: number): void {
     const { ctx, cell, cellW, cellH } = this;
-    const look = PLAYER_LOOKS[player.id % PLAYER_LOOKS.length];
+    const look = lookFor(player.id, skin);
     let alpha = 1;
     let scale = 1;
     if (!player.alive) {

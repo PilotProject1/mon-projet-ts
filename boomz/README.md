@@ -17,7 +17,7 @@ déployé ni relié à leur code.
 | 1. Prototype jouable | mécanique bombe/flamme/blocs, testée à 2 sur un même écran | fait (le mode test a été retiré depuis) |
 | 2. MVP multijoueur | en ligne à 2-4 joueurs via lien d'invitation, salon d'attente, 1 arène finalisée | fait |
 | 3. Alpha | 6 joueurs, 3-4 arènes, bonus classiques, tests externes | fait, sauf les tests avec des joueurs externes (à organiser) |
-| 4. Bêta | mode Bluetooth / local sans internet, équilibrage, cosmétiques | à venir |
+| 4. Bêta | mode Bluetooth / local sans internet, équilibrage, perf/batterie, cosmétiques | en cours : cosmétiques, perf/batterie et statistiques d'équilibrage faits ; équilibrage à faire sur les chiffres des tests ; Bluetooth en attente de décision (application installée) |
 
 ### Règles communes
 
@@ -155,6 +155,49 @@ une arène différente à chaque manche. Au premier plan : Boomer et le logo, le
 formulaire (pseudo, créer ou rejoindre), les réglages du son et une fenêtre
 « Comment jouer » (commandes, règles, bonus, arènes). Arrivé par un lien
 d'invitation, on n'a plus qu'à saisir son pseudo et « Rejoindre le salon ».
+
+## Phase 4 (Bêta)
+
+### Cosmétiques de base
+
+Chaque personnage a trois apparences : Classique, Nuit et Or. Dans le salon,
+on touche son propre personnage pour les faire défiler ; les autres voient le
+changement aussitôt. Aucun effet sur le jeu, conformément à la roadmap (pas de
+pay-to-win). Elles sont gratuites pour l'instant.
+
+### Performances et batterie
+
+- Rendu plafonné à 2 pixels par point : un écran « 3x » calcule 2,25 fois moins
+  de pixels, sans différence visible. Une image se calcule en moins d'une
+  milliseconde sur ordinateur, de quoi garder une bonne marge sur téléphone.
+- Sol pré-dessiné, nombre de particules plafonné, fond du menu à 30 images
+  par seconde.
+- Son coupé et rendu suspendu quand le téléphone est verrouillé ou l'onglet
+  caché ; l'écran reste allumé pendant une partie (et seulement là).
+- Messages réseau compressés (voir plus haut).
+
+### Statistiques pour l'équilibrage
+
+Le serveur tient des statistiques **anonymes** (aucun pseudo, aucune adresse),
+consultables sur **https://boomz.onrender.com/stats** :
+
+- nombre de matchs, de joueurs par match, de manches et d'égalités ;
+- part des manches qui vont jusqu'au resserrement de l'arène ;
+- pour chaque bonus : combien de fois il est ramassé, et la part des manches
+  gagnées par ceux qui le possèdent, à comparer à la « chance normale de
+  gagner » (1 sur le nombre de joueurs) : un bonus nettement au-dessus est
+  trop fort, un bonus au niveau de la chance normale ne sert pas à grand-chose ;
+- durée moyenne des manches par arène.
+
+Elles sont en mémoire : un redémarrage du serveur (redéploiement, mise en
+veille de l'offre gratuite) les remet à zéro. Relever les chiffres après une
+session de tests, avant qu'il ne s'endorme.
+
+### Mode Bluetooth : décision à prendre
+
+Voir « Mode Bluetooth (phase 4) : contrainte à connaître » plus bas : il faut
+une application installée (Android et iPhone), ce qui suppose des outils et
+des comptes développeur.
 
 ## Graphismes des arènes
 

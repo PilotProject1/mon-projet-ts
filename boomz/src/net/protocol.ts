@@ -15,6 +15,8 @@ export interface LobbyPlayer {
   name: string;
   connected: boolean;
   ready: boolean;
+  /** Apparence choisie (cosmétique). */
+  skin: number;
 }
 
 export type ClientMessage =
@@ -23,6 +25,8 @@ export type ClientMessage =
   /** Retour après une coupure, avec le jeton secret reçu à l'arrivée. */
   | { type: 'resume'; room: string; token: string }
   | { type: 'ready'; ready: boolean }
+  /** Choix de son apparence (cosmétique). */
+  | { type: 'skin'; skin: number }
   /** Choix de l'arène, réservé à l'hôte. */
   | { type: 'arena'; arena: ArenaChoice }
   | { type: 'start' }

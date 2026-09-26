@@ -69,6 +69,20 @@ describe('salon', () => {
     expect(snapshot(bob).round.arena).toBe('temple');
   });
 
+  it('transmet l’apparence choisie par chaque joueur, et refuse une apparence inconnue', () => {
+    const room = new Room('ABCDE', () => 1);
+    const alice = fakePeer('alice');
+    const bob = fakePeer('bob');
+    room.join(alice);
+    room.join(bob);
+    room.setSkin('bob', 2);
+    room.setSkin('alice', 7);
+    expect(lastOf(alice, 'lobby').players.map((player) => player.skin)).toEqual([0, 2]);
+    room.setReady('bob', true);
+    room.start('alice');
+    expect(snapshot(alice).skins).toEqual([0, 2]);
+  });
+
   it('ne dévoile pas aux téléphones les bonus cachés sous les caisses', () => {
     const { alice } = startedRoom();
     expect(snapshot(alice).round.hiddenBonuses).toEqual([]);

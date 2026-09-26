@@ -25,6 +25,28 @@ export const PLAYER_LOOKS: PlayerLook[] = [
   { name: 'Omega', cap: '#c9d1dc', capFront: '#1d2a44', ball: '#48c6ff', suit: '#5a6478', trim: '#48c6ff' },
 ];
 
+/**
+ * Apparences (cosmétiques de base, phase 4) : variantes de couleurs d'un même
+ * personnage, sans aucun effet sur le jeu. Gratuites pour l'instant ; la
+ * roadmap prévoit d'en faire la seule source de revenus, sans pay-to-win.
+ */
+export const SKIN_NAMES: readonly string[] = ['Classique', 'Nuit', 'Or'];
+
+/** Apparence d'un personnage (numéro de place) avec l'une de ses variantes. */
+export function lookFor(character: number, skin = 0): PlayerLook {
+  const base = PLAYER_LOOKS[character % PLAYER_LOOKS.length];
+  switch (skin) {
+    case 1:
+      // Nuit : tenue sombre, liserés aux couleurs du personnage.
+      return { name: base.name, cap: '#1f2233', capFront: base.cap, ball: base.ball, suit: '#141622', trim: base.cap };
+    case 2:
+      // Or : casquette dorée, pompon nacré.
+      return { name: base.name, cap: '#d9a521', capFront: base.capFront, ball: '#fff1a8', suit: base.suit, trim: '#d9a521' };
+    default:
+      return base;
+  }
+}
+
 const OUTLINE = '#15161f';
 const SKIN = '#ffd9b3';
 
@@ -93,7 +115,7 @@ export function drawCharacter(
 }
 
 /** Portrait d'un personnage, pour le salon et le tableau des scores. */
-export function drawAvatar(canvas: HTMLCanvasElement, lookIndex: number): void {
+export function drawAvatar(canvas: HTMLCanvasElement, lookIndex: number, skin = 0): void {
   const size = canvas.clientWidth || 32;
   const ratio = window.devicePixelRatio || 1;
   canvas.width = Math.round(size * ratio);
@@ -101,5 +123,5 @@ export function drawAvatar(canvas: HTMLCanvasElement, lookIndex: number): void {
   const ctx = canvas.getContext('2d');
   if (!ctx) return;
   ctx.scale(ratio, ratio);
-  drawCharacter(ctx, PLAYER_LOOKS[lookIndex % PLAYER_LOOKS.length], size / 2, size * 0.56, size * 0.4, 'down');
+  drawCharacter(ctx, lookFor(lookIndex, skin), size / 2, size * 0.56, size * 0.4, 'down');
 }

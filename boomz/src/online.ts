@@ -4,7 +4,7 @@ import { soundEvents } from './audio/events';
 import { drawMascot, MenuDemo } from './menu/demo';
 import { COUNTDOWN_TICKS, SUDDEN_DEATH_TICKS, TICK_RATE, WINS_TO_TAKE_MATCH } from './game/constants';
 import { ARENA_NAMES } from './game/arena';
-import { BASE_MAX_BOMBS, BASE_RANGE, BASE_SPEED, SPEED_STEP } from './game/constants';
+import { BASE_MAX_BOMBS, BASE_RANGE, BASE_SPEED, SKIN_COUNT, SPEED_STEP } from './game/constants';
 import type { ArenaChoice, MatchState } from './game/match';
 import { ARENA_IDS, Bonus, type Direction, type Player } from './game/types';
 import { KeyboardInput } from './input/keyboard';
@@ -12,7 +12,7 @@ import { TouchPad } from './input/touch';
 import { Connection, SnapshotBuffer } from './net/connection';
 import { MIN_PLAYERS, RECONNECT_GRACE_SECONDS, type LobbyPlayer, type ServerMessage } from './net/protocol';
 import { BONUS_INFO, BONUS_ORDER, paintBonusCanvas } from './render/bonuses';
-import { drawAvatar, PLAYER_LOOKS } from './render/characters';
+import { drawAvatar, PLAYER_LOOKS, SKIN_NAMES } from './render/characters';
 import { Renderer } from './render/renderer';
 import { screenToGrid } from './render/view';
 
@@ -46,6 +46,7 @@ const readyButton = required<HTMLButtonElement>('#ready-btn');
 const startButton = required<HTMLButtonElement>('#start-btn');
 const lobbyHint = required<HTMLElement>('#lobby-hint');
 const lobbyError = required<HTMLElement>('#lobby-error');
+const skinHint = required<HTMLElement>('#skin-hint');
 const scoresList = required<HTMLUListElement>('#scores');
 const timer = required<HTMLElement>('#timer');
 const countdown = required<HTMLElement>('#countdown');
@@ -146,7 +147,32 @@ function applyScreenAmbience(): void {
   audio.playMusic(screen === 'game' ? 'game' : 'menu');
   if (screen === 'home') demo.start();
   else demo.stop();
+  void updateWakeLock();
 }
+
+// ---- Écran allumé pendant la partie ----
+
+let wakeLock: WakeLockSentinel | null = null;
+
+/** Empêche la mise en veille du téléphone pendant une partie, et seulement là. */
+async function updateWakeLock(): Promise<void> {
+  const wanted = screen === 'game' && !document.hidden;
+  try {
+    if (wanted && !wakeLock && 'wakeLock' in navigator) {
+      wakeLock = await navigator.wakeLock.request('screen');
+      wakeLock.addEventListener('release', () => {
+        wakeLock = null;
+      });
+    } else if (!wanted && wakeLock) {
+      await wakeLock.release();
+      wakeLock = null;
+    }
+  } catch {
+    // Refusé (économie d'énergie, navigateur ancien) : le jeu fonctionne quand même.
+  }
+}
+// Le verrou saute quand l'onglet passe en arrière-plan : on le reprend au retour.
+document.addEventListener('visibilitychange', () => void updateWakeLock());
 
 function mySeat(): number | null {
   if (!lobby || !you) return null;
@@ -302,6 +328,7 @@ function renderLobby(): void {
   else if (isHost && !othersReady) hint = 'En attente que tout le monde soit prêt.';
   else if (!isHost) hint = me?.ready ? 'L’hôte va lancer la partie.' : 'Appuyez sur « Je suis prêt ».';
   setText(lobbyHint, hint);
+  setText(skinHint, 'Touchez votre personnage pour changer d’apparence.');
   setText(lobbyError, '');
 }
 
@@ -318,7 +345,7 @@ function lobbyRow(player: LobbyPlayer, index: number, host: boolean, self: boole
   name.textContent = `${player.name}${self ? ' (vous)' : ''}`;
   const character = document.createElement('span');
   character.className = 'player-tag';
-  character.textContent = PLAYER_LOOKS[index].name;
+  character.textContent = player.skin ? `${PLAYER_LOOKS[index].name} ${SKIN_NAMES[player.skin]}` : PLAYER_LOOKS[index].name;
   const status = document.createElement('span');
   status.className = 'player-tag';
   if (!player.connected) {
@@ -332,8 +359,22 @@ function lobbyRow(player: LobbyPlayer, index: number, host: boolean, self: boole
   } else {
     status.textContent = 'pas prêt';
   }
-  item.append(avatar, name, character, status);
-  requestAnimationFrame(() => drawAvatar(avatar, index));
+  if (self) {
+    // Son propre personnage : le toucher fait défiler ses apparences.
+    const skinButton = document.createElement('button');
+    skinButton.type = 'button';
+    skinButton.className = 'avatar-btn';
+    skinButton.setAttribute('aria-label', `Changer d'apparence (actuelle : ${SKIN_NAMES[player.skin]})`);
+    skinButton.append(avatar);
+    skinButton.addEventListener('click', () => {
+      connection?.send({ type: 'skin', skin: (player.skin + 1) % SKIN_COUNT });
+      audio.playClick();
+    });
+    item.append(skinButton, name, character, status);
+  } else {
+    item.append(avatar, name, character, status);
+  }
+  requestAnimationFrame(() => drawAvatar(avatar, index, player.skin));
   return item;
 }
 
@@ -350,7 +391,7 @@ function renderScores(match: MatchState): void {
     if (seat !== undefined) names.set(seat, player.name);
   }
   const me = mySeat();
-  const key = JSON.stringify([match.scores, match.round.players.map((player) => player.alive), [...names], me]);
+  const key = JSON.stringify([match.scores, match.round.players.map((player) => player.alive), [...names], me, match.skins]);
   if (key === renderedScoresKey) return;
   renderedScoresKey = key;
   scoresList.dataset.count = String(match.round.players.length);
@@ -373,7 +414,7 @@ function renderScores(match: MatchState): void {
       count.className = 'score-count';
       count.textContent = String(score);
       item.append(avatar, name, wins, count);
-      requestAnimationFrame(() => drawAvatar(avatar, player.id));
+      requestAnimationFrame(() => drawAvatar(avatar, player.id, match.skins?.[player.id] ?? 0));
       return item;
     }),
   );

@@ -21,6 +21,8 @@ export interface MatchState {
   matchWinner: number | null;
   /** Arène de chaque manche, dans l'ordre (répétée si le match dure plus longtemps). */
   arenas: ArenaId[];
+  /** Apparence choisie par chaque joueur (cosmétique, sans effet sur le jeu). */
+  skins: number[];
   round: RoundState;
 }
 
@@ -52,6 +54,7 @@ export function createMatch(playerCount: number, seed: number, arenaChoice: Aren
     roundWinner: null,
     matchWinner: null,
     arenas,
+    skins: new Array<number>(playerCount).fill(0),
     round: createRound(playerCount, seed, arenas[0]),
   };
 }

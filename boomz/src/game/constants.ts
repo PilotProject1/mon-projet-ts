@@ -44,6 +44,9 @@ export const COUNTDOWN_TICKS = 3 * TICK_RATE;
 export const ROUND_OVER_TICKS = Math.round(2.5 * TICK_RATE);
 export const WINS_TO_TAKE_MATCH = 3; // best of 5
 
+/** Nombre d'apparences (cosmétiques) par personnage. */
+export const SKIN_COUNT = 3;
+
 /** Emplacements de départ, dans l'ordre d'arrivée des joueurs (jusqu'à 6). */
 export const SPAWNS: ReadonlyArray<readonly [number, number]> = [
   [1, 1],

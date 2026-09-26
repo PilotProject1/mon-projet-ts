@@ -7,6 +7,7 @@ import { TICK_SECONDS } from '../src/game/constants';
 import { ARENA_IDS } from '../src/game/types';
 import { WS_PATH, type ClientMessage, type ServerMessage } from '../src/net/protocol';
 import { createPeer, Room, type Peer } from './room';
+import { GameStats } from './stats';
 
 const PORT = Number(process.env.PORT ?? 8787);
 const DIST = resolve(import.meta.dirname, '../dist');
@@ -24,6 +25,7 @@ const CONTENT_TYPES: Record<string, string> = {
 };
 
 const rooms = new Map<string, Room>();
+const stats = new GameStats();
 
 function newRoomCode(): string {
   let code: string;
@@ -44,6 +46,13 @@ const server = createServer(async (request, response) => {
   const path = new URL(request.url ?? '/', 'http://localhost').pathname;
   if (path === '/health') {
     response.writeHead(200, { 'content-type': 'text/plain' }).end('ok');
+    return;
+  }
+  if (path === '/stats') {
+    // Statistiques anonymes pour l'équilibrage (voir server/stats.ts).
+    response
+      .writeHead(200, { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' })
+      .end(JSON.stringify({ salonsOuverts: rooms.size, ...stats.summary() }, null, 2));
     return;
   }
   const file = normalize(join(DIST, path === '/' ? 'index.html' : path));
@@ -98,7 +107,7 @@ wss.on('connection', (socket) => {
       case 'join': {
         if (room) return;
         const target =
-          message.type === 'create' ? new Room(newRoomCode()) : rooms.get(String(message.room).trim().toUpperCase());
+          message.type === 'create' ? new Room(newRoomCode(), undefined, stats) : rooms.get(String(message.room).trim().toUpperCase());
         if (!target) {
           send({ type: 'error', message: 'Salon introuvable : vérifiez le code ou demandez un nouveau lien.' });
           return;
@@ -136,6 +145,9 @@ wss.on('connection', (socket) => {
     switch (message.type) {
       case 'ready':
         room.setReady(peer.id, message.ready === true);
+        return;
+      case 'skin':
+        room.setSkin(peer.id, Number(message.skin));
         return;
       case 'arena':
         if (message.arena === 'rotation' || (ARENA_IDS as readonly string[]).includes(message.arena)) {

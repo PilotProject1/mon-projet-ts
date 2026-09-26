@@ -1,7 +1,8 @@
-import { TICK_RATE } from '../src/game/constants';
+import { SKIN_COUNT, TICK_RATE } from '../src/game/constants';
 import { createMatch, stepMatch, type ArenaChoice, type MatchState } from '../src/game/match';
 import { eliminatePlayer } from '../src/game/round';
 import type { Direction, PlayerInput } from '../src/game/types';
+import type { GameStats } from './stats';
 import {
   MAX_PLAYERS,
   MIN_PLAYERS,
@@ -31,13 +32,15 @@ export interface Peer {
   name: string;
   connected: boolean;
   ready: boolean;
+  /** Apparence choisie (cosmétique). */
+  skin: number;
   /** Horloge du salon au moment de la coupure. */
   disconnectedAt: number | null;
   send(message: ServerMessage): void;
 }
 
 export function createPeer(id: string, token: string, name: string, send: (message: ServerMessage) => void): Peer {
-  return { id, token, name, connected: true, ready: false, disconnectedAt: null, send };
+  return { id, token, name, connected: true, ready: false, skin: 0, disconnectedAt: null, send };
 }
 
 /**
@@ -59,10 +62,16 @@ export class Room {
   private clock = 0;
   private matchTicks = 0;
   private readonly randomSeed: () => number;
+  private readonly stats: GameStats | null;
 
-  constructor(code: string, randomSeed: () => number = () => Math.floor(Math.random() * 2 ** 31)) {
+  constructor(
+    code: string,
+    randomSeed: () => number = () => Math.floor(Math.random() * 2 ** 31),
+    stats: GameStats | null = null,
+  ) {
     this.code = code;
     this.randomSeed = randomSeed;
+    this.stats = stats;
   }
 
   get isEmpty(): boolean {
@@ -123,6 +132,13 @@ export class Room {
     this.broadcastLobby();
   }
 
+  setSkin(peerId: string, skin: number): void {
+    const peer = this.peers.find((candidate) => candidate.id === peerId);
+    if (!peer || this.inMatch || !Number.isInteger(skin) || skin < 0 || skin >= SKIN_COUNT) return;
+    peer.skin = skin;
+    this.broadcastLobby();
+  }
+
   setArena(peerId: string, arena: ArenaChoice): void {
     if (peerId !== this.hostId || this.inMatch) return;
     this.arena = arena;
@@ -142,6 +158,8 @@ export class Room {
     this.pendingDetonations = this.peers.map(() => false);
     for (const peer of this.peers) peer.ready = false;
     this.match = createMatch(this.peers.length, this.randomSeed(), this.arena);
+    this.match.skins = this.peers.map((peer) => peer.skin);
+    this.stats?.recordMatchStart(this.peers.length);
     this.matchTicks = 0;
     this.broadcastLobby();
     this.broadcast(snapshotMessage(this.match));
@@ -183,8 +201,11 @@ export class Room {
     // Une commande reçue pendant le compte à rebours est ignorée, pas mise en réserve.
     this.pendingBombs.fill(false);
     this.pendingDetonations.fill(false);
-    stepMatch(match, inputs);
+    const wasPlaying = match.phase === 'playing';
+    const events = stepMatch(match, inputs);
+    this.stats?.recordEvents(events);
     this.matchTicks++;
+    if (wasPlaying && (match as MatchState).phase !== 'playing') this.stats?.recordRoundEnd(match);
 
     // `stepMatch` a pu changer la phase : on relit l'état au lieu de se fier au test précédent.
     const ended = (match as MatchState).phase === 'matchOver';
@@ -212,7 +233,7 @@ export class Room {
     this.broadcast({
       type: 'lobby',
       host: this.hostId ?? '',
-      players: this.peers.map(({ id, name, connected, ready }) => ({ id, name, connected, ready })),
+      players: this.peers.map(({ id, name, connected, ready, skin }) => ({ id, name, connected, ready, skin })),
       seats: Object.fromEntries(this.seats),
       inMatch: this.inMatch,
       arena: this.arena,
