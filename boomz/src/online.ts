@@ -199,7 +199,7 @@ function inviteLink(room: string): string {
 
 // ---- Connexion ----
 
-/** Au-delà de ce délai sans réponse, on prévient que le serveur se réveille. */
+/** Au-delà de ce délai sans réponse, on indique que la connexion est en cours. */
 const WAKE_HINT_MS = 2500;
 let wakeHintTimer: number | null = null;
 
@@ -215,12 +215,12 @@ function connect(first: () => void, factory: LinkFactory = linkFactory): void {
   linkFactory = factory;
   offline = factory !== onlineLink;
   screens.lobby.classList.toggle('offline', offline);
-  // Serveur gratuit endormi : la première connexion peut prendre jusqu'à une minute.
+  // Réseau lent : on montre que la connexion est en cours.
   wakeHintTimer = window.setTimeout(
     () => {
       setText(
         homeStatus,
-        offline ? 'Recherche du salon à proximité…' : 'Réveil du serveur… Le premier lancement peut prendre jusqu’à une minute.',
+        offline ? 'Recherche du salon à proximité…' : 'Connexion au serveur…',
       );
     },
     offline ? 0 : WAKE_HINT_MS,

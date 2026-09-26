@@ -21,7 +21,7 @@ self.addEventListener('fetch', (event) => {
   // Rien à faire pour le jeu en ligne (WebSocket), les statistiques ou un autre site.
   if (request.method !== 'GET' || url.origin !== self.location.origin || url.pathname.startsWith('/stats')) return;
   if (request.mode === 'navigate') {
-    // Le serveur gratuit met jusqu'à une minute à se réveiller : passé 3 s, on
+    // Réseau lent ou absent : passé 3 s, on
     // affiche la copie gardée en cache (le jeu indique alors qu'il se connecte).
     const network = fetch(request).then((response) => {
       const copy = response.clone();

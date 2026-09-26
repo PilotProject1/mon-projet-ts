@@ -110,7 +110,7 @@ captures sont dans [`captures/`](captures/), aux formats exigés.
 | Identifiant de l'application | toi | `fr.boomz.jeu` par défaut ; **définitif** une fois publiée |
 | Champs « À REMPLIR » de /confidentialite | toi | éditeur, contact, région Render |
 | Recherche d'antériorité sur le nom « Boomz » (INPI, EUIPO) et avis sur la ressemblance de la mascotte avec un personnage existant | toi | à faire avant une publication publique |
-| Serveur sans mise en veille (Render Starter, ≈ 7 $ par mois) | toi | sinon le premier joueur attend jusqu'à une minute — et les testeurs d'Apple et de Google aussi |
+| ~~Serveur sans mise en veille (offre payante Render)~~ | toi | **fait** |
 | Clé de signature Android de publication | ensemble | à créer et garder précieusement ; je peux ensuite la brancher dans GitHub Actions (secrets) pour produire le fichier .aab du Play Store |
 | Empreinte de cette clé → `ANDROID_CERT_SHA256` chez Render | toi | pour que les liens d'invitation ouvrent l'application |
 | Identifiant d'équipe Apple → `APPLE_TEAM_ID` chez Render, et domaine associé dans Xcode | ensemble | même chose sur iPhone |

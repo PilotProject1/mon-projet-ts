@@ -135,8 +135,7 @@ et au moins une qui ne joue jamais aux jeux vidéo.
 
 **Déroulé d'une session (≈ 20 minutes)**
 
-1. Ouvrir https://boomz.onrender.com une minute avant (le serveur gratuit met
-   30 à 60 secondes à se réveiller), puis créer une partie.
+1. Ouvrir https://boomz.onrender.com et créer une partie.
 2. Envoyer le lien d'invitation (bouton « Partager ») avec le message
    ci-dessous. **Ne rien expliquer** : regarder qui bloque, et où.
 3. Jouer 2 ou 3 matchs, arène « Une différente à chaque manche », son activé.
@@ -224,9 +223,9 @@ consultables sur **https://boomz.onrender.com/stats** :
   trop fort, un bonus au niveau de la chance normale ne sert pas à grand-chose ;
 - durée moyenne des manches par arène.
 
-Elles sont en mémoire : un redémarrage du serveur (redéploiement, mise en
-veille de l'offre gratuite) les remet à zéro. Relever les chiffres après une
-session de tests, avant qu'il ne s'endorme.
+Elles sont en mémoire : un redémarrage du serveur (redéploiement) les remet
+à zéro. Relever les chiffres après une session de tests, avant d'envoyer une
+nouvelle version.
 
 ### Mode sans internet (Bluetooth)
 
@@ -275,9 +274,9 @@ l'application embarque le jeu compilé et se connecte à
 ### Site installable
 
 Manifeste, icônes et service worker : sur téléphone, « Ajouter à l'écran
-d'accueil » installe le jeu en plein écran. Pendant le réveil du serveur
-gratuit, la dernière version de la page s'affiche au bout de 3 secondes, avec
-un message « Réveil du serveur… » ; un message clair s'affiche aussi si le
+d'accueil » installe le jeu en plein écran. Sur un réseau lent, la dernière
+version de la page s'affiche au bout de 3 secondes, avec un message
+« Connexion au serveur… » ; un message clair s'affiche aussi si le
 serveur est injoignable.
 
 ### Confidentialité
@@ -373,7 +372,7 @@ fonctionne pas dans le simulateur de la CI).
 ## Mise en ligne
 
 Le jeu est en ligne sur **https://boomz.onrender.com** (service Web Render
-séparé de SYNeco, offre gratuite). Render redéploie à chaque envoi sur la
+séparé de SYNeco, offre payante sans mise en veille). Render redéploie à chaque envoi sur la
 branche suivie ; un redéploiement ferme les parties en cours.
 
 Le jeu a besoin d'un hébergeur qui
@@ -386,8 +385,9 @@ fichiers statiques comme Vercel ne suffit pas). Réglages du service Render :
 - aucune variable d'environnement à définir (Render fournit `PORT`) ;
 - une seule instance (les salons sont en mémoire).
 
-Sur une offre gratuite, le service s'endort après une période d'inactivité :
-la première connexion suivante prend alors quelques dizaines de secondes.
+Le service est sur une offre payante : il ne s'endort pas, la première
+connexion est immédiate. (Sur l'offre gratuite, il s'endormait après une
+période d'inactivité et mettait jusqu'à une minute à se réveiller.)
 
 ## Organisation
 
