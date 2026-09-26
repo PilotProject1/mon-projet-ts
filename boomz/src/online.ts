@@ -2,7 +2,7 @@ import './online.css';
 import { GameAudio } from './audio/audio';
 import { soundEvents } from './audio/events';
 import { composeFeedback, describeDevice, median, type FeedbackAnswers } from './feedback';
-import { drawMascot, MenuDemo } from './menu/demo';
+import { MenuDemo } from './menu/demo';
 import { COUNTDOWN_TICKS, SUDDEN_DEATH_TICKS, TICK_RATE, WINS_TO_TAKE_MATCH } from './game/constants';
 import { ARENA_NAMES } from './game/arena';
 import { SKIN_COUNT, UNTIL_USED } from './game/constants';
@@ -859,7 +859,6 @@ if ('serviceWorker' in navigator && !Capacitor.isNativePlatform() && location.pr
   });
 }
 
-drawMascot(required<HTMLCanvasElement>('#mascot'));
 applyScreenAmbience();
 requestAnimationFrame(frameLoop);
 

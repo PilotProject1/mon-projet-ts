@@ -3,7 +3,6 @@ import { createMatch, stepMatch, type MatchState } from '../game/match';
 import { cellOf } from '../game/round';
 import { createRng } from '../game/rng';
 import { ARENA_IDS, type Direction, type PlayerInput } from '../game/types';
-import { drawCharacter, PLAYER_LOOKS } from '../render/characters';
 import { Renderer } from '../render/renderer';
 
 const DIRECTIONS: Direction[] = ['up', 'down', 'left', 'right'];
@@ -96,45 +95,4 @@ export class MenuDemo {
     if (bomb) bot.hold = 0; // après une bombe, repartir ailleurs
     return { direction: bot.direction, bomb };
   }
-}
-
-/** Boomer en grand, bombe allumée à la main, pour l'accueil. */
-export function drawMascot(canvas: HTMLCanvasElement): void {
-  const size = canvas.clientWidth || 120;
-  const ratio = window.devicePixelRatio || 1;
-  canvas.width = Math.round(size * ratio);
-  canvas.height = Math.round(size * ratio);
-  const ctx = canvas.getContext('2d');
-  if (!ctx) return;
-  ctx.scale(ratio, ratio);
-  drawCharacter(ctx, PLAYER_LOOKS[0], size * 0.44, size * 0.56, size * 0.34, 'down');
-  // La bombe signature, tenue à droite.
-  const bx = size * 0.74;
-  const by = size * 0.7;
-  const r = size * 0.13;
-  ctx.fillStyle = '#1f2230';
-  ctx.strokeStyle = '#0c0d12';
-  ctx.lineWidth = size * 0.02;
-  ctx.beginPath();
-  ctx.arc(bx, by, r, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.stroke();
-  ctx.fillStyle = 'rgba(255,255,255,0.5)';
-  ctx.beginPath();
-  ctx.arc(bx - r * 0.35, by - r * 0.35, r * 0.2, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.strokeStyle = '#7a6440';
-  ctx.lineWidth = size * 0.018;
-  ctx.beginPath();
-  ctx.moveTo(bx + r * 0.4, by - r * 0.9);
-  ctx.quadraticCurveTo(bx + r, by - r * 1.5, bx + r * 0.8, by - r * 1.8);
-  ctx.stroke();
-  ctx.fillStyle = '#ff8a1f';
-  ctx.beginPath();
-  ctx.arc(bx + r * 0.8, by - r * 1.8, size * 0.035, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.fillStyle = '#fff3a0';
-  ctx.beginPath();
-  ctx.arc(bx + r * 0.8, by - r * 1.8, size * 0.018, 0, Math.PI * 2);
-  ctx.fill();
 }

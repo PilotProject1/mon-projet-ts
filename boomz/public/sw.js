@@ -2,7 +2,8 @@
 // fichiers pour démarrer vite. La page est toujours demandée d'abord au réseau
 // (réseau d'abord), pour qu'une nouvelle version soit prise aussitôt ; les
 // fichiers compilés, dont le nom change à chaque version, viennent du cache.
-const CACHE = 'boomz-v1';
+// Les icônes n'y sont pas : elles gardent leur nom d'une version à l'autre.
+const CACHE = 'boomz-v2';
 
 self.addEventListener('install', () => self.skipWaiting());
 self.addEventListener('activate', (event) => {
@@ -35,7 +36,7 @@ self.addEventListener('fetch', (event) => {
     );
     return;
   }
-  if (url.pathname.startsWith('/assets/') || url.pathname.startsWith('/icons/')) {
+  if (url.pathname.startsWith('/assets/')) {
     event.respondWith(
       caches.match(request).then(
         (cached) =>

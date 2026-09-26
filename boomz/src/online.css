@@ -960,9 +960,10 @@ select {
 }
 
 .mascot {
-  width: 120px;
-  height: 120px;
-  margin-bottom: -10px;
+  width: 132px;
+  height: 132px;
+  margin-bottom: 10px;
+  filter: drop-shadow(0 8px 18px rgba(0, 0, 0, 0.55));
   animation: mascot-bob 1.6s ease-in-out infinite;
 }
 
@@ -1065,6 +1066,7 @@ select {
   .mascot {
     width: 84px;
     height: 84px;
+    margin-bottom: 6px;
   }
 
   .home-card {
