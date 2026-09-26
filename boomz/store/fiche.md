@@ -107,7 +107,7 @@ captures sont dans [`captures/`](captures/), aux formats exigés.
 | Clé d'API App Store Connect (rôle Admin) et identifiant d'équipe → secrets GitHub `ASC_KEY_ID`, `ASC_ISSUER_ID`, `ASC_KEY_P8`, `APPLE_TEAM_ID` | toi | pas besoin de Mac : le workflow « Boomz iOS » fabrique, signe et envoie l'application sur TestFlight |
 | Fiche de l'app dans App Store Connect (Apps › + › Nouvelle app, identifiant `fr.boomz.jeu`) | toi | à créer avant le premier envoi sur TestFlight |
 | Identifiant de l'application | toi | `fr.boomz.jeu` par défaut ; **définitif** une fois publiée |
-| Champs « À REMPLIR » de /confidentialite | toi | éditeur (non professionnel), contact et région Render faits ; reste l'adresse de Render à vérifier |
+| ~~Champs « À REMPLIR » de /confidentialite~~ | toi | **fait** |
 | Recherche d'antériorité sur le nom « Boomz » (INPI, EUIPO) et avis sur la ressemblance de la mascotte avec un personnage existant | toi | à faire avant une publication publique |
 | ~~Serveur sans mise en veille (offre payante Render)~~ | toi | **fait** |
 | Clé de signature Android de publication | ensemble | à créer et garder précieusement ; je peux ensuite la brancher dans GitHub Actions (secrets) pour produire le fichier .aab du Play Store |
