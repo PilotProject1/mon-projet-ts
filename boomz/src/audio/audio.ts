@@ -98,8 +98,10 @@ function loadSettings(): AudioSettings {
 }
 
 export class GameAudio {
-  private ctx: AudioContext | null = null;
+  private ctx: BaseAudioContext | null = null;
   private sfx: GainNode | null = null;
+  /** Saturation douce : ajoute des harmoniques pour que les graves s'entendent sur un haut-parleur de téléphone. */
+  private drive: WaveShaperNode | null = null;
   private music: GainNode | null = null;
   private noiseBuffer: AudioBuffer | null = null;
   readonly settings: AudioSettings = loadSettings();
@@ -112,9 +114,9 @@ export class GameAudio {
   constructor() {
     // Les navigateurs mobiles n'autorisent le son qu'après un geste de l'utilisateur.
     const unlock = () => {
-      this.ensureContext();
-      void this.ctx?.resume();
-      if (this.ctx?.state === 'running') {
+      const ctx = this.ensureContext();
+      void ctx?.resume();
+      if (ctx?.state === 'running') {
         window.removeEventListener('pointerdown', unlock);
         window.removeEventListener('keydown', unlock);
       }
@@ -123,16 +125,24 @@ export class GameAudio {
     window.addEventListener('keydown', unlock);
     document.addEventListener('visibilitychange', () => {
       // Téléphone verrouillé ou onglet caché : on coupe tout, pour la batterie.
-      if (document.hidden) void this.ctx?.suspend();
-      else void this.ctx?.resume();
+      if (!(this.ctx instanceof AudioContext)) return;
+      if (document.hidden) void this.ctx.suspend();
+      else void this.ctx.resume();
     });
   }
 
   private ensureContext(): AudioContext | null {
-    if (this.ctx) return this.ctx;
+    if (this.ctx) return this.ctx instanceof AudioContext ? this.ctx : null;
     const Context = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
     if (!Context) return null;
     const ctx = new Context();
+    this.setup(ctx);
+    if (this.track) this.startScheduler();
+    return ctx;
+  }
+
+  /** Branche le mixage sur un contexte audio (celui du téléphone, ou un rendu hors ligne pour les tests). */
+  private setup(ctx: BaseAudioContext): void {
     const master = ctx.createDynamicsCompressor();
     master.connect(ctx.destination);
     this.sfx = ctx.createGain();
@@ -141,14 +151,26 @@ export class GameAudio {
     this.music = ctx.createGain();
     this.music.gain.value = this.settings.music ? MUSIC_VOLUME : 0;
     this.music.connect(master);
-    // Une seconde de bruit blanc, réutilisée par toutes les explosions.
-    const buffer = ctx.createBuffer(1, ctx.sampleRate, ctx.sampleRate);
+    this.drive = ctx.createWaveShaper();
+    const curve = new Float32Array(1024);
+    for (let i = 0; i < curve.length; i++) curve[i] = Math.tanh(3 * ((i / (curve.length - 1)) * 2 - 1));
+    this.drive.curve = curve;
+    this.drive.oversample = '2x';
+    this.drive.connect(this.sfx);
+    // Trois secondes de bruit blanc, réutilisées (en boucle) par toutes les explosions.
+    const buffer = ctx.createBuffer(1, ctx.sampleRate * 3, ctx.sampleRate);
     const data = buffer.getChannelData(0);
     for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
     this.noiseBuffer = buffer;
     this.ctx = ctx;
-    if (this.track) this.startScheduler();
-    return ctx;
+  }
+
+  /** Rendu hors ligne d'un son, sans haut-parleur : sert à mesurer les bruitages. */
+  async renderOffline(event: SoundEvent, seconds = 2.5, sampleRate = 44100): Promise<AudioBuffer> {
+    const offline = new OfflineAudioContext(1, Math.ceil(seconds * sampleRate), sampleRate);
+    this.setup(offline);
+    this.play(event);
+    return offline.startRendering();
   }
 
   setSound(on: boolean): void {
@@ -198,6 +220,7 @@ export class GameAudio {
     const start = ctx.currentTime + (options.delay ?? 0);
     const source = ctx.createBufferSource();
     source.buffer = this.noiseBuffer;
+    source.loop = true;
     const filter = ctx.createBiquadFilter();
     filter.type = options.filter ?? 'lowpass';
     filter.frequency.setValueAtTime(options.from ?? 2000, start);
@@ -229,7 +252,9 @@ export class GameAudio {
   // ---- Bruitages ----
 
   play(event: SoundEvent): void {
-    if (!this.ctx || !this.settings.sound || this.ctx.state !== 'running') return;
+    // Contexte suspendu (téléphone verrouillé) : on ne met pas les sons en attente,
+    // ils sortiraient tous d'un coup au retour.
+    if (!this.ctx || !this.settings.sound || (this.ctx instanceof AudioContext && this.ctx.state !== 'running')) return;
     switch (event.kind) {
       case 'countdown':
         this.tone(660, 0.14, { type: 'square', volume: 0.18 });
@@ -245,10 +270,19 @@ export class GameAudio {
         break;
       case 'explosion': {
         if (!this.throttle('explosion', 0.06)) break;
+        // Une bombe, pas un pétard. Un haut-parleur de téléphone ne rend presque
+        // rien sous 150-200 Hz : le « boum » doit donc vivre entre 150 et 800 Hz
+        // (coup sourd saturé, souffle et grondement qui traîne), avec très peu
+        // d'aigus, sinon il ne reste qu'un claquement. Le sous-grave, en plus,
+        // sert aux écouteurs.
         const power = Math.min(1, 0.6 + event.count * 0.2);
-        this.noise(0.7, { filter: 'lowpass', from: 2400, to: 160, volume: 0.55 * power });
-        this.tone(95, 0.45, { to: 38, volume: 0.6 * power, type: 'sine' });
-        this.noise(0.25, { filter: 'bandpass', from: 900, to: 300, q: 1.2, volume: 0.25 * power, delay: 0.03 });
+        const drive = this.drive ?? undefined;
+        this.tone(180, 0.75, { to: 55, volume: 1 * power, type: 'sine', destination: drive });
+        this.tone(60, 1.2, { to: 30, volume: 0.35 * power, type: 'sine' });
+        this.noise(0.02, { filter: 'lowpass', from: 3000, volume: 0.2 * power });
+        this.noise(1.3, { filter: 'lowpass', from: 1400, to: 150, q: 0.5, volume: 1 * power });
+        this.noise(1.2, { filter: 'bandpass', from: 380, to: 170, q: 0.7, volume: 0.9 * power, delay: 0.01 });
+        this.noise(1.7, { filter: 'lowpass', from: 520, to: 110, q: 0.4, volume: 0.55 * power, delay: 0.15 });
         break;
       }
       case 'crate':
