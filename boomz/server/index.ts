@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
-import { createServer } from 'node:http';
+import { createServer, type ServerResponse } from 'node:http';
 import { extname, join, normalize, resolve } from 'node:path';
 import { WebSocketServer, type WebSocket } from 'ws';
 import { TICK_SECONDS } from '../src/game/constants';
@@ -38,7 +38,7 @@ const directory: RoomDirectory = {
   find: (code) => rooms.get(code),
 };
 
-// ---- Fichiers du jeu (la version compilée par `vite build`) ----
+// ---- Site : page d'accueil et confidentialité ----
 
 const server = createServer(async (request, response) => {
   const path = new URL(request.url ?? '/', 'http://localhost').pathname;
@@ -77,9 +77,35 @@ const server = createServer(async (request, response) => {
       .end(JSON.stringify({ salonsOuverts: rooms.size, ...stats.summary() }, null, 2));
     return;
   }
-  // Adresses courtes des pages publiques (celle-ci est exigée par les stores).
-  const pages: Record<string, string> = { '/': 'index.html', '/confidentialite': 'confidentialite.html' };
-  const file = normalize(join(DIST, pages[path] ?? path));
+  // Le jeu se joue dans l'application : le site ne montre plus que la page
+  // d'accueil (qui renvoie vers l'application et affiche le code des liens
+  // d'invitation) et la page de confidentialité exigée par l'App Store.
+  if (path === '/confidentialite') {
+    await sendFile(response, 'confidentialite.html');
+    return;
+  }
+  if (path === '/sw.js' || path === '/favicon.png' || /^\/icons\/[\w-]+\.png$/.test(path)) {
+    await sendFile(response, path.slice(1));
+    return;
+  }
+  const page = await readFile(join(DIST, 'invitation.html'), 'utf8').catch(() => null);
+  if (page === null) {
+    response.writeHead(404, { 'content-type': 'text/plain; charset=utf-8' }).end('Site non compilé : lancer `npm run build`.');
+    return;
+  }
+  response
+    .writeHead(200, { 'content-type': CONTENT_TYPES['.html'], 'cache-control': 'no-cache' })
+    .end(page.replace('__APP_URL__', appUrl()));
+});
+
+/** Adresse d'installation (TestFlight, puis App Store), réglée chez l'hébergeur. */
+function appUrl(): string {
+  const url = process.env.APP_STORE_URL?.trim() ?? '';
+  return /^https:\/\/[^"<>\s]+$/.test(url) ? url : '';
+}
+
+async function sendFile(response: ServerResponse, name: string): Promise<void> {
+  const file = normalize(join(DIST, name));
   if (!file.startsWith(DIST)) {
     response.writeHead(403).end();
     return;
@@ -88,14 +114,9 @@ const server = createServer(async (request, response) => {
     const body = await readFile(file);
     response.writeHead(200, { 'content-type': CONTENT_TYPES[extname(file)] ?? 'application/octet-stream' }).end(body);
   } catch {
-    // Les liens d'invitation (/?salon=…) comme les chemins inconnus renvoient au jeu.
-    try {
-      response.writeHead(200, { 'content-type': CONTENT_TYPES['.html'] }).end(await readFile(join(DIST, 'index.html')));
-    } catch {
-      response.writeHead(404, { 'content-type': 'text/plain; charset=utf-8' }).end('Jeu non compilé : lancer `npm run build`.');
-    }
+    response.writeHead(404, { 'content-type': 'text/plain; charset=utf-8' }).end('Introuvable');
   }
-});
+}
 
 // ---- Connexions des téléphones ----
 

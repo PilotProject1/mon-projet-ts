@@ -68,7 +68,7 @@ captures sont dans [`captures/`](captures/), aux formats exigés.
 
 > bombe,multijoueur,amis,arcade,labyrinthe,explosion,party,fête,piège,rapide,duel,stratégie,action
 
-## Google Play
+## Google Play (en pause : priorité à l'App Store)
 
 - **Catégorie** : Jeux › Action (ou Arcade).
 - **Balises** : Multijoueur, Hors ligne non, Occasionnel.

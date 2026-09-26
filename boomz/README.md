@@ -5,8 +5,14 @@ caisses et piéger ses adversaires, le dernier debout gagne la manche.
 
 **Un joueur par téléphone** : chacun voit la partie sur son propre écran. On
 joue ensemble en ligne, en simultané, via un code ou un lien d'invitation, ou
-sans internet entre iPhone proches (Bluetooth et Wi-Fi direct, dans
-l'application).
+en local entre iPhone proches (Bluetooth et Wi-Fi direct).
+
+**Le jeu se joue uniquement dans l'application iPhone** (TestFlight, puis App
+Store). Le site https://boomz.onrender.com ne sert plus de version jouable :
+il présente le jeu, renvoie vers l'application et affiche le code des liens
+d'invitation. Le serveur Render reste indispensable : c'est lui qui fait
+tourner les parties en ligne de l'application. L'application Android est en
+pause.
 
 Ce dossier est indépendant de SYNeco (`frontend/`, `backend/`) : il n'est ni
 déployé ni relié à leur code.
@@ -274,13 +280,15 @@ l'application embarque le jeu compilé et se connecte à
   domaine associé ajouté dans Xcode). Sans elles, les liens s'ouvrent dans le
   navigateur, ce qui fonctionne aussi.
 
-### Site installable
+### Site (page d'accueil)
 
-Manifeste, icônes et service worker : sur téléphone, « Ajouter à l'écran
-d'accueil » installe le jeu en plein écran. Sur un réseau lent, la dernière
-version de la page s'affiche au bout de 3 secondes, avec un message
-« Connexion au serveur… » ; un message clair s'affiche aussi si le
-serveur est injoignable.
+Le site ne sert que `public/invitation.html` (présentation, code du salon
+d'un lien d'invitation, bouton d'installation) et `/confidentialite`. Le
+bouton « Installer Boomz sur iPhone » pointe vers la variable
+**`APP_STORE_URL`** à renseigner chez Render (lien public TestFlight, puis
+lien App Store) ; sans elle, la page affiche « Bientôt sur l'App Store ».
+`public/sw.js` désinstalle l'ancienne version installable du site chez ceux
+qui l'avaient ajoutée à leur écran d'accueil.
 
 ### Confidentialité
 

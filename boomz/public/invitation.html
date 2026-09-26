@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#1b1f2e" />
+    <meta name="description" content="Boomz : posez des bombes, faites sauter les caisses, piégez vos amis ! Jeu multijoueur sur iPhone." />
+    <link rel="icon" type="image/png" href="/favicon.png?v=2" />
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png?v=2" />
+    <title>Boomz</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #1b1f2e;
+        --panel: #252a3d;
+        --text: #f3f4f8;
+        --muted: #a3a9c2;
+        --accent: #ffcf33;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        min-height: 100dvh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 24px 16px;
+        background: radial-gradient(circle at 50% 20%, #2c3350 0%, var(--bg) 70%);
+        color: var(--text);
+        font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+        line-height: 1.5;
+        text-align: center;
+      }
+      main {
+        width: 100%;
+        max-width: 420px;
+      }
+      .icon {
+        width: 148px;
+        height: 148px;
+        filter: drop-shadow(0 10px 24px rgba(0, 0, 0, 0.55));
+      }
+      h1 {
+        margin: 8px 0 4px;
+        font-size: 56px;
+        font-weight: 900;
+        letter-spacing: 2px;
+        text-transform: uppercase;
+        color: var(--accent);
+        background: linear-gradient(180deg, #fff27a 0%, #ffcf33 45%, #ff8a1f 100%);
+        -webkit-background-clip: text;
+        background-clip: text;
+        -webkit-text-fill-color: transparent;
+        -webkit-text-stroke: 2px #3a1d05;
+        paint-order: stroke fill;
+        transform: rotate(-3deg);
+      }
+      .tagline {
+        margin: 0 0 24px;
+        font-weight: 700;
+      }
+      .card {
+        padding: 20px;
+        border-radius: 18px;
+        background: var(--panel);
+      }
+      .code {
+        margin: 6px 0 12px;
+        font-size: 40px;
+        font-weight: 900;
+        letter-spacing: 8px;
+        color: var(--accent);
+        overflow-wrap: anywhere;
+      }
+      .hint {
+        margin: 0;
+        color: var(--muted);
+      }
+      .store {
+        display: block;
+        margin-top: 16px;
+        padding: 14px 20px;
+        border-radius: 999px;
+        background: var(--accent);
+        color: #2a1d00;
+        font-weight: 800;
+        text-decoration: none;
+      }
+      .soon {
+        margin-top: 16px;
+        font-weight: 700;
+      }
+      footer {
+        margin-top: 24px;
+      }
+      footer a {
+        color: var(--muted);
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <img class="icon" src="/icons/icon-512.png?v=2" alt="" width="512" height="512" />
+      <h1>Boomz</h1>
+      <p class="tagline">Posez des bombes, faites sauter les caisses, piégez vos amis !</p>
+      <div class="card">
+        <div id="invite" hidden>
+          <p class="hint">Vous êtes invité dans le salon</p>
+          <p class="code" id="code"></p>
+          <p class="hint">Ouvrez Boomz sur votre iPhone, entrez ce code et touchez « Rejoindre ».</p>
+        </div>
+        <p class="hint" id="intro">Boomz se joue dans l'application iPhone, jusqu'à 6 joueurs, en ligne ou en local.</p>
+        <!-- Adresse de l'application (TestFlight, puis App Store), fournie par le serveur. -->
+        <a class="store" id="store" href="__APP_URL__" hidden>Installer Boomz sur iPhone</a>
+        <p class="soon" id="soon">Bientôt sur l'App Store.</p>
+      </div>
+      <footer><a href="/confidentialite">Confidentialité et mentions légales</a></footer>
+    </main>
+    <script>
+      const code = (new URLSearchParams(location.search).get('salon') || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 5);
+      if (code) {
+        document.getElementById('code').textContent = code;
+        document.getElementById('invite').hidden = false;
+        document.getElementById('intro').hidden = true;
+      }
+      const store = document.getElementById('store');
+      if (store.getAttribute('href').startsWith('https://')) {
+        store.hidden = false;
+        document.getElementById('soon').hidden = true;
+      }
+    </script>
+  </body>
+</html>

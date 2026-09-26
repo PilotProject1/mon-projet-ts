@@ -950,13 +950,6 @@ for (const link of document.querySelectorAll<HTMLAnchorElement>('.privacy-link')
   link.href = `${PUBLIC_ORIGIN}/confidentialite`;
 }
 
-// Jeu installable depuis le navigateur (pas dans l'application, déjà installée).
-if ('serviceWorker' in navigator && !Capacitor.isNativePlatform() && location.protocol === 'https:') {
-  void navigator.serviceWorker.register('/sw.js').catch(() => {
-    // Sans service worker, le jeu fonctionne normalement ; il n'est juste pas installable.
-  });
-}
-
 applyScreenAmbience();
 requestAnimationFrame(frameLoop);
 

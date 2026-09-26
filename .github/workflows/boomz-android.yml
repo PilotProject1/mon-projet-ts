@@ -1,13 +1,9 @@
 name: Boomz Android
 
-# Fabrique l'application Android de test (APK signé avec la clé de débogage) à
-# chaque changement du jeu. L'APK se télécharge dans l'onglet « Actions » de
-# GitHub, section « Artifacts » de l'exécution.
+# Fabrique l'application Android de test (APK signé avec la clé de débogage).
+# En pause (priorité à l'App Store) : lancement manuel seulement, depuis
+# l'onglet « Actions ». L'APK se télécharge dans la section « Artifacts ».
 on:
-  push:
-    paths:
-      - 'boomz/**'
-      - '.github/workflows/boomz-android.yml'
   workflow_dispatch:
 
 jobs:
