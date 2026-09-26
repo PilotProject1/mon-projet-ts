@@ -100,17 +100,21 @@ jobs:
           security list-keychains -d user -s "$KEYCHAIN" $(security list-keychains -d user | tr -d '"')
           security find-identity -v -p codesigning "$KEYCHAIN"
 
-          UUID=$(security cms -D -i "$SIGN/profile.mobileprovision" | plutil -extract UUID raw -)
+          security cms -D -i "$SIGN/profile.mobileprovision" > "$SIGN/profile.plist"
+          UUID=$(plutil -extract UUID raw "$SIGN/profile.plist")
+          echo "Profil : $(plutil -extract Name raw "$SIGN/profile.plist") — UUID $UUID — équipe $(plutil -extract TeamIdentifier.0 raw "$SIGN/profile.plist") — expire $(plutil -extract ExpirationDate raw "$SIGN/profile.plist")"
+          if [ -z "$UUID" ]; then echo "::error::Profil illisible"; exit 1; fi
           for dir in "$HOME/Library/MobileDevice/Provisioning Profiles" "$HOME/Library/Developer/Xcode/UserData/Provisioning Profiles"; do
             mkdir -p "$dir"
             cp "$SIGN/profile.mobileprovision" "$dir/$UUID.mobileprovision"
           done
+          ls -la "$HOME/Library/Developer/Xcode/UserData/Provisioning Profiles"
 
           # Signature manuelle avec ce certificat et ce profil, sur la seule cible
           # App en Release (passée en ligne de commande, elle toucherait aussi les
           # paquets Swift, qui n'acceptent pas de profil). Modification locale à
           # cette fabrication, jamais enregistrée dans le dépôt.
-          TEAM="$APPLE_TEAM_ID" PROFILE="$PROFILE_NAME" python3 - <<'PY'
+          TEAM="$APPLE_TEAM_ID" PROFILE="$UUID" python3 - <<'PY'
           import os
           path = 'App.xcodeproj/project.pbxproj'
           text = open(path).read()
@@ -139,7 +143,7 @@ jobs:
             <key>signingStyle</key><string>manual</string>
             <key>signingCertificate</key><string>Apple Distribution</string>
             <key>provisioningProfiles</key><dict>
-              <key>fr.boomz.jeu</key><string>$PROFILE_NAME</string>
+              <key>fr.boomz.jeu</key><string>$UUID</string>
             </dict>
           </dict></plist>
           EOF
