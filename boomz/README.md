@@ -76,8 +76,17 @@ différentes).
    **lance la partie**.
 4. En fin de match, **Retour au salon** permet d'enchaîner.
 
-Commandes : joystick à gauche, bouton bombe à droite (paysage conseillé), ou
-clavier (flèches / ZQSD + Espace, E pour le Détonateur).
+Commandes : posez le pouce n'importe où sur la **moitié gauche** de l'écran
+(carte comprise) et faites-le glisser : le joystick apparaît sous le doigt et
+disparaît quand on le lève. Seul le bouton bombe reste affiché, à droite. Sur
+ordinateur : flèches / ZQSD + Espace, E pour le Détonateur.
+
+L'arène occupe tout l'espace libre, quitte à étirer légèrement les cases
+(jusqu'à 45 %) ; personnages, bombes et bonus gardent leurs proportions. Sur un
+téléphone tenu en hauteur, l'arène est affichée **pivotée d'un quart de tour**
+(11 cases de large, 13 de haut) pour occuper la hauteur de l'écran : pousser
+vers le haut fait toujours monter le personnage à l'écran. Seul l'affichage de
+ce téléphone change, la partie est la même pour tous.
 
 ### Coupures réseau
 

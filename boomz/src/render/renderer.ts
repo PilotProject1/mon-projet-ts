@@ -14,6 +14,7 @@ import {
 } from '../game/types';
 import { drawBonusIcon } from './bonuses';
 import { drawCharacter, PLAYER_LOOKS } from './characters';
+import { toScreenRound } from './view';
 
 interface Theme {
   groundA: string;
@@ -136,6 +137,11 @@ const TELEPORTER_COLORS = ['#35d6ff', '#ff4fd8', '#9dff5c'];
  */
 const DEPTH = 0.3;
 const MAX_PARTICLES = 320;
+/**
+ * Étirement maximal d’une case pour remplir l’écran (1,45 : une case peut être
+ * 45 % plus haute que large, ou l’inverse). Au-delà, l’arène est centrée.
+ */
+const MAX_STRETCH = 1.45;
 
 interface Particle {
   x: number;
@@ -152,16 +158,25 @@ interface Particle {
 export class Renderer {
   private readonly ctx: CanvasRenderingContext2D;
   private readonly canvas: HTMLCanvasElement;
+  /** Taille de référence d'une case : son plus petit côté. */
   private cell = 32;
+  /** Dimensions réelles d'une case à l'écran (elle peut être étirée). */
+  private cellW = 32;
+  private cellH = 32;
+  private offsetX = 0;
+  private offsetY = 0;
+  private shakeX = 0;
+  private shakeY = 0;
+  private rotatedView = false;
   private theme: Theme = THEMES.chantier;
   /** Sol pré-dessiné, par arène : il ne change jamais pendant une manche. */
   private floor: HTMLCanvasElement | null = null;
-  private floorArena: ArenaId | null = null;
+  private floorKey = '';
   private particles: Particle[] = [];
   private shake = 0;
   private lastFrame = 0;
   /** État précédent, pour repérer explosions et blocs détruits entre deux images. */
-  private previous: { roundNumber: number; tiles: Tile[]; bombs: Bomb[] } | null = null;
+  private previous: { roundNumber: number; rotated: boolean; tiles: Tile[]; bombs: Bomb[] } | null = null;
   private readonly random = createRng(12345);
 
   constructor(canvas: HTMLCanvasElement) {
@@ -179,25 +194,38 @@ export class Renderer {
     this.floor = null;
   }
 
+  /**
+   * Vrai quand l'arène est affichée pivotée (écran plus haut que large) : les
+   * directions du joystick et du clavier doivent alors être converties.
+   */
+  get rotated(): boolean {
+    return this.rotatedView;
+  }
+
   /** `you` : numéro du joueur de ce téléphone, signalé par un repère au-dessus de lui. */
   render(match: MatchState, you: number | null = null, now = performance.now()): void {
     const { ctx, canvas } = this;
     // Canvas encore caché (écran non affiché) : rien à dessiner.
     if (canvas.width === 0 || canvas.height === 0) return;
-    const round = match.round;
-    this.cell = canvas.width / round.width;
+    // Écran en hauteur : on fait pivoter la vue pour que l'arène occupe la hauteur.
+    this.rotatedView = canvas.height > canvas.width;
+    const round = toScreenRound(match.round, this.rotatedView);
+    this.fit(round);
     this.theme = THEMES[round.arena] ?? THEMES.chantier;
     const dt = this.lastFrame ? Math.min((now - this.lastFrame) / 1000, 0.1) : 0;
     this.lastFrame = now;
 
-    this.detectEvents(match);
+    this.detectEvents(match.roundNumber, round);
     this.updateParticles(dt);
 
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.clearRect(0, 0, canvas.width, canvas.height);
+    this.shakeX = 0;
+    this.shakeY = 0;
     if (this.shake > 0) {
       const amplitude = this.cell * 0.06 * this.shake;
-      ctx.translate((this.random() - 0.5) * amplitude, (this.random() - 0.5) * amplitude);
+      this.shakeX = (this.random() - 0.5) * amplitude;
+      this.shakeY = (this.random() - 0.5) * amplitude;
       this.shake = Math.max(0, this.shake - dt * 5);
     }
 
@@ -206,15 +234,21 @@ export class Renderer {
     const frozen = match.phase === 'roundOver' || match.phase === 'matchOver';
     const tick = round.tick + (frozen ? match.phaseTick : 0);
 
+    // Sol, murs et caisses s'étirent avec la case ; personnages, bombes et
+    // bonus gardent leurs proportions.
+    this.stretched();
     ctx.drawImage(this.floorLayer(round), 0, 0);
     this.drawFeatures(round, tick);
     for (let y = 0; y < round.height; y++) {
       for (let x = 0; x < round.width; x++) this.drawTile(round, x, y, tick);
     }
+    this.upright();
     this.drawBonuses(round, tick);
-    // Les flammes passent sur les caisses qui brûlent, sous les personnages.
+    // Les flammes passent sur les caisses qui brûlent et les bonus, sous les personnages.
+    this.stretched();
     this.drawFlames(round);
 
+    this.upright();
     for (const bomb of round.bombs) this.drawBomb(bomb, tick);
     // Du fond vers l'avant : un personnage plus bas à l'écran passe devant.
     const players = [...round.players].sort((a, b) => a.y - b.y);
@@ -224,21 +258,43 @@ export class Renderer {
     this.drawSuddenDeathWarning(round);
   }
 
+  /** Taille et position des cases pour remplir le canvas, dans la limite de l'étirement permis. */
+  private fit(round: RoundState): void {
+    const width = this.canvas.width / round.width;
+    const height = this.canvas.height / round.height;
+    this.cellW = Math.min(width, height * MAX_STRETCH);
+    this.cellH = Math.min(height, width * MAX_STRETCH);
+    this.cell = Math.min(this.cellW, this.cellH);
+    this.offsetX = (this.canvas.width - this.cellW * round.width) / 2;
+    this.offsetY = (this.canvas.height - this.cellH * round.height) / 2;
+  }
+
+  /** Repère « case carrée de côté `cell` », étiré aux dimensions réelles des cases. */
+  private stretched(): void {
+    this.ctx.setTransform(
+      this.cellW / this.cell,
+      0,
+      0,
+      this.cellH / this.cell,
+      this.offsetX + this.shakeX,
+      this.offsetY + this.shakeY,
+    );
+  }
+
+  /** Repère non déformé : positions en `cellW`/`cellH`, tailles en `cell`. */
+  private upright(): void {
+    this.ctx.setTransform(1, 0, 0, 1, this.offsetX + this.shakeX, this.offsetY + this.shakeY);
+  }
+
   // ---- Sol ----
 
   private floorLayer(round: RoundState): HTMLCanvasElement {
-    if (
-      this.floor &&
-      this.floorArena === round.arena &&
-      this.floor.width === this.canvas.width &&
-      this.floor.height === this.canvas.height
-    ) {
-      return this.floor;
-    }
+    const key = `${round.arena}:${round.width}x${round.height}:${this.cell}`;
+    if (this.floor && this.floorKey === key) return this.floor;
     const t = this.theme;
     const layer = document.createElement('canvas');
-    layer.width = this.canvas.width;
-    layer.height = this.canvas.height;
+    layer.width = Math.ceil(round.width * this.cell);
+    layer.height = Math.ceil(round.height * this.cell);
     const ctx = layer.getContext('2d');
     if (!ctx) return layer;
     const cell = this.cell;
@@ -264,7 +320,7 @@ export class Renderer {
       }
     }
     this.floor = layer;
-    this.floorArena = round.arena;
+    this.floorKey = key;
     return layer;
   }
 
@@ -569,12 +625,12 @@ export class Renderer {
   }
 
   private drawBonuses(round: RoundState, tick: number): void {
-    const { ctx, cell } = this;
+    const { ctx, cell, cellW, cellH } = this;
     for (let index = 0; index < round.bonuses.length; index++) {
       const bonus = round.bonuses[index];
       if (bonus === Bonus.None) continue;
-      const cx = (index % round.width) * cell + cell / 2;
-      const cy = Math.floor(index / round.width) * cell + cell / 2;
+      const cx = ((index % round.width) + 0.5) * cellW;
+      const cy = (Math.floor(index / round.width) + 0.5) * cellH;
       const bob = Math.sin(tick * 0.1 + index) * cell * 0.04;
       ctx.fillStyle = this.theme.shadow;
       ctx.beginPath();
@@ -635,11 +691,11 @@ export class Renderer {
   // ---- Bombes ----
 
   private drawBomb(bomb: Bomb, tick: number): void {
-    const { ctx, cell } = this;
+    const { ctx, cell, cellW, cellH } = this;
     // Bombe poussée : elle glisse entre deux cases.
     const [sx, sy] = bomb.slide ? DIRECTION_VECTORS[bomb.slide] : [0, 0];
-    const cx = (bomb.cx + sx * bomb.slideProgress) * cell + cell / 2;
-    const cy = (bomb.cy + sy * bomb.slideProgress) * cell + cell / 2;
+    const cx = (bomb.cx + sx * bomb.slideProgress + 0.5) * cellW;
+    const cy = (bomb.cy + sy * bomb.slideProgress + 0.5) * cellH;
     // Pulsation qui s'accélère à l'approche de l'explosion (sauf bombe télécommandée).
     const urgency = bomb.remote ? 0 : 1 - bomb.fuse / BOMB_FUSE_TICKS;
     const pulse = 1 + 0.08 * Math.sin(tick * (0.15 + urgency * 0.5));
@@ -705,7 +761,7 @@ export class Renderer {
   // ---- Personnages ----
 
   private drawPlayer(player: Player, tick: number, isYou: boolean): void {
-    const { ctx, cell } = this;
+    const { ctx, cell, cellW, cellH } = this;
     const look = PLAYER_LOOKS[player.id % PLAYER_LOOKS.length];
     let alpha = 1;
     let scale = 1;
@@ -716,21 +772,22 @@ export class Renderer {
       if (alpha <= 0) return;
     }
     const bob = player.moving && player.alive ? Math.abs(Math.sin(tick * 0.35)) * cell * 0.06 : 0;
-    const cx = player.x * cell;
-    const cy = player.y * cell - cell * 0.08 - bob;
+    const cx = player.x * cellW;
+    const groundY = player.y * cellH;
+    const cy = groundY - cell * 0.08 - bob;
     const r = cell * 0.36 * scale;
 
     ctx.globalAlpha = alpha;
     ctx.fillStyle = this.theme.shadow;
     ctx.beginPath();
-    ctx.ellipse(player.x * cell, player.y * cell + r * 0.8, r * 0.8, r * 0.28, 0, 0, Math.PI * 2);
+    ctx.ellipse(cx, groundY + r * 0.8, r * 0.8, r * 0.28, 0, 0, Math.PI * 2);
     ctx.fill();
     if (isYou && player.alive) {
       // Anneau au sol aux couleurs du joueur.
       ctx.strokeStyle = '#ffffff';
       ctx.lineWidth = Math.max(1.5, cell * 0.05);
       ctx.beginPath();
-      ctx.ellipse(player.x * cell, player.y * cell + r * 0.8, r * 0.95, r * 0.36, 0, 0, Math.PI * 2);
+      ctx.ellipse(cx, groundY + r * 0.8, r * 0.95, r * 0.36, 0, 0, Math.PI * 2);
       ctx.stroke();
     }
     // Invulnérable juste après avoir perdu le gilet : le personnage clignote.
@@ -769,26 +826,27 @@ export class Renderer {
 
   // ---- Effets ----
 
-  private detectEvents(match: MatchState): void {
-    const round = match.round;
+  /** Compare avec l'image précédente (dans le repère de l'écran) pour lancer les effets. */
+  private detectEvents(roundNumber: number, round: RoundState): void {
     const previous = this.previous;
-    this.previous = { roundNumber: match.roundNumber, tiles: [...round.tiles], bombs: round.bombs };
-    if (!previous || previous.roundNumber !== match.roundNumber) {
+    const rotated = this.rotatedView;
+    this.previous = { roundNumber, rotated, tiles: [...round.tiles], bombs: round.bombs };
+    if (!previous || previous.roundNumber !== roundNumber || previous.rotated !== rotated) {
       this.particles = [];
       return;
     }
-    const cell = this.cell;
+    const { cellW, cellH } = this;
     for (const bomb of previous.bombs) {
       if (round.bombs.some((other) => other.id === bomb.id)) continue;
       if (round.flames[bomb.cy * round.width + bomb.cx] <= 0) continue; // murée par le resserrement
       this.shake = 1;
-      this.emit((bomb.cx + 0.5) * cell, (bomb.cy + 0.5) * cell, 18, ['#fff3a0', '#ffb52e', '#ff6a1f'], 3.2, 0.5, 0);
-      this.emit((bomb.cx + 0.5) * cell, (bomb.cy + 0.3) * cell, 6, ['rgba(70,64,60,0.55)', 'rgba(110,100,92,0.45)'], 0.9, 1.1, -0.4);
+      this.emit((bomb.cx + 0.5) * cellW, (bomb.cy + 0.5) * cellH, 18, ['#fff3a0', '#ffb52e', '#ff6a1f'], 3.2, 0.5, 0);
+      this.emit((bomb.cx + 0.5) * cellW, (bomb.cy + 0.3) * cellH, 6, ['rgba(70,64,60,0.55)', 'rgba(110,100,92,0.45)'], 0.9, 1.1, -0.4);
     }
     for (let i = 0; i < round.tiles.length; i++) {
       if (previous.tiles[i] === Tile.Block && round.tiles[i] === Tile.Burning) {
-        const x = ((i % round.width) + 0.5) * cell;
-        const y = (Math.floor(i / round.width) + 0.3) * cell;
+        const x = ((i % round.width) + 0.5) * cellW;
+        const y = (Math.floor(i / round.width) + 0.3) * cellH;
         this.emit(x, y, 10, [this.theme.blockTop, this.theme.blockFront, this.theme.blockLine], 2.4, 0.9, 6);
       }
     }
@@ -840,11 +898,11 @@ export class Renderer {
   private drawSuddenDeathWarning(round: RoundState): void {
     const remaining = SUDDEN_DEATH_TICKS - round.tick;
     if (remaining > 5 * TICK_RATE || remaining < 0) return;
-    const { ctx, canvas } = this;
+    const { ctx } = this;
     if (Math.floor(round.tick / 15) % 2 === 0) {
       ctx.strokeStyle = 'rgba(255, 60, 40, 0.8)';
       ctx.lineWidth = this.cell * 0.2;
-      ctx.strokeRect(0, 0, canvas.width, canvas.height);
+      ctx.strokeRect(0, 0, round.width * this.cellW, round.height * this.cellH);
     }
   }
 }

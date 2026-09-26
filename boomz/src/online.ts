@@ -11,6 +11,7 @@ import { MIN_PLAYERS, RECONNECT_GRACE_SECONDS, type LobbyPlayer, type ServerMess
 import { BONUS_INFO, BONUS_ORDER, paintBonusCanvas } from './render/bonuses';
 import { drawAvatar, PLAYER_LOOKS } from './render/characters';
 import { Renderer } from './render/renderer';
+import { screenToGrid } from './render/view';
 
 // ---- Éléments de la page ----
 
@@ -470,7 +471,10 @@ function sendInputs(match: MatchState | null): void {
   const detonate = keyboard.consumeDetonate() || detonateRequested;
   detonateRequested = false;
   const playing = screen === 'game' && match?.phase === 'playing';
-  const direction = playing ? (touch.direction() ?? keyboard.direction()) : null;
+  // Le joueur pousse selon ce qu'il voit : si l'arène est affichée pivotée,
+  // la direction à l'écran est convertie en direction dans l'arène.
+  const pushed = playing ? (touch.direction() ?? keyboard.direction()) : null;
+  const direction = pushed && screenToGrid(pushed, renderer.rotated);
   if (direction !== lastSentDirection) {
     connection.send({ type: 'input', direction });
     lastSentDirection = direction;
@@ -483,6 +487,9 @@ function frameLoop(now: number): void {
   // Programmée d'abord : une erreur dans une image ne doit pas arrêter le jeu.
   requestAnimationFrame(frameLoop);
   const latest = snapshots.latest();
+  // La zone du joystick n'écoute le doigt que pendant le jeu : hors jeu, elle
+  // laisserait passer les touchers vers les boutons (« Retour au salon »).
+  screens.game.classList.toggle('playing', screen === 'game' && latest?.phase === 'playing');
   sendInputs(latest);
   if (screen === 'game') {
     const view = snapshots.sample(now);
