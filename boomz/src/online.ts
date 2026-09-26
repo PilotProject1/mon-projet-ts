@@ -137,6 +137,8 @@ let viewingResults = false;
 let lastSentDirection: Direction | null = null;
 let reconnectUntil = 0;
 let reconnectTimer: number | null = null;
+/** Développement seulement : états du serveur ignorés (voir `boomz.freeze`). */
+let devFrozen = false;
 
 function show(next: Screen): void {
   if (screen === next) return;
@@ -288,6 +290,8 @@ function onMessage(message: ServerMessage): void {
       decideScreen();
       return;
     case 'snapshot': {
+      // Vérifications automatisées : l'état peut être figé sur une scène injectée.
+      if (import.meta.env.DEV && devFrozen) return;
       const previousState = snapshots.latest();
       if (screen === 'game') {
         for (const event of soundEvents(previousState, message.match, mySeat())) audio.play(event);
@@ -867,6 +871,10 @@ if (import.meta.env.DEV) {
       getLobby: () => lobby,
       /** Injecte un état, pour vérifier l'affichage de situations rares (bonus, détonateur). */
       inject: (match: MatchState) => snapshots.push(match, performance.now()),
+      /** Ignore désormais les états du serveur (captures d'écran). */
+      freeze: () => {
+        devFrozen = true;
+      },
     },
   });
 }

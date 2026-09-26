@@ -18,6 +18,7 @@ déployé ni relié à leur code.
 | 2. MVP multijoueur | en ligne à 2-4 joueurs via lien d'invitation, salon d'attente, 1 arène finalisée | fait |
 | 3. Alpha | 6 joueurs, 3-4 arènes, bonus classiques, tests externes | fait, sauf les tests avec des joueurs externes (à organiser) |
 | 4. Bêta | mode Bluetooth / local sans internet, équilibrage, perf/batterie, cosmétiques | en cours : cosmétiques, perf/batterie et statistiques d'équilibrage faits ; équilibrage à faire sur les chiffres des tests ; Bluetooth en attente de décision (application installée) |
+| 5. Lancement | polish final, fiches des stores, analytics, sortie iOS/Android | en cours : application Android/iOS, APK de test, site installable, confidentialité et fiches prêts ; publication en attente des comptes développeur |
 
 ### Règles communes
 
@@ -231,6 +232,64 @@ session de tests, avant qu'il ne s'endorme.
 Voir « Mode Bluetooth (phase 4) : contrainte à connaître » plus bas : il faut
 une application installée (Android et iPhone), ce qui suppose des outils et
 des comptes développeur.
+
+## Phase 5 (lancement)
+
+### Application Android et iOS
+
+Le jeu est emballé avec **Capacitor** (projets `android/` et `ios/`) :
+l'application embarque le jeu compilé et se connecte à
+`https://boomz.onrender.com`. Identifiant : `fr.boomz.jeu`
+(`capacitor.config.ts`, **définitif** une fois publié).
+
+- **APK Android de test** : fabriqué par GitHub Actions (workflow
+  « Boomz Android ») à chaque changement du jeu. Onglet **Actions** du dépôt ›
+  dernière exécution « Boomz Android » › **Artifacts** › `boomz-android-debug`
+  (un .zip contenant `app-debug.apk`). Sur le téléphone Android : ouvrir
+  l'APK et autoriser l'installation depuis cette source. Il est signé avec
+  une clé de débogage : bon pour tester, pas pour le Play Store.
+- **En local** : `npm run build:app` (compile le jeu pour l'application et le
+  copie dans les projets natifs), puis `npx cap open android` (Android Studio)
+  ou `npx cap open ios` (Xcode, sur Mac).
+- **Icônes et écrans de démarrage** : sources dans `assets/`, déclinés avec
+  `npx capacitor-assets generate --android --ios`.
+- **Liens d'invitation** : quand l'application est installée, un lien
+  `https://boomz.onrender.com/?salon=…` l'ouvre directement, une fois
+  renseignées chez Render les variables `ANDROID_CERT_SHA256` (empreinte
+  SHA-256 de la clé de signature de publication) et `APPLE_TEAM_ID` (et le
+  domaine associé ajouté dans Xcode). Sans elles, les liens s'ouvrent dans le
+  navigateur, ce qui fonctionne aussi.
+
+### Site installable
+
+Manifeste, icônes et service worker : sur téléphone, « Ajouter à l'écran
+d'accueil » installe le jeu en plein écran. Pendant le réveil du serveur
+gratuit, la dernière version de la page s'affiche au bout de 3 secondes, avec
+un message « Réveil du serveur… » ; un message clair s'affiche aussi si le
+serveur est injoignable.
+
+### Confidentialité
+
+`/confidentialite` (exigée par les stores) décrit ce que fait réellement le
+jeu : pseudo le temps de la partie, statistiques anonymes, stockage sur le
+téléphone, hébergeur, aucun compte ni traceur. Les informations à fournir
+(éditeur, contact, région de l'hébergeur) sont surlignées « À REMPLIR ».
+Toute évolution qui change les données traitées doit s'y refléter.
+
+### Fiches des stores
+
+`store/fiche.md` : nom, accroches, description, mots-clés, catégories,
+réponses aux questionnaires (âge, données) et liste de ce qui reste à faire
+avant de publier. `store/captures/` : captures aux formats Google Play
+(1080 × 1920, 1920 × 1080, bannière 1024 × 500) et iPhone 6,9 pouces
+(1290 × 2796, 2796 × 1290).
+
+### Statistiques d'usage
+
+Les statistiques anonymes de `/stats` (voir phase 4) servent d'« analytics »
+pour l'instant. Elles sont en mémoire : pour les garder dans la durée après le
+lancement, il faudra une petite base de données (par exemple Neon, déjà
+utilisée pour SYNeco) — décision à prendre.
 
 ## Graphismes des arènes
 
