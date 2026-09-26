@@ -127,6 +127,35 @@ noter :
 - les bonus qui paraissent trop forts ou inutiles, les arènes qu'ils préfèrent ;
 - tout affichage cassé, avec le modèle de téléphone.
 
+## Son et musique
+
+Rien de tel n'était prévu dans la roadmap : ajouté après la phase 3. Tout est
+synthétisé dans le navigateur (Web Audio) : aucun fichier à télécharger, aucune
+question de droits.
+
+- Bruitages : bombe posée, explosion (plus forte quand plusieurs bombes sautent
+  ensemble), caisse brisée, Kick, téléporteur, dalle qui s'effondre, gilet
+  perdu, élimination, alarme du resserrement, compte à rebours, fin de manche
+  et de match (victoire ou défaite).
+- Un son propre à chacun des 8 bonus, joué quand on le ramasse soi-même.
+- Deux musiques en boucle : une posée pour le menu et le salon, une plus
+  rythmée pendant la partie.
+- Réglages séparés pour les bruitages et la musique sur l'accueil, et un bouton
+  qui coupe tout pendant la partie ; ils sont mémorisés sur le téléphone. Le son
+  s'arrête quand le téléphone est verrouillé.
+
+Les sons sont déduits de la comparaison de deux états successifs reçus du
+serveur (une bombe apparaît, la portée d'un joueur augmente, un joueur saute
+de plusieurs cases…), sans rien changer au serveur.
+
+## Menu de départ
+
+Une petite partie jouée par des personnages automatiques défile en fond, sur
+une arène différente à chaque manche. Au premier plan : Boomer et le logo, le
+formulaire (pseudo, créer ou rejoindre), les réglages du son et une fenêtre
+« Comment jouer » (commandes, règles, bonus, arènes). Arrivé par un lien
+d'invitation, on n'a plus qu'à saisir son pseudo et « Rejoindre le salon ».
+
 ## Graphismes des arènes
 
 Chaque arène a son ambiance (vue 3/4) : Chantier (terre battue, béton, bandes

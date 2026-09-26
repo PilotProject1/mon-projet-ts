@@ -1,4 +1,7 @@
 import './online.css';
+import { GameAudio } from './audio/audio';
+import { soundEvents } from './audio/events';
+import { drawMascot, MenuDemo } from './menu/demo';
 import { COUNTDOWN_TICKS, SUDDEN_DEATH_TICKS, TICK_RATE, WINS_TO_TAKE_MATCH } from './game/constants';
 import { ARENA_NAMES } from './game/arena';
 import { BASE_MAX_BOMBS, BASE_RANGE, BASE_SPEED, SPEED_STEP } from './game/constants';
@@ -62,6 +65,13 @@ const canvas = required<HTMLCanvasElement>('#arena');
 const frame = required<HTMLElement>('#board-frame');
 
 const renderer = new Renderer(canvas);
+const audio = new GameAudio();
+const demo = new MenuDemo(required<HTMLCanvasElement>('#home-bg'));
+const homeCard = required<HTMLElement>('#home-card');
+const helpDialog = required<HTMLDialogElement>('#help');
+const soundButton = required<HTMLButtonElement>('#sound-btn');
+const musicButton = required<HTMLButtonElement>('#music-btn');
+const gameSoundButton = required<HTMLButtonElement>('#game-sound-btn');
 const keyboard = new KeyboardInput(window);
 const touch = new TouchPad(
   required('#stick-zone'),
@@ -126,8 +136,16 @@ function show(next: Screen): void {
   if (screen === next) return;
   screen = next;
   for (const [key, element] of Object.entries(screens)) element.hidden = key !== next;
+  applyScreenAmbience();
   // Un bouton resté sélectionné capterait Espace et Entrée pendant la partie.
   if (next === 'game' && document.activeElement instanceof HTMLElement) document.activeElement.blur();
+}
+
+/** Musique et fond animé selon l'écran affiché. */
+function applyScreenAmbience(): void {
+  audio.playMusic(screen === 'game' ? 'game' : 'menu');
+  if (screen === 'home') demo.start();
+  else demo.stop();
 }
 
 function mySeat(): number | null {
@@ -216,10 +234,15 @@ function onMessage(message: ServerMessage): void {
       renderLobby();
       decideScreen();
       return;
-    case 'snapshot':
+    case 'snapshot': {
+      const previousState = snapshots.latest();
+      if (screen === 'game') {
+        for (const event of soundEvents(previousState, message.match, mySeat())) audio.play(event);
+      }
       snapshots.push(message.match, performance.now());
       decideScreen();
       return;
+    }
     case 'error':
       if (message.code === 'resume-failed') {
         giveUp(session ? 'Votre place dans le salon a expiré.' : '');
@@ -419,6 +442,7 @@ let detonateRequested = false;
 detonateButton.addEventListener('pointerdown', (event) => {
   event.preventDefault();
   detonateRequested = true;
+  audio.playDetonateClick();
 });
 
 // ---- Bonus du joueur ----
@@ -545,9 +569,10 @@ arenaSelect.addEventListener('change', () => {
   }
 });
 
-// Légende des bonus, dans le salon.
-required<HTMLUListElement>('#bonus-list').replaceChildren(
-  ...BONUS_ORDER.map((bonus) => {
+/** Remplit une légende des bonus ; les icônes sont peintes quand elle devient visible. */
+function fillBonusLegend(list: HTMLUListElement): Array<() => void> {
+  const painters: Array<() => void> = [];
+  const items = BONUS_ORDER.map((bonus) => {
     const item = document.createElement('li');
     const icon = document.createElement('canvas');
     icon.className = 'bonus-icon';
@@ -556,11 +581,51 @@ required<HTMLUListElement>('#bonus-list').replaceChildren(
     name.textContent = BONUS_INFO[bonus].name;
     text.append(name, ` : ${BONUS_INFO[bonus].effect}`);
     item.append(icon, text);
-    // Le canvas n'a sa taille qu'une fois la légende dépliée.
-    required<HTMLDetailsElement>('.legend').addEventListener('toggle', () => paintBonusCanvas(icon, bonus));
+    painters.push(() => paintBonusCanvas(icon, bonus));
     return item;
-  }),
-);
+  });
+  list.replaceChildren(...items);
+  return painters;
+}
+
+// Le canvas d'une icône n'a sa taille qu'une fois la légende affichée.
+const lobbyLegend = fillBonusLegend(required<HTMLUListElement>('#bonus-list'));
+required<HTMLDetailsElement>('.legend').addEventListener('toggle', () => lobbyLegend.forEach((paint) => paint()));
+const helpLegend = fillBonusLegend(required<HTMLUListElement>('#help-bonus-list'));
+required<HTMLButtonElement>('#help-btn').addEventListener('click', () => {
+  helpDialog.showModal();
+  helpLegend.forEach((paint) => paint());
+});
+required<HTMLButtonElement>('#help-close').addEventListener('click', () => helpDialog.close());
+
+// ---- Son ----
+
+function renderAudioButtons(): void {
+  soundButton.setAttribute('aria-pressed', String(audio.settings.sound));
+  musicButton.setAttribute('aria-pressed', String(audio.settings.music));
+  gameSoundButton.setAttribute('aria-pressed', String(audio.settings.sound || audio.settings.music));
+}
+soundButton.addEventListener('click', () => {
+  audio.setSound(!audio.settings.sound);
+  renderAudioButtons();
+});
+musicButton.addEventListener('click', () => {
+  audio.setMusic(!audio.settings.music);
+  renderAudioButtons();
+});
+// En partie, un seul bouton coupe ou rétablit tout.
+gameSoundButton.addEventListener('click', () => {
+  const on = !(audio.settings.sound || audio.settings.music);
+  audio.setSound(on);
+  audio.setMusic(on);
+  renderAudioButtons();
+  gameSoundButton.blur();
+});
+renderAudioButtons();
+// Petit clic sur les boutons de l'interface (hors bombe et détonateur, qui ont leurs sons).
+document.addEventListener('click', (event) => {
+  if (event.target instanceof Element && event.target.closest('.primary-btn, .secondary-btn, .link-btn')) audio.playClick();
+});
 
 shareButton.addEventListener('click', async () => {
   if (!session) return;
@@ -600,9 +665,15 @@ if (previous && (!invited || invited === previous.room)) {
   resume(previous);
 } else if (invited) {
   setText(homeError, '');
-  required<HTMLElement>('.tagline').textContent = `Vous êtes invité dans le salon ${invited}. Choisissez un pseudo puis rejoignez.`;
+  // Arrivée par un lien d'invitation : « Rejoindre » devient l'action principale.
+  homeCard.classList.add('invited');
+  required<HTMLElement>('#invite-banner').hidden = false;
+  setText(required<HTMLElement>('#invite-code'), invited);
+  required<HTMLButtonElement>('#join-btn').textContent = 'Rejoindre le salon';
 }
 
+drawMascot(required<HTMLCanvasElement>('#mascot'));
+applyScreenAmbience();
 requestAnimationFrame(frameLoop);
 
 if (import.meta.env.DEV) {

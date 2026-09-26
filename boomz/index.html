@@ -9,23 +9,65 @@
   </head>
   <body>
     <!-- Accueil : créer un salon ou en rejoindre un -->
-    <section class="screen" id="home">
-      <div class="card">
-        <h1 class="title">Boomz</h1>
-        <p class="tagline">Posez des bombes, détruisez les caisses, piégez vos amis. Chacun joue sur son téléphone.</p>
-        <label class="field">
-          <span>Votre pseudo</span>
-          <input id="name" type="text" maxlength="16" autocomplete="nickname" placeholder="Joueur" />
-        </label>
-        <button class="primary-btn" id="create-btn" type="button">Créer une partie</button>
-        <div class="separator"><span>ou rejoindre avec un code</span></div>
-        <form class="join-row" id="join-form">
-          <input id="code" type="text" maxlength="5" autocapitalize="characters" autocomplete="off" placeholder="CODE" aria-label="Code du salon" />
-          <button class="secondary-btn" type="submit">Rejoindre</button>
-        </form>
-        <p class="error" id="home-error" role="alert"></p>
+    <section class="screen home" id="home">
+      <!-- En fond : une petite partie jouée par des personnages automatiques. -->
+      <canvas class="home-bg" id="home-bg" aria-hidden="true"></canvas>
+      <div class="home-shade" aria-hidden="true"></div>
+      <div class="audio-toggles">
+        <button class="icon-btn" id="sound-btn" type="button" aria-pressed="true" aria-label="Bruitages">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h4l5-4v14l-5-4H4z" /><path class="waves" d="M16 8.5a5 5 0 0 1 0 7M18.5 6a8.5 8.5 0 0 1 0 12" /><path class="cross" d="M16 9l6 6M22 9l-6 6" /></svg>
+        </button>
+        <button class="icon-btn" id="music-btn" type="button" aria-pressed="true" aria-label="Musique">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 17V5l11-2v12" /><circle cx="6.5" cy="17" r="2.5" /><circle cx="17.5" cy="15" r="2.5" /><path class="cross" d="M3 3l18 18" /></svg>
+        </button>
+      </div>
+      <div class="home-layout">
+        <div class="home-hero">
+          <canvas class="mascot" id="mascot" aria-hidden="true"></canvas>
+          <h1 class="logo">Boomz</h1>
+          <p class="tagline" id="tagline">Posez des bombes, faites sauter les caisses, piégez vos amis. Chacun sur son téléphone, jusqu'à 6.</p>
+        </div>
+        <div class="card home-card" id="home-card">
+          <p class="invite-banner" id="invite-banner" hidden>Vous êtes invité dans le salon <strong id="invite-code"></strong></p>
+          <label class="field">
+            <span>Votre pseudo</span>
+            <input id="name" type="text" maxlength="16" autocomplete="nickname" placeholder="Joueur" />
+          </label>
+          <button class="primary-btn" id="create-btn" type="button">Créer une partie</button>
+          <div class="separator"><span>ou rejoindre avec un code</span></div>
+          <form class="join-row" id="join-form">
+            <input id="code" type="text" maxlength="5" autocapitalize="characters" autocomplete="off" placeholder="CODE" aria-label="Code du salon" />
+            <button class="secondary-btn" id="join-btn" type="submit">Rejoindre</button>
+          </form>
+          <p class="error" id="home-error" role="alert"></p>
+          <button class="link-btn" id="help-btn" type="button">Comment jouer ?</button>
+        </div>
       </div>
     </section>
+
+    <!-- Règles, commandes, bonus et arènes -->
+    <dialog class="help" id="help" aria-labelledby="help-title">
+      <div class="help-card">
+        <h2 id="help-title">Comment jouer</h2>
+        <ul class="help-list">
+          <li><strong>Bouger</strong> : posez le pouce n'importe où sur la moitié gauche de l'écran et glissez.</li>
+          <li><strong>Poser une bombe</strong> : bouton rouge, à droite. Elle explose en croix au bout de 2,5 s.</li>
+          <li><strong>Gagner</strong> : soyez le dernier debout. Trois manches gagnées remportent le match.</li>
+          <li><strong>Attention</strong> : à 2:00, des murs tombent et l'arène se resserre.</li>
+        </ul>
+        <h3>Bonus</h3>
+        <p class="legend-intro">Certaines caisses cachent un bonus : marchez dessus pour le ramasser. Les flammes les détruisent.</p>
+        <ul class="bonus-list" id="help-bonus-list"></ul>
+        <h3>Arènes</h3>
+        <ul class="arena-list">
+          <li><strong>Chantier</strong> : l'arène classique.</li>
+          <li><strong>Laboratoire</strong> : les téléporteurs de même couleur sont reliés.</li>
+          <li><strong>Temple englouti</strong> : les dalles fissurées s'effondrent derrière vous.</li>
+          <li><strong>Station spatiale</strong> : les tapis roulants vous emportent.</li>
+        </ul>
+        <button class="primary-btn" id="help-close" type="button">C'est parti !</button>
+      </div>
+    </dialog>
 
     <!-- Salon d'attente -->
     <section class="screen" id="lobby" hidden>
@@ -70,6 +112,9 @@
       <header class="hud">
         <ul class="scores" id="scores"></ul>
         <span class="hud-timer" id="timer"></span>
+        <button class="icon-btn small" id="game-sound-btn" type="button" aria-pressed="true" aria-label="Son">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h4l5-4v14l-5-4H4z" /><path class="waves" d="M16 8.5a5 5 0 0 1 0 7M18.5 6a8.5 8.5 0 0 1 0 12" /><path class="cross" d="M16 9l6 6M22 9l-6 6" /></svg>
+        </button>
       </header>
       <main class="board">
         <div class="board-frame" id="board-frame">
