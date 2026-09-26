@@ -541,6 +541,9 @@ voiceButton.addEventListener('click', async () => {
     if (error) setText(voiceHint, error);
     else if (lobby) voice.sync(lobby.players);
   }
+  // Ouvrir ou fermer le micro peut interrompre le son du jeu sur iPhone.
+  audio.wake();
+  window.setTimeout(() => audio.wake(), 800);
   renderLobby();
 });
 micButton.addEventListener('click', () => {
@@ -557,6 +560,9 @@ micTestButton.addEventListener('click', async () => {
   });
   setText(voiceHint, error ?? 'Vous vous êtes entendu ? Le micro fonctionne.');
   micTestButton.disabled = false;
+  // iPhone : le micro a mis la musique en pause.
+  audio.wake();
+  window.setTimeout(() => audio.wake(), 800);
 });
 
 // ---- Partie ----

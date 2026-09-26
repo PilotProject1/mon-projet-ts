@@ -116,22 +116,32 @@ export class GameAudio {
     // aussitôt. Un navigateur le laisse en pause jusqu'au premier geste de
     // l'utilisateur, qui le relance ci-dessous.
     void this.ensureContext()?.resume();
-    const unlock = () => {
-      const ctx = this.ensureContext();
-      void ctx?.resume();
-      if (ctx?.state === 'running') {
-        window.removeEventListener('pointerdown', unlock);
-        window.removeEventListener('keydown', unlock);
-      }
-    };
-    window.addEventListener('pointerdown', unlock);
-    window.addEventListener('keydown', unlock);
+    // Le son peut être mis en pause à tout moment par le téléphone (micro du
+    // chat vocal, appel, autre application) : chaque toucher le relance.
+    const wake = () => this.wake();
+    window.addEventListener('pointerdown', wake);
+    window.addEventListener('keydown', wake);
     document.addEventListener('visibilitychange', () => {
       // Téléphone verrouillé ou onglet caché : on coupe tout, pour la batterie.
       if (!(this.ctx instanceof AudioContext)) return;
       if (document.hidden) void this.ctx.suspend();
-      else void this.ctx.resume();
+      else this.wake();
     });
+  }
+
+  /**
+   * Relance le son s'il a été interrompu. Sur iPhone, ouvrir puis fermer le
+   * micro fait passer le son dans l'état « interrompu » sans le rétablir.
+   */
+  wake(): void {
+    const ctx = this.ensureContext();
+    if (!ctx || document.hidden || ctx.state === 'running') return;
+    void ctx.resume().then(
+      () => {
+        if (this.track) this.startScheduler();
+      },
+      () => {},
+    );
   }
 
   private ensureContext(): AudioContext | null {
@@ -139,6 +149,10 @@ export class GameAudio {
     const Context = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
     if (!Context) return null;
     const ctx = new Context();
+    ctx.addEventListener('statechange', () => {
+      // Interruption terminée (fin du micro, d'un appel) : on reprend la musique.
+      if (ctx.state !== 'running' && !document.hidden) window.setTimeout(() => this.wake(), 300);
+    });
     this.setup(ctx);
     if (this.track) this.startScheduler();
     return ctx;
