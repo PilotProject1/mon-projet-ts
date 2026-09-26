@@ -262,6 +262,12 @@ export function stepRound(state: RoundState, inputs: ReadonlyArray<PlayerInput>)
   return events;
 }
 
+/** Élimine un joueur hors des règles du jeu (par exemple, déconnexion). */
+export function eliminatePlayer(state: RoundState, playerId: number): void {
+  const player = state.players[playerId];
+  if (player?.alive) killPlayer(state, player, []);
+}
+
 export function alivePlayers(state: RoundState): Player[] {
   return state.players.filter((player) => player.alive);
 }

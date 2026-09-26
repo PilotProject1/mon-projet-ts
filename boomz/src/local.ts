@@ -1,4 +1,4 @@
-import './style.css';
+import './local.css';
 import { COUNTDOWN_TICKS, SUDDEN_DEATH_TICKS, TICK_RATE, TICK_SECONDS, WINS_TO_TAKE_MATCH } from './game/constants';
 import { createMatch, stepMatch, type MatchState } from './game/match';
 import type { PlayerInput } from './game/types';
@@ -61,6 +61,8 @@ function startMatch(): void {
   match = createMatch(PLAYER_COUNT, randomSeed());
   started = true;
   overlay.hidden = true;
+  // Le bouton « Jouer » garderait sinon Espace et Entrée pour lui.
+  overlayButton.blur();
 }
 
 overlayButton.addEventListener('click', startMatch);

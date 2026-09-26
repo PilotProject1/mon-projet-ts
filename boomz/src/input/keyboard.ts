@@ -29,6 +29,11 @@ export class KeyboardInput {
   }
 
   private onKey(event: KeyboardEvent, down: boolean): void {
+    // Champs de saisie, boutons et liens gardent leur comportement habituel.
+    const target = event.target;
+    if (target instanceof HTMLInputElement || target instanceof HTMLButtonElement || target instanceof HTMLAnchorElement) {
+      return;
+    }
     LAYOUTS.forEach((layout, player) => {
       const direction = layout.directions[event.code];
       if (direction) {

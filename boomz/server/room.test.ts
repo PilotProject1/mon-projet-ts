@@ -1,0 +1,112 @@
+import { describe, expect, it } from 'vitest';
+import { COUNTDOWN_TICKS, TICK_RATE } from '../src/game/constants';
+import type { MatchState } from '../src/game/match';
+import { RECONNECT_GRACE_SECONDS, type ServerMessage } from '../src/net/protocol';
+import { createPeer, Room, type Peer } from './room';
+
+type FakePeer = Peer & { inbox: ServerMessage[] };
+
+function fakePeer(id: string): FakePeer {
+  const inbox: ServerMessage[] = [];
+  return Object.assign(createPeer(id, `secret-${id}`, id, (message) => inbox.push(message)), { inbox });
+}
+
+function lastOf<T extends ServerMessage['type']>(peer: FakePeer, type: T): Extract<ServerMessage, { type: T }> {
+  const found = peer.inbox.filter((message) => message.type === type).pop();
+  if (!found) throw new Error(`aucun message ${type}`);
+  return found as Extract<ServerMessage, { type: T }>;
+}
+
+const snapshot = (peer: FakePeer): MatchState => lastOf(peer, 'snapshot').match;
+
+/** Salon à deux joueurs prêts, partie lancée par Alice. */
+function startedRoom(): { room: Room; alice: FakePeer; bob: FakePeer } {
+  const room = new Room('ABCDE', () => 1);
+  const alice = fakePeer('alice');
+  const bob = fakePeer('bob');
+  room.join(alice);
+  room.join(bob);
+  room.setReady('bob', true);
+  expect(room.start('alice')).toBeNull();
+  return { room, alice, bob };
+}
+
+describe('salon', () => {
+  it('ne se lance qu’à la demande de l’hôte, à deux et quand les autres sont prêts', () => {
+    const room = new Room('ABCDE', () => 1);
+    const alice = fakePeer('alice');
+    const bob = fakePeer('bob');
+    room.join(alice);
+    expect(room.start('alice')).toMatch(/au moins/);
+    room.join(bob);
+    expect(room.start('alice')).toMatch(/prêts/);
+    room.setReady('bob', true);
+    expect(room.start('bob')).toMatch(/hôte/);
+    expect(room.start('alice')).toBeNull();
+    expect(snapshot(bob).phase).toBe('countdown');
+    expect(room.join(fakePeer('carol'))).toMatch(/déjà commencé/);
+  });
+
+  it('refuse un cinquième joueur', () => {
+    const room = new Room('ABCDE');
+    for (const id of ['a', 'b', 'c', 'd']) expect(room.join(fakePeer(id))).toBeNull();
+    expect(room.join(fakePeer('e'))).toMatch(/complet/);
+  });
+
+  it('applique les commandes de chaque téléphone à son propre personnage', () => {
+    const { room, alice } = startedRoom();
+    for (let i = 0; i < COUNTDOWN_TICKS; i++) room.tick();
+    room.requestBomb('bob');
+    room.setDirection('alice', 'right');
+    for (let i = 0; i < 12; i++) room.tick();
+    const state = snapshot(alice);
+    expect(state.round.players[0].x).toBeGreaterThan(1.9);
+    expect(state.round.players[1].x).toBeCloseTo(11.5);
+    expect(state.round.bombs.map((bomb) => bomb.owner)).toEqual([1]);
+  });
+
+  it('laisse un joueur coupé reprendre sa place pendant la période de grâce', () => {
+    const { room, alice } = startedRoom();
+    for (let i = 0; i < COUNTDOWN_TICKS + 1; i++) room.tick();
+    room.disconnect('bob');
+    for (let i = 0; i < TICK_RATE; i++) room.tick();
+    expect(snapshot(alice).round.players[1].alive).toBe(true);
+
+    const inbox: ServerMessage[] = [];
+    expect(room.resume('mauvais-jeton', (message) => inbox.push(message))).toBeNull();
+    const back = room.resume('secret-bob', (message) => inbox.push(message));
+    expect(back?.id).toBe('bob');
+    expect(inbox.map((message) => message.type)).toContain('snapshot');
+    for (let i = 0; i < RECONNECT_GRACE_SECONDS * TICK_RATE; i++) room.tick();
+    expect(snapshot(alice).round.players[1].alive).toBe(true);
+  });
+
+  it('élimine un joueur qui ne revient pas, et donne la manche à l’autre', () => {
+    const { room, alice } = startedRoom();
+    for (let i = 0; i < COUNTDOWN_TICKS + 1; i++) room.tick();
+    room.disconnect('bob');
+    for (let i = 0; i < RECONNECT_GRACE_SECONDS * TICK_RATE + 3; i++) room.tick();
+    const state = snapshot(alice);
+    expect(state.round.players[1].alive).toBe(false);
+    expect(state.scores).toEqual([1, 0]);
+  });
+
+  it('libère tout de suite la place d’un joueur qui quitte, et transmet l’hôte', () => {
+    const room = new Room('ABCDE');
+    const alice = fakePeer('alice');
+    const bob = fakePeer('bob');
+    room.join(alice);
+    room.join(bob);
+    room.leave('alice');
+    const lobby = lastOf(bob, 'lobby');
+    expect(lobby.host).toBe('bob');
+    expect(lobby.players.map((player) => player.id)).toEqual(['bob']);
+    room.leave('bob');
+    expect(room.isEmpty).toBe(true);
+  });
+
+  it('ne transmet pas le jeton secret aux autres joueurs', () => {
+    const { alice } = startedRoom();
+    expect(JSON.stringify(alice.inbox)).not.toContain('secret-bob');
+  });
+});

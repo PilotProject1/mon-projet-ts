@@ -5,60 +5,82 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="theme-color" content="#1b1f2e" />
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='15' cy='18' r='12' fill='%231f2230'/%3E%3Ccircle cx='26' cy='5' r='4' fill='%23ffcf33'/%3E%3C/svg%3E" />
-    <title>Boomz — prototype</title>
+    <title>Boomz</title>
   </head>
   <body>
-    <div id="app" class="layout">
-      <section class="pad" data-player="1" aria-label="Manette du joueur 2">
-        <div class="pad-info">
-          <span class="pad-name">Joueur 2 · Blaster</span>
-          <span class="pad-score" aria-label="Manches gagnées"></span>
-          <span class="pad-status" aria-live="polite"></span>
-          <span class="pad-keys">Flèches · Entrée</span>
-        </div>
-        <div class="pad-controls">
-          <div class="stick-zone">
-            <span class="stick-hint">Glisser pour bouger</span>
-            <div class="stick-base"><div class="stick-knob"></div></div>
-          </div>
-          <button class="bomb-btn" type="button" aria-label="Poser une bombe">Bombe</button>
-        </div>
-      </section>
+    <!-- Accueil : créer un salon ou en rejoindre un -->
+    <section class="screen" id="home">
+      <div class="card">
+        <h1 class="title">Boomz</h1>
+        <p class="tagline">Posez des bombes, détruisez les caisses, piégez vos amis. Chacun joue sur son téléphone.</p>
+        <label class="field">
+          <span>Votre pseudo</span>
+          <input id="name" type="text" maxlength="16" autocomplete="nickname" placeholder="Joueur" />
+        </label>
+        <button class="primary-btn" id="create-btn" type="button">Créer une partie</button>
+        <div class="separator"><span>ou rejoindre avec un code</span></div>
+        <form class="join-row" id="join-form">
+          <input id="code" type="text" maxlength="5" autocapitalize="characters" autocomplete="off" placeholder="CODE" aria-label="Code du salon" />
+          <button class="secondary-btn" type="submit">Rejoindre</button>
+        </form>
+        <p class="error" id="home-error" role="alert"></p>
+        <a class="link-btn" href="/local.html">Jouer à deux sur ce téléphone</a>
+      </div>
+    </section>
 
+    <!-- Salon d'attente -->
+    <section class="screen" id="lobby" hidden>
+      <div class="card">
+        <p class="eyebrow">Salon</p>
+        <p class="room-code" id="room-code"></p>
+        <button class="secondary-btn wide" id="share-btn" type="button">Partager le lien d'invitation</button>
+        <p class="invite-link" id="invite-link"></p>
+        <p class="arena-line">Arène : <strong>Chantier</strong></p>
+        <ul class="player-list" id="player-list"></ul>
+        <button class="primary-btn" id="ready-btn" type="button">Je suis prêt</button>
+        <button class="primary-btn" id="start-btn" type="button">Lancer la partie</button>
+        <p class="hint" id="lobby-hint"></p>
+        <p class="error" id="lobby-error" role="alert"></p>
+        <button class="link-btn" id="leave-btn" type="button">Quitter le salon</button>
+      </div>
+    </section>
+
+    <!-- Partie : l'arène et la manette de ce téléphone -->
+    <section class="game" id="game" hidden>
+      <header class="hud">
+        <ul class="scores" id="scores"></ul>
+        <span class="hud-timer" id="timer"></span>
+      </header>
       <main class="board">
-        <div class="board-frame">
+        <div class="board-frame" id="board-frame">
           <canvas id="arena" aria-label="Arène"></canvas>
-          <div class="hud-timer" hidden></div>
-          <div class="overlay" id="overlay">
-            <div class="overlay-card">
-              <h1 class="title">Boomz</h1>
-              <p class="overlay-text" id="overlay-text">
-                Posez des bombes, détruisez les blocs et piégez votre adversaire.
-                Le dernier debout gagne la manche — 3 manches pour le match.
-              </p>
-              <button class="primary-btn" id="overlay-btn" type="button">Jouer</button>
+          <div class="countdown" id="countdown" hidden></div>
+          <div class="banner" id="banner" hidden>
+            <div class="banner-card">
+              <p class="banner-text" id="banner-text"></p>
+              <p class="banner-sub" id="banner-sub"></p>
+              <button class="primary-btn" id="back-btn" type="button" hidden>Retour au salon</button>
             </div>
           </div>
-          <div class="countdown" id="countdown" hidden></div>
         </div>
       </main>
+      <div class="stick-zone" id="stick-zone">
+        <span class="stick-hint">Glisser pour bouger</span>
+        <div class="stick-base" id="stick-base"><div class="stick-knob" id="stick-knob"></div></div>
+      </div>
+      <div class="bomb-area">
+        <button class="bomb-btn" id="bomb-btn" type="button" aria-label="Poser une bombe">Bombe</button>
+        <span class="keys-hint">Flèches ou ZQSD · Espace</span>
+      </div>
+    </section>
 
-      <section class="pad" data-player="0" aria-label="Manette du joueur 1">
-        <div class="pad-info">
-          <span class="pad-name">Joueur 1 · Boomer</span>
-          <span class="pad-score" aria-label="Manches gagnées"></span>
-          <span class="pad-status" aria-live="polite"></span>
-          <span class="pad-keys">ZQSD · Espace</span>
-        </div>
-        <div class="pad-controls">
-          <div class="stick-zone">
-            <span class="stick-hint">Glisser pour bouger</span>
-            <div class="stick-base"><div class="stick-knob"></div></div>
-          </div>
-          <button class="bomb-btn" type="button" aria-label="Poser une bombe">Bombe</button>
-        </div>
-      </section>
+    <!-- Connexion perdue : affiché par-dessus l'écran courant -->
+    <div class="connection" id="connection" hidden>
+      <div class="connection-card">
+        <p id="connection-text">Connexion perdue, reconnexion…</p>
+      </div>
     </div>
-    <script type="module" src="/src/main.ts"></script>
+
+    <script type="module" src="/src/online.ts"></script>
   </body>
 </html>

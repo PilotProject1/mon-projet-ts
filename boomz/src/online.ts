@@ -1,0 +1,499 @@
+import './online.css';
+import { COUNTDOWN_TICKS, SUDDEN_DEATH_TICKS, TICK_RATE, WINS_TO_TAKE_MATCH } from './game/constants';
+import type { MatchState } from './game/match';
+import type { Direction } from './game/types';
+import { KeyboardInput } from './input/keyboard';
+import { TouchPad } from './input/touch';
+import { Connection, SnapshotBuffer } from './net/connection';
+import { MIN_PLAYERS, RECONNECT_GRACE_SECONDS, type LobbyPlayer, type ServerMessage } from './net/protocol';
+import { drawAvatar, PLAYER_LOOKS } from './render/characters';
+import { Renderer } from './render/renderer';
+
+// ---- Éléments de la page ----
+
+function required<T extends Element>(selector: string): T {
+  const element = document.querySelector<T>(selector);
+  if (!element) throw new Error(`Élément introuvable : ${selector}`);
+  return element;
+}
+
+function setText(element: HTMLElement, text: string): void {
+  if (element.textContent !== text) element.textContent = text;
+}
+
+const screens = {
+  home: required<HTMLElement>('#home'),
+  lobby: required<HTMLElement>('#lobby'),
+  game: required<HTMLElement>('#game'),
+};
+type Screen = keyof typeof screens;
+
+const nameInput = required<HTMLInputElement>('#name');
+const codeInput = required<HTMLInputElement>('#code');
+const homeError = required<HTMLElement>('#home-error');
+const roomCodeText = required<HTMLElement>('#room-code');
+const inviteLinkText = required<HTMLElement>('#invite-link');
+const shareButton = required<HTMLButtonElement>('#share-btn');
+const playerList = required<HTMLUListElement>('#player-list');
+const readyButton = required<HTMLButtonElement>('#ready-btn');
+const startButton = required<HTMLButtonElement>('#start-btn');
+const lobbyHint = required<HTMLElement>('#lobby-hint');
+const lobbyError = required<HTMLElement>('#lobby-error');
+const scoresList = required<HTMLUListElement>('#scores');
+const timer = required<HTMLElement>('#timer');
+const countdown = required<HTMLElement>('#countdown');
+const banner = required<HTMLElement>('#banner');
+const bannerText = required<HTMLElement>('#banner-text');
+const bannerSub = required<HTMLElement>('#banner-sub');
+const backButton = required<HTMLButtonElement>('#back-btn');
+const connectionBanner = required<HTMLElement>('#connection');
+const connectionText = required<HTMLElement>('#connection-text');
+const canvas = required<HTMLCanvasElement>('#arena');
+const frame = required<HTMLElement>('#board-frame');
+
+const renderer = new Renderer(canvas);
+const keyboard = new KeyboardInput(window);
+const touch = new TouchPad(
+  required('#stick-zone'),
+  required('#stick-base'),
+  required('#stick-knob'),
+  required('#bomb-btn'),
+  () => false,
+);
+
+// ---- Stockage local : pseudo et session en cours ----
+
+const NAME_KEY = 'boomz.name';
+const SESSION_KEY = 'boomz.session';
+
+interface StoredSession {
+  room: string;
+  token: string;
+}
+
+function readStorage(storage: () => Storage, key: string): string | null {
+  try {
+    return storage().getItem(key);
+  } catch {
+    return null;
+  }
+}
+
+function writeStorage(storage: () => Storage, key: string, value: string | null): void {
+  try {
+    if (value === null) storage().removeItem(key);
+    else storage().setItem(key, value);
+  } catch {
+    // Navigation privée ou stockage bloqué : on s'en passe.
+  }
+}
+
+function storedSession(): StoredSession | null {
+  const raw = readStorage(() => sessionStorage, SESSION_KEY);
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(raw) as StoredSession;
+    return typeof parsed.room === 'string' && typeof parsed.token === 'string' ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+// ---- État du client ----
+
+let connection: Connection | null = null;
+let session: StoredSession | null = null;
+let you: string | null = null;
+let lobby: Extract<ServerMessage, { type: 'lobby' }> | null = null;
+const snapshots = new SnapshotBuffer();
+let screen: Screen = 'home';
+/** Vrai une fois la partie terminée tant que le joueur regarde encore les résultats. */
+let viewingResults = false;
+let lastSentDirection: Direction | null = null;
+let reconnectUntil = 0;
+let reconnectTimer: number | null = null;
+
+function show(next: Screen): void {
+  if (screen === next) return;
+  screen = next;
+  for (const [key, element] of Object.entries(screens)) element.hidden = key !== next;
+  // Un bouton resté sélectionné capterait Espace et Entrée pendant la partie.
+  if (next === 'game' && document.activeElement instanceof HTMLElement) document.activeElement.blur();
+}
+
+function mySeat(): number | null {
+  if (!lobby || !you) return null;
+  return lobby.seats[you] ?? null;
+}
+
+function inviteLink(room: string): string {
+  return `${location.origin}/?salon=${room}`;
+}
+
+// ---- Connexion ----
+
+function connect(first: () => void): void {
+  connection?.close();
+  const current = new Connection(
+    (message) => {
+      if (connection === current) onMessage(message);
+    },
+    () => {
+      if (connection === current) onConnectionLost();
+    },
+  );
+  connection = current;
+  first();
+}
+
+function onConnectionLost(): void {
+  connection = null;
+  if (!session) return;
+  // Le serveur garde la place quelques secondes : on tente de la reprendre.
+  if (reconnectUntil === 0) reconnectUntil = Date.now() + (RECONNECT_GRACE_SECONDS + 2) * 1000;
+  if (Date.now() > reconnectUntil) {
+    giveUp('La connexion au salon a été perdue.');
+    return;
+  }
+  connectionBanner.hidden = false;
+  setText(connectionText, 'Connexion perdue, reconnexion…');
+  reconnectTimer = window.setTimeout(() => {
+    reconnectTimer = null;
+    if (session) resume(session);
+  }, 1000);
+}
+
+function resume(stored: StoredSession): void {
+  connect(() => connection?.send({ type: 'resume', room: stored.room, token: stored.token }));
+}
+
+function giveUp(message: string): void {
+  if (reconnectTimer !== null) window.clearTimeout(reconnectTimer);
+  reconnectTimer = null;
+  reconnectUntil = 0;
+  connection?.close();
+  connection = null;
+  resetRoomState();
+  connectionBanner.hidden = true;
+  setText(homeError, message);
+  show('home');
+}
+
+function resetRoomState(): void {
+  session = null;
+  you = null;
+  lobby = null;
+  viewingResults = false;
+  snapshots.clear();
+  writeStorage(() => sessionStorage, SESSION_KEY, null);
+  history.replaceState(null, '', '/');
+}
+
+function onMessage(message: ServerMessage): void {
+  switch (message.type) {
+    case 'welcome':
+      you = message.you;
+      session = { room: message.room, token: message.token };
+      writeStorage(() => sessionStorage, SESSION_KEY, JSON.stringify(session));
+      history.replaceState(null, '', `/?salon=${message.room}`);
+      reconnectUntil = 0;
+      connectionBanner.hidden = true;
+      setText(homeError, '');
+      setText(roomCodeText, message.room);
+      setText(inviteLinkText, inviteLink(message.room));
+      return;
+    case 'lobby':
+      lobby = message;
+      renderLobby();
+      decideScreen();
+      return;
+    case 'snapshot':
+      snapshots.push(message.match, performance.now());
+      decideScreen();
+      return;
+    case 'error':
+      if (message.code === 'resume-failed') {
+        giveUp(session ? 'Votre place dans le salon a expiré.' : '');
+        return;
+      }
+      if (screen === 'home') setText(homeError, message.message);
+      else setText(lobbyError, message.message);
+      if (!session) {
+        connection?.close();
+        connection = null;
+      }
+      return;
+  }
+}
+
+function decideScreen(): void {
+  const latest = snapshots.latest();
+  const seated = mySeat() !== null;
+  if (lobby?.inMatch && seated) {
+    viewingResults = false;
+    show('game');
+  } else if (latest?.phase === 'matchOver' && seated && (screen === 'game' || viewingResults)) {
+    viewingResults = true;
+    show('game');
+  } else if (session) {
+    show('lobby');
+  }
+}
+
+// ---- Salon ----
+
+function renderLobby(): void {
+  if (!lobby) return;
+  const players = lobby.players;
+  const isHost = lobby.host === you;
+  const me = players.find((player) => player.id === you);
+
+  playerList.replaceChildren(
+    ...players.map((player, index) => lobbyRow(player, index, player.id === lobby?.host, player.id === you)),
+  );
+
+  const othersReady = players.filter((player) => player.id !== lobby?.host).every((player) => player.ready);
+  const allHere = players.every((player) => player.connected);
+  readyButton.hidden = isHost;
+  readyButton.textContent = me?.ready ? 'Prêt ✓ (annuler)' : 'Je suis prêt';
+  startButton.hidden = !isHost;
+  startButton.disabled = players.length < MIN_PLAYERS || !othersReady || !allHere;
+
+  let hint = '';
+  if (players.length < MIN_PLAYERS) hint = 'Partagez le lien : il faut au moins 2 joueurs.';
+  else if (!allHere) hint = 'Un joueur se reconnecte…';
+  else if (isHost && !othersReady) hint = 'En attente que tout le monde soit prêt.';
+  else if (!isHost) hint = me?.ready ? 'L’hôte va lancer la partie.' : 'Appuyez sur « Je suis prêt ».';
+  setText(lobbyHint, hint);
+  setText(lobbyError, '');
+}
+
+function lobbyRow(player: LobbyPlayer, index: number, host: boolean, self: boolean): HTMLLIElement {
+  const item = document.createElement('li');
+  const avatar = document.createElement('canvas');
+  avatar.className = 'avatar';
+  const name = document.createElement('span');
+  name.className = 'player-name';
+  name.textContent = `${player.name}${self ? ' (vous)' : ''}`;
+  const character = document.createElement('span');
+  character.className = 'player-tag';
+  character.textContent = PLAYER_LOOKS[index].name;
+  const status = document.createElement('span');
+  status.className = 'player-tag';
+  if (!player.connected) {
+    status.textContent = 'reconnexion…';
+    status.classList.add('away');
+  } else if (host) {
+    status.textContent = 'hôte';
+  } else if (player.ready) {
+    status.textContent = 'prêt ✓';
+    status.classList.add('ready');
+  } else {
+    status.textContent = 'pas prêt';
+  }
+  item.append(avatar, name, character, status);
+  requestAnimationFrame(() => drawAvatar(avatar, index));
+  return item;
+}
+
+// ---- Partie ----
+
+let renderedScoresKey = '';
+
+function renderScores(match: MatchState): void {
+  if (!lobby) return;
+  const seats = lobby.seats;
+  const names = new Map<number, string>();
+  for (const player of lobby.players) {
+    const seat = seats[player.id];
+    if (seat !== undefined) names.set(seat, player.name);
+  }
+  const me = mySeat();
+  const key = JSON.stringify([match.scores, match.round.players.map((player) => player.alive), [...names], me]);
+  if (key === renderedScoresKey) return;
+  renderedScoresKey = key;
+  scoresList.dataset.count = String(match.round.players.length);
+  scoresList.replaceChildren(
+    ...match.round.players.map((player) => {
+      const item = document.createElement('li');
+      if (player.id === me) item.classList.add('me');
+      if (!player.alive) item.classList.add('out');
+      const avatar = document.createElement('canvas');
+      avatar.className = 'avatar';
+      const name = document.createElement('span');
+      name.className = 'score-name';
+      name.textContent = names.get(player.id) ?? 'Parti';
+      const wins = document.createElement('span');
+      wins.className = 'score-wins';
+      const score = match.scores[player.id];
+      wins.textContent = '●'.repeat(score) + '○'.repeat(Math.max(0, WINS_TO_TAKE_MATCH - score));
+      item.append(avatar, name, wins);
+      requestAnimationFrame(() => drawAvatar(avatar, player.id));
+      return item;
+    }),
+  );
+}
+
+function seatName(seat: number | null): string {
+  if (seat === null || !lobby) return '';
+  const player = lobby.players.find((candidate) => lobby?.seats[candidate.id] === seat);
+  return player?.name ?? PLAYER_LOOKS[seat].name;
+}
+
+function formatClock(ticks: number): string {
+  const seconds = Math.ceil(ticks / TICK_RATE);
+  return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`;
+}
+
+function updateGameHud(match: MatchState): void {
+  renderScores(match);
+  const me = mySeat();
+
+  const showCountdown = match.phase === 'countdown' || (match.phase === 'playing' && match.phaseTick < 40);
+  countdown.hidden = !showCountdown;
+  if (showCountdown) {
+    setText(
+      countdown,
+      match.phase === 'countdown' ? String(Math.max(1, Math.ceil((COUNTDOWN_TICKS - match.phaseTick) / TICK_RATE))) : 'Go !',
+    );
+  }
+
+  const remaining = SUDDEN_DEATH_TICKS - match.round.tick;
+  setText(timer, remaining > 0 ? formatClock(remaining) : 'Le mur avance !');
+  timer.classList.toggle('danger', remaining <= 10 * TICK_RATE);
+
+  let title = '';
+  let subtitle = '';
+  if (match.phase === 'roundOver') {
+    if (match.roundWinner === null) title = 'Égalité !';
+    else title = match.roundWinner === me ? 'Manche gagnée !' : `${seatName(match.roundWinner)} gagne la manche`;
+    subtitle = `Manche ${match.roundNumber} · ${match.scores.join(' – ')}`;
+  } else if (match.phase === 'matchOver') {
+    title = match.matchWinner === me ? 'Victoire !' : `${seatName(match.matchWinner)} remporte le match`;
+    subtitle = match.scores.join(' – ');
+  } else if (match.phase === 'playing' && me !== null && !match.round.players[me]?.alive) {
+    title = 'Éliminé !';
+    subtitle = 'Regardez la fin de la manche…';
+  } else if (match.phase === 'countdown') {
+    subtitle = `Manche ${match.roundNumber}`;
+  }
+  banner.hidden = title === '';
+  // Pendant le compte à rebours, le numéro de manche s'affiche sous les chiffres.
+  if (match.phase === 'countdown') banner.hidden = true;
+  setText(bannerText, title);
+  setText(bannerSub, subtitle);
+  backButton.hidden = match.phase !== 'matchOver';
+}
+
+function sendInputs(match: MatchState | null): void {
+  if (!connection) return;
+  const touchBomb = touch.consumeBomb();
+  const keyBombs = [keyboard.consumeBomb(0), keyboard.consumeBomb(1)];
+  const playing = screen === 'game' && match?.phase === 'playing';
+  const direction = playing ? (touch.direction() ?? keyboard.direction(0) ?? keyboard.direction(1)) : null;
+  if (direction !== lastSentDirection) {
+    connection.send({ type: 'input', direction });
+    lastSentDirection = direction;
+  }
+  if (playing && (touchBomb || keyBombs.some(Boolean))) connection.send({ type: 'bomb' });
+}
+
+function frameLoop(now: number): void {
+  // Programmée d'abord : une erreur dans une image ne doit pas arrêter le jeu.
+  requestAnimationFrame(frameLoop);
+  const latest = snapshots.latest();
+  sendInputs(latest);
+  if (screen === 'game') {
+    const view = snapshots.sample(now);
+    if (view) {
+      renderer.render(view, mySeat(), now);
+      updateGameHud(latest ?? view);
+    }
+  }
+}
+
+new ResizeObserver(([entry]) => {
+  const { width, height } = entry.contentRect;
+  renderer.resize(width, height);
+}).observe(frame);
+
+// ---- Actions ----
+
+function playerName(): string {
+  const name = nameInput.value.trim();
+  writeStorage(() => localStorage, NAME_KEY, name || null);
+  return name;
+}
+
+required<HTMLButtonElement>('#create-btn').addEventListener('click', () => {
+  setText(homeError, '');
+  const name = playerName();
+  connect(() => connection?.send({ type: 'create', name }));
+});
+
+required<HTMLFormElement>('#join-form').addEventListener('submit', (event) => {
+  event.preventDefault();
+  const room = codeInput.value.trim().toUpperCase();
+  if (!room) {
+    setText(homeError, 'Entrez le code du salon.');
+    return;
+  }
+  setText(homeError, '');
+  const name = playerName();
+  connect(() => connection?.send({ type: 'join', room, name }));
+});
+
+readyButton.addEventListener('click', () => {
+  const me = lobby?.players.find((player) => player.id === you);
+  connection?.send({ type: 'ready', ready: !me?.ready });
+});
+
+startButton.addEventListener('click', () => connection?.send({ type: 'start' }));
+
+shareButton.addEventListener('click', async () => {
+  if (!session) return;
+  const url = inviteLink(session.room);
+  const text = `Rejoins ma partie de Boomz ! Code : ${session.room}`;
+  try {
+    if (navigator.share) {
+      await navigator.share({ title: 'Boomz', text, url });
+      return;
+    }
+    await navigator.clipboard.writeText(url);
+    setText(lobbyHint, 'Lien copié !');
+  } catch {
+    // Partage annulé ou presse-papiers refusé : le lien reste affiché à l'écran.
+  }
+});
+
+required<HTMLButtonElement>('#leave-btn').addEventListener('click', () => {
+  connection?.send({ type: 'leave' });
+  giveUp('');
+});
+
+backButton.addEventListener('click', () => {
+  viewingResults = false;
+  show('lobby');
+});
+
+// ---- Démarrage ----
+
+nameInput.value = readStorage(() => localStorage, NAME_KEY) ?? '';
+const invited = new URLSearchParams(location.search).get('salon')?.toUpperCase() ?? '';
+codeInput.value = invited;
+const previous = storedSession();
+if (previous && (!invited || invited === previous.room)) {
+  // Page rechargée en cours de partie : on reprend sa place.
+  session = previous;
+  resume(previous);
+} else if (invited) {
+  setText(homeError, '');
+  required<HTMLElement>('.tagline').textContent = `Vous êtes invité dans le salon ${invited}. Choisissez un pseudo puis rejoignez.`;
+}
+
+requestAnimationFrame(frameLoop);
+
+if (import.meta.env.DEV) {
+  // Accès à l'état pour les vérifications automatisées en développement.
+  Object.assign(window, { boomz: { getMatch: () => snapshots.latest(), getLobby: () => lobby } });
+}

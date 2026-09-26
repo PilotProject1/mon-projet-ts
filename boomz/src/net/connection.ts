@@ -1,0 +1,84 @@
+import type { MatchState } from '../game/match';
+import { WS_PATH, type ClientMessage, type ServerMessage } from './protocol';
+
+export class Connection {
+  private readonly socket: WebSocket;
+  private readonly queue: ClientMessage[] = [];
+
+  constructor(onMessage: (message: ServerMessage) => void, onClose: () => void) {
+    const protocol = location.protocol === 'https:' ? 'wss' : 'ws';
+    this.socket = new WebSocket(`${protocol}://${location.host}${WS_PATH}`);
+    this.socket.addEventListener('open', () => {
+      for (const message of this.queue.splice(0)) this.socket.send(JSON.stringify(message));
+    });
+    this.socket.addEventListener('message', (event) => onMessage(JSON.parse(String(event.data))));
+    this.socket.addEventListener('close', onClose);
+  }
+
+  send(message: ClientMessage): void {
+    if (this.socket.readyState === WebSocket.OPEN) this.socket.send(JSON.stringify(message));
+    else if (this.socket.readyState === WebSocket.CONNECTING) this.queue.push(message);
+  }
+
+  close(): void {
+    this.socket.close();
+  }
+}
+
+/**
+ * L'affichage a un léger retard sur le dernier état reçu, pour toujours
+ * disposer de deux états entre lesquels interpoler : les personnages glissent
+ * au lieu de sauter d'une position à l'autre à chaque envoi du serveur.
+ */
+const INTERPOLATION_DELAY_MS = 100;
+const BUFFER_SIZE = 30;
+
+interface TimedSnapshot {
+  at: number;
+  match: MatchState;
+}
+
+export class SnapshotBuffer {
+  private snapshots: TimedSnapshot[] = [];
+
+  push(match: MatchState, at: number): void {
+    this.snapshots.push({ at, match });
+    if (this.snapshots.length > BUFFER_SIZE) this.snapshots.shift();
+  }
+
+  clear(): void {
+    this.snapshots = [];
+  }
+
+  latest(): MatchState | null {
+    return this.snapshots[this.snapshots.length - 1]?.match ?? null;
+  }
+
+  /** État à afficher à l'instant `now`, positions interpolées. */
+  sample(now: number): MatchState | null {
+    const target = now - INTERPOLATION_DELAY_MS;
+    const index = this.snapshots.findIndex((snapshot) => snapshot.at > target);
+    if (index === -1) return this.latest();
+    if (index === 0) return this.snapshots[0].match;
+    const before = this.snapshots[index - 1];
+    const after = this.snapshots[index];
+    // Pas d'interpolation d'une manche à l'autre : l'arène a changé.
+    if (before.match.roundNumber !== after.match.roundNumber) return after.match;
+    const t = (target - before.at) / (after.at - before.at);
+    const lerp = (a: number, b: number) => a + (b - a) * t;
+    const round = after.match.round;
+    return {
+      ...after.match,
+      round: {
+        ...round,
+        tick: lerp(before.match.round.tick, round.tick),
+        players: round.players.map((player, id) => {
+          const previous = before.match.round.players[id];
+          // Un joueur éliminé reste figé là où il a été touché.
+          if (!previous || !player.alive) return player;
+          return { ...player, x: lerp(previous.x, player.x), y: lerp(previous.y, player.y) };
+        }),
+      },
+    };
+  }
+}
