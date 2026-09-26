@@ -3,12 +3,10 @@ import type { Direction } from '../game/types';
 const DEAD_ZONE = 14; // px
 const KNOB_TRAVEL = 36; // px
 
-const OPPOSITE: Record<Direction, Direction> = { up: 'down', down: 'up', left: 'right', right: 'left' };
-
 /**
- * Manette tactile d'un joueur : un joystick flottant (il apparaît sous le
- * pouce) et un bouton bombe. Chaque contact est suivi par son `pointerId`,
- * ce qui permet à deux joueurs de jouer en même temps sur le même écran.
+ * Manette tactile : un joystick flottant (il apparaît sous le pouce) et un
+ * bouton bombe. Chaque contact est suivi par son `pointerId`, ce qui permet
+ * de bouger et de poser une bombe en même temps avec deux pouces.
  */
 export class TouchPad {
   private stickPointer: number | null = null;
@@ -18,14 +16,11 @@ export class TouchPad {
   private readonly zone: HTMLElement;
   private readonly base: HTMLElement;
   private readonly knob: HTMLElement;
-  /** Vrai quand la manette est retournée (joueur assis en face, écran en portrait). */
-  private readonly isFlipped: () => boolean;
 
-  constructor(zone: HTMLElement, base: HTMLElement, knob: HTMLElement, bombButton: HTMLElement, isFlipped: () => boolean) {
+  constructor(zone: HTMLElement, base: HTMLElement, knob: HTMLElement, bombButton: HTMLElement) {
     this.zone = zone;
     this.base = base;
     this.knob = knob;
-    this.isFlipped = isFlipped;
     zone.addEventListener('pointerdown', (event) => this.onStickDown(event));
     zone.addEventListener('pointermove', (event) => this.onStickMove(event));
     for (const type of ['pointerup', 'pointercancel', 'lostpointercapture'] as const) {
@@ -48,24 +43,16 @@ export class TouchPad {
     this.zone.setPointerCapture(event.pointerId);
     this.origin = { x: event.clientX, y: event.clientY };
     const rect = this.zone.getBoundingClientRect();
-    // Le joystick est placé en coordonnées locales : dans une manette retournée
-    // de 180°, le point local correspond au point symétrique à l'écran.
-    const localX = this.isFlipped() ? rect.right - event.clientX : event.clientX - rect.left;
-    const localY = this.isFlipped() ? rect.bottom - event.clientY : event.clientY - rect.top;
-    this.base.style.left = `${localX}px`;
-    this.base.style.top = `${localY}px`;
+    this.base.style.left = `${event.clientX - rect.left}px`;
+    this.base.style.top = `${event.clientY - rect.top}px`;
     this.base.classList.add('active');
     this.updateKnob(0, 0);
   }
 
   private onStickMove(event: PointerEvent): void {
     if (event.pointerId !== this.stickPointer) return;
-    let dx = event.clientX - this.origin.x;
-    let dy = event.clientY - this.origin.y;
-    if (this.isFlipped()) {
-      dx = -dx;
-      dy = -dy;
-    }
+    const dx = event.clientX - this.origin.x;
+    const dy = event.clientY - this.origin.y;
     const length = Math.hypot(dx, dy);
     const clamped = Math.min(length, KNOB_TRAVEL);
     this.updateKnob(length > 0 ? (dx / length) * clamped : 0, length > 0 ? (dy / length) * clamped : 0);
@@ -92,10 +79,8 @@ export class TouchPad {
     this.knob.style.transform = `translate(calc(-50% + ${x}px), calc(-50% + ${y}px))`;
   }
 
-  /** Direction dans le repère de l'arène (et non de la manette). */
   direction(): Direction | null {
-    if (!this.currentDirection) return null;
-    return this.isFlipped() ? OPPOSITE[this.currentDirection] : this.currentDirection;
+    return this.currentDirection;
   }
 
   consumeBomb(): boolean {

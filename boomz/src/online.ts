@@ -58,7 +58,6 @@ const touch = new TouchPad(
   required('#stick-base'),
   required('#stick-knob'),
   required('#bomb-btn'),
-  () => false,
 );
 
 // ---- Stockage local : pseudo et session en cours ----
@@ -388,14 +387,14 @@ function updateGameHud(match: MatchState): void {
 function sendInputs(match: MatchState | null): void {
   if (!connection) return;
   const touchBomb = touch.consumeBomb();
-  const keyBombs = [keyboard.consumeBomb(0), keyboard.consumeBomb(1)];
+  const keyBomb = keyboard.consumeBomb();
   const playing = screen === 'game' && match?.phase === 'playing';
-  const direction = playing ? (touch.direction() ?? keyboard.direction(0) ?? keyboard.direction(1)) : null;
+  const direction = playing ? (touch.direction() ?? keyboard.direction()) : null;
   if (direction !== lastSentDirection) {
     connection.send({ type: 'input', direction });
     lastSentDirection = direction;
   }
-  if (playing && (touchBomb || keyBombs.some(Boolean))) connection.send({ type: 'bomb' });
+  if (playing && (touchBomb || keyBomb)) connection.send({ type: 'bomb' });
 }
 
 function frameLoop(now: number): void {

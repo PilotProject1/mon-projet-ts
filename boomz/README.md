@@ -3,6 +3,10 @@
 Jeu d'action en labyrinthe : chaque joueur pose des bombes pour détruire les
 caisses et piéger ses adversaires, le dernier debout gagne la manche.
 
+**Un joueur par téléphone** : chacun voit la partie sur son propre écran. On
+joue ensemble en ligne, en simultané, via un code ou un lien d'invitation ; le
+mode Bluetooth (sans internet) est prévu en phase 4.
+
 Ce dossier est indépendant de SYNeco (`frontend/`, `backend/`) : il n'est ni
 déployé ni relié à leur code.
 
@@ -10,9 +14,10 @@ déployé ni relié à leur code.
 
 | Phase | Contenu | État |
 |---|---|---|
-| 1. Prototype jouable | 1 arène, 2 joueurs sur le même appareil, bombes/flammes/blocs | fait — `local.html` |
-| 2. MVP multijoueur | en ligne à 2-4 joueurs via lien d'invitation, salon d'attente, 1 arène finalisée | fait — page d'accueil |
+| 1. Prototype jouable | mécanique bombe/flamme/blocs, testée à 2 sur un même écran | fait (le mode test a été retiré depuis) |
+| 2. MVP multijoueur | en ligne à 2-4 joueurs via lien d'invitation, salon d'attente, 1 arène finalisée | fait |
 | 3. Alpha | 6 joueurs, 3-4 arènes, bonus classiques, tests externes | à venir |
+| 4. Bêta | mode Bluetooth / local sans internet, équilibrage, cosmétiques | à venir |
 
 ### Règles communes
 
@@ -29,9 +34,7 @@ Pas encore de bonus ni de pouvoirs : ils arrivent en phase 3 et au-delà. Les
 caractéristiques des joueurs (`speed`, `range`, `maxBombs`) sont prêtes à les
 recevoir.
 
-## Jouer en ligne (phase 2)
-
-Chacun joue sur son propre téléphone et voit la partie sur son écran.
+## Jouer en ligne
 
 1. Un joueur choisit un pseudo et **crée une partie** : il obtient un code de
    5 caractères et un lien d'invitation (bouton **Partager**, qui ouvre le
@@ -70,16 +73,6 @@ Limite connue : sans prédiction côté téléphone, son propre personnage réag
 avec le délai du réseau plus 100 ms. Correct sur un bon réseau ; à améliorer
 en Alpha (prédiction locale et réconciliation).
 
-## Jouer à deux sur un téléphone (phase 1)
-
-Page `/local.html` (lien en bas de l'accueil). En portrait, le téléphone est
-posé à plat entre les deux joueurs, face à face, la manette du joueur 2 tournée
-vers lui ; en paysage, une manette de chaque côté.
-
-| | Joueur 1 (Boomer) | Joueur 2 (Blaster) |
-|---|---|---|
-| Clavier | ZQSD (WASD en QWERTY) + Espace | Flèches + Entrée |
-
 ## Arène « Chantier »
 
 Première arène finalisée graphiquement (phase 2) : vue 3/4, sol de terre
@@ -113,6 +106,23 @@ npm run build        # vérification des types + version de production dans dist
 npm start            # serveur de production : sert dist/ et les parties (variable PORT)
 ```
 
+## Mode Bluetooth (phase 4) : contrainte à connaître
+
+Un navigateur ne peut pas relier des téléphones entre eux en Bluetooth : le
+Web Bluetooth ne sait parler qu'à des objets connectés (montre, capteur), pas
+à un autre téléphone, et il n'existe pas sur iPhone. Le mode sans internet
+demandera donc d'emballer le jeu dans une **application installée** (par
+exemple avec Capacitor, qui réutilise ce code tel quel) et d'utiliser les
+briques natives citées dans la roadmap : Nearby Connections sur Android,
+Multipeer Connectivity sur iPhone. Ces deux briques ne se parlent pas entre
+elles : pour mêler Android et iPhone dans une même partie, il faudra une brique
+commune aux deux (Google propose une version iPhone de Nearby Connections),
+à valider au début de la phase 4.
+
+Le code est déjà organisé pour ce mode : la simulation ne dépend ni du
+navigateur ni du serveur, le téléphone hôte pourra la faire tourner et relayer
+l'état aux autres, comme le fait aujourd'hui le serveur en ligne.
+
 ## Mise en ligne
 
 Non faite : c'est une décision à prendre. Le jeu a besoin d'un hébergeur qui
@@ -132,14 +142,13 @@ la première connexion suivante prend alors quelques dizaines de secondes.
 ## Organisation
 
 - `src/game/` — la simulation, sans aucun accès au navigateur : pas de temps
-  fixe (60 ticks/s), graine aléatoire, donc parties reproductibles. Partagée
-  par le serveur et la page locale.
+  fixe (60 ticks/s), graine aléatoire, donc parties reproductibles. Elle tourne
+  sur le serveur ; en mode Bluetooth, elle tournera sur le téléphone hôte.
 - `server/` — serveur de jeu : salons, reconnexion, boucle de simulation.
 - `src/net/` — protocole et client réseau (connexion, interpolation).
 - `src/render/` — arène et personnages (Canvas 2D).
 - `src/input/` — clavier et manettes tactiles.
-- `src/online.ts` / `index.html` — jeu en ligne ; `src/local.ts` /
-  `local.html` — partie à deux sur un écran.
+- `src/online.ts` / `index.html` — l'application : accueil, salon, partie.
 
 ## Vérifié
 
