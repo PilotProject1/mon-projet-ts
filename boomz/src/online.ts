@@ -12,8 +12,9 @@ import { KeyboardInput } from './input/keyboard';
 import { TouchPad } from './input/touch';
 import { Connection, SnapshotBuffer } from './net/connection';
 import { VoiceChat } from './voice/voice';
+import { BOT_LEVEL_NAMES, BOT_LEVEL_SHORT, BOT_LEVELS, type BotLevel } from './game/bot';
 import { nearbyAvailable, NearbyGuestLink, NearbyHostLink, NearbyScanner, type Link, type NearbyHost } from './net/nearby';
-import { MIN_PLAYERS, RECONNECT_GRACE_SECONDS, type LobbyPlayer, type ServerMessage } from './net/protocol';
+import { MAX_PLAYERS, MIN_PLAYERS, RECONNECT_GRACE_SECONDS, type LobbyPlayer, type ServerMessage } from './net/protocol';
 import { BONUS_INFO, BONUS_ORDER, paintBonusCanvas } from './render/bonuses';
 import { drawAvatar, PLAYER_LOOKS, SKIN_NAMES } from './render/characters';
 import { Renderer } from './render/renderer';
@@ -398,13 +399,13 @@ function renderLobby(): void {
   let hint = '';
   if (players.length < MIN_PLAYERS) {
     hint = offline
-      ? 'Sur les autres téléphones : « Jouer en local », puis touchez ce salon. Il faut au moins 2 joueurs.'
-      : 'Partagez le lien : il faut au moins 2 joueurs.';
-  }
-  else if (!allHere) hint = 'Un joueur se reconnecte…';
+      ? 'Sur les autres téléphones : « Jouer en local », puis touchez ce salon. Ou ajoutez un robot.'
+      : 'Partagez le lien, ou ajoutez un robot : il faut au moins 2 joueurs.';
+  } else if (!allHere) hint = 'Un joueur se reconnecte…';
   else if (isHost && !othersReady) hint = 'En attente que tout le monde soit prêt.';
   else if (!isHost) hint = me?.ready ? 'L’hôte va lancer la partie.' : 'Appuyez sur « Je suis prêt ».';
   setText(lobbyHint, hint);
+  botRow.hidden = !isHost || players.length >= MAX_PLAYERS;
   setText(skinHint, 'Touchez votre personnage pour changer d’apparence.');
   setText(lobbyError, '');
   renderVoice();
@@ -427,7 +428,11 @@ function lobbyRow(player: LobbyPlayer, index: number, host: boolean, self: boole
   character.textContent = player.skin ? `${PLAYER_LOOKS[index].name} ${SKIN_NAMES[player.skin]}` : PLAYER_LOOKS[index].name;
   const status = document.createElement('span');
   status.className = 'player-tag';
-  if (!player.connected) {
+  if (player.bot) {
+    status.textContent = `🤖 ${BOT_LEVEL_SHORT[player.bot]}`;
+    status.setAttribute('aria-label', `Robot ${BOT_LEVEL_NAMES[player.bot]}`);
+    status.classList.add('bot');
+  } else if (!player.connected) {
     status.textContent = 'reconnexion…';
     status.classList.add('away');
   } else if (host) {
@@ -454,9 +459,27 @@ function lobbyRow(player: LobbyPlayer, index: number, host: boolean, self: boole
     item.append(avatar, name, character, status);
   }
   if (player.voice) item.append(voiceTag(player.id, self));
+  if (player.bot && lobby?.host === you) {
+    const remove = document.createElement('button');
+    remove.type = 'button';
+    remove.className = 'bot-remove';
+    remove.textContent = '✕';
+    remove.setAttribute('aria-label', `Retirer ${player.name}`);
+    remove.addEventListener('click', () => connection?.send({ type: 'removeBot', id: player.id }));
+    item.append(remove);
+  }
   requestAnimationFrame(() => drawAvatar(avatar, index, player.skin));
   return item;
 }
+
+// ---- Robots (ajoutés par l'hôte pour compléter la partie) ----
+
+const botRow = required<HTMLElement>('#bot-row');
+const botLevelSelect = required<HTMLSelectElement>('#bot-level');
+required<HTMLButtonElement>('#add-bot-btn').addEventListener('click', () => {
+  const level = botLevelSelect.value;
+  if ((BOT_LEVELS as readonly string[]).includes(level)) connection?.send({ type: 'addBot', level: level as BotLevel });
+});
 
 // ---- Chat vocal (parties en ligne) ----
 
@@ -525,6 +548,16 @@ micButton.addEventListener('click', () => {
   renderLobby();
 });
 gameMicButton.addEventListener('click', () => voice.toggleMic());
+
+const micTestButton = required<HTMLButtonElement>('#mic-test-btn');
+micTestButton.addEventListener('click', async () => {
+  micTestButton.disabled = true;
+  const error = await VoiceChat.testMicrophone((step) => {
+    setText(voiceHint, step === 'recording' ? 'Parlez… (3 secondes)' : 'Écoutez-vous…');
+  });
+  setText(voiceHint, error ?? 'Vous vous êtes entendu ? Le micro fonctionne.');
+  micTestButton.disabled = false;
+});
 
 // ---- Partie ----
 

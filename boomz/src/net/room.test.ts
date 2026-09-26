@@ -182,4 +182,49 @@ describe('salon', () => {
       expect(lastOf(alice, 'lobby').players[1].voice).toBe(false);
     });
   });
+
+  describe('robots', () => {
+    it('ne sont ajoutés que par l’hôte, et permettent de jouer seul', () => {
+      const room = new Room('ABCDE', () => 3);
+      const alice = fakePeer('alice');
+      const bob = fakePeer('bob');
+      room.join(alice);
+      room.join(bob);
+      expect(room.addBot('bob', 'pro')).not.toBeNull();
+      room.leave('bob');
+      expect(room.addBot('alice', 'expert')).toBeNull();
+      const players = lastOf(alice, 'lobby').players;
+      expect(players[1]).toMatchObject({ bot: 'expert', ready: true, connected: true });
+      expect(room.start('alice')).toBeNull();
+    });
+
+    it('jouent réellement : ils se déplacent et posent des bombes', () => {
+      const room = new Room('ABCDE', () => 11);
+      const alice = fakePeer('alice');
+      room.join(alice);
+      room.addBot('alice', 'expert');
+      room.addBot('alice', 'pro');
+      room.start('alice');
+      const spawns = snapshot(alice).round.players.map((player) => [player.x, player.y]);
+      let bombs = 0;
+      for (let i = 0; i < COUNTDOWN_TICKS + 20 * TICK_RATE; i++) {
+        room.tick();
+        bombs = Math.max(bombs, snapshot(alice).round.bombs.filter((bomb) => bomb.owner > 0).length);
+      }
+      const moved = snapshot(alice).round.players.slice(1).some((player, i) => player.x !== spawns[i + 1][0] || player.y !== spawns[i + 1][1]);
+      expect(moved).toBe(true);
+      expect(bombs).toBeGreaterThan(0);
+    });
+
+    it('disparaissent avec le dernier joueur humain', () => {
+      const room = new Room('ABCDE');
+      const alice = fakePeer('alice');
+      room.join(alice);
+      room.addBot('alice', 'debutant');
+      room.removeBot('alice', 'inconnu');
+      expect(room.isEmpty).toBe(false);
+      room.leave('alice');
+      expect(room.isEmpty).toBe(true);
+    });
+  });
 });

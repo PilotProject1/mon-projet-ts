@@ -1,5 +1,7 @@
 import { SKIN_COUNT, TICK_RATE } from '../game/constants';
 import { createMatch, stepMatch, type ArenaChoice, type MatchState } from '../game/match';
+import { BotBrain, type BotLevel } from '../game/bot';
+import { createRng } from '../game/rng';
 import { eliminatePlayer } from '../game/round';
 import type { Direction, PlayerInput, RoundEvent } from '../game/types';
 import {
@@ -20,6 +22,8 @@ export interface RoomStats {
 }
 
 const GRACE_TICKS = RECONNECT_GRACE_SECONDS * TICK_RATE;
+/** Noms donnés aux robots, dans l'ordre. */
+const BOT_NAMES = ['Bip', 'Zorg', 'Nova', 'Tic', 'Rex', 'Pixel'];
 
 /**
  * État envoyé aux téléphones. Les bonus cachés sous les caisses restent sur le
@@ -44,13 +48,15 @@ export interface Peer {
   skin: number;
   /** Présent dans le chat vocal du salon. */
   voice: boolean;
+  /** Robot ajouté par l'hôte (son niveau), ou `null` pour un joueur humain. */
+  bot: BotLevel | null;
   /** Horloge du salon au moment de la coupure. */
   disconnectedAt: number | null;
   send(message: ServerMessage): void;
 }
 
 export function createPeer(id: string, token: string, name: string, send: (message: ServerMessage) => void): Peer {
-  return { id, token, name, connected: true, ready: false, skin: 0, voice: false, disconnectedAt: null, send };
+  return { id, token, name, connected: true, ready: false, skin: 0, voice: false, bot: null, disconnectedAt: null, send };
 }
 
 /**
@@ -70,6 +76,9 @@ export class Room {
   private pendingBombs: boolean[] = [];
   private pendingDetonations: boolean[] = [];
   private arena: ArenaChoice = 'rotation';
+  /** Cerveaux des robots de la partie en cours, par numéro de joueur. */
+  private brains = new Map<number, BotBrain>();
+  private botCount = 0;
   private clock = 0;
   private matchTicks = 0;
   private readonly randomSeed: () => number;
@@ -93,8 +102,9 @@ export class Room {
     return { type: 'welcome', room: this.code, you: peer.id, token: peer.token, iceServers: this.iceServers };
   }
 
+  /** Plus aucun joueur humain : le salon peut disparaître (ses robots avec lui). */
   get isEmpty(): boolean {
-    return this.peers.length === 0;
+    return !this.peers.some((peer) => !peer.bot);
   }
 
   private get inMatch(): boolean {
@@ -160,6 +170,28 @@ export class Room {
     this.broadcastLobby();
   }
 
+  /** Ajoute un robot, à la demande de l'hôte, pour compléter la partie. */
+  addBot(peerId: string, level: BotLevel): string | null {
+    if (peerId !== this.hostId) return 'Seul l’hôte peut ajouter un robot.';
+    if (this.inMatch) return 'La partie a déjà commencé.';
+    if (this.peers.length >= MAX_PLAYERS) return `Ce salon est complet (${MAX_PLAYERS} joueurs maximum).`;
+    const taken = new Set(this.peers.map((peer) => peer.name));
+    const name = BOT_NAMES.find((candidate) => !taken.has(candidate)) ?? 'Robot';
+    const bot = createPeer(`robot-${++this.botCount}`, '', name, () => {});
+    bot.bot = level;
+    bot.ready = true;
+    this.peers.push(bot);
+    this.broadcastLobby();
+    return null;
+  }
+
+  removeBot(peerId: string, botId: string): void {
+    const bot = this.peers.find((peer) => peer.id === botId && peer.bot);
+    if (peerId !== this.hostId || this.inMatch || !bot) return;
+    this.peers = this.peers.filter((peer) => peer !== bot);
+    this.broadcastLobby();
+  }
+
   /** Entre dans le chat vocal du salon, ou en sort (possible aussi en pleine partie). */
   setVoice(peerId: string, on: boolean): void {
     const peer = this.peers.find((candidate) => candidate.id === peerId);
@@ -194,7 +226,12 @@ export class Room {
     this.pendingBombs = this.peers.map(() => false);
     this.pendingDetonations = this.peers.map(() => false);
     for (const peer of this.peers) peer.ready = false;
-    this.match = createMatch(this.peers.length, this.randomSeed(), this.arena);
+    const seed = this.randomSeed();
+    this.match = createMatch(this.peers.length, seed, this.arena);
+    const botRandom = createRng(seed ^ 0x5bd1e995);
+    this.brains = new Map(
+      this.peers.flatMap((peer, seat) => (peer.bot ? [[seat, new BotBrain(peer.bot, botRandom)] as const] : [])),
+    );
     this.match.skins = this.peers.map((peer) => peer.skin);
     this.stats?.recordMatchStart(this.peers.length);
     this.matchTicks = 0;
@@ -230,6 +267,15 @@ export class Room {
       if (!this.peers.some((peer) => peer.id === peerId)) eliminatePlayer(match.round, seat);
     }
 
+    // Les robots décident comme des joueurs, à partir de l'état complet de la manche.
+    if (match.phase === 'playing') {
+      for (const [seat, brain] of this.brains) {
+        const input = brain.decide(match.round, seat);
+        this.directions[seat] = input.direction;
+        if (input.bomb) this.pendingBombs[seat] = true;
+      }
+    }
+
     const inputs: PlayerInput[] = this.directions.map((direction, seat) => ({
       direction,
       bomb: this.pendingBombs[seat],
@@ -261,8 +307,11 @@ export class Room {
 
   private remove(peer: Peer): void {
     this.peers = this.peers.filter((candidate) => candidate !== peer);
+    // Sans joueur humain, les robots n'ont plus personne avec qui jouer.
+    if (this.isEmpty) this.peers = [];
     if (this.hostId === peer.id) {
-      this.hostId = (this.peers.find((candidate) => candidate.connected) ?? this.peers[0])?.id ?? null;
+      const humans = this.peers.filter((candidate) => !candidate.bot);
+      this.hostId = (humans.find((candidate) => candidate.connected) ?? humans[0])?.id ?? null;
     }
   }
 
@@ -270,7 +319,15 @@ export class Room {
     this.broadcast({
       type: 'lobby',
       host: this.hostId ?? '',
-      players: this.peers.map(({ id, name, connected, ready, skin, voice }) => ({ id, name, connected, ready, skin, voice })),
+      players: this.peers.map(({ id, name, connected, ready, skin, voice, bot }) => ({
+        id,
+        name,
+        connected,
+        ready,
+        skin,
+        voice,
+        ...(bot ? { bot } : {}),
+      })),
       seats: Object.fromEntries(this.seats),
       inMatch: this.inMatch,
       arena: this.arena,

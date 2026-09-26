@@ -47,6 +47,51 @@ export class VoiceChat {
     return typeof RTCPeerConnection !== 'undefined' && !!navigator.mediaDevices?.getUserMedia;
   }
 
+  /**
+   * Test du micro, seul : enregistre trois secondes avec les mêmes réglages
+   * que le chat vocal (anti-écho compris), puis les fait réécouter. Permet de
+   * vérifier l'autorisation, la qualité, et le son du jeu micro ouvert.
+   */
+  static async testMicrophone(onStep: (step: 'recording' | 'playing') => void): Promise<string | null> {
+    if (typeof MediaRecorder === 'undefined' || !navigator.mediaDevices?.getUserMedia) return 'Test indisponible sur ce téléphone.';
+    let stream: MediaStream;
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({
+        audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
+      });
+    } catch (error) {
+      const name = error instanceof DOMException ? error.name : '';
+      return name === 'NotAllowedError' ? 'Micro refusé : autorisez-le dans Réglages › Boomz › Micro.' : 'Micro indisponible sur ce téléphone.';
+    }
+    try {
+      const recorder = new MediaRecorder(stream);
+      const chunks: Blob[] = [];
+      recorder.ondataavailable = (event) => chunks.push(event.data);
+      const stopped = new Promise<void>((resolve) => (recorder.onstop = () => resolve()));
+      onStep('recording');
+      recorder.start();
+      await new Promise((resolve) => setTimeout(resolve, 3000));
+      recorder.stop();
+      await stopped;
+      onStep('playing');
+      // Le micro reste ouvert pendant la réécoute, comme pendant une partie avec le vocal.
+      const url = URL.createObjectURL(new Blob(chunks, { type: recorder.mimeType }));
+      const audio = new Audio(url);
+      audio.setAttribute('playsinline', '');
+      await new Promise<void>((resolve) => {
+        audio.onended = () => resolve();
+        audio.onerror = () => resolve();
+        void audio.play().catch(() => resolve());
+      });
+      URL.revokeObjectURL(url);
+      return null;
+    } catch {
+      return 'Le test du micro a échoué.';
+    } finally {
+      for (const track of stream.getTracks()) track.stop();
+    }
+  }
+
   setIdentity(me: string, iceServers: IceServer[] | undefined): void {
     this.me = me;
     if (iceServers?.length) this.iceServers = iceServers;

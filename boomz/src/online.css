@@ -1321,3 +1321,44 @@ button.voice-tag {
   border-radius: 50%;
   box-shadow: 0 0 0 2px #3ddc84;
 }
+
+/* ---- Robots ---- */
+
+.bot-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-width: 0;
+}
+
+/* Sur téléphone, le choix du niveau passe au-dessus du bouton plutôt que d'être écrasé. */
+.bot-row select {
+  flex: 1 1 150px;
+  min-width: 0;
+}
+
+.bot-row .secondary-btn {
+  flex: 1 1 auto;
+  min-width: 0;
+  white-space: nowrap;
+}
+
+.player-tag.bot {
+  color: var(--accent);
+}
+
+.bot-remove {
+  flex: none;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: var(--panel);
+  color: var(--muted);
+  cursor: pointer;
+}
+
+#mic-test-btn {
+  flex-basis: 100%;
+}

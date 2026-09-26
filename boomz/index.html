@@ -184,9 +184,18 @@
           <strong class="arena-name" id="arena-name" hidden></strong>
         </div>
         <ul class="player-list" id="player-list"></ul>
+        <div class="bot-row" id="bot-row" hidden>
+          <select id="bot-level" aria-label="Niveau du robot">
+            <option value="debutant">Débutant</option>
+            <option value="pro" selected>Professionnel</option>
+            <option value="expert">Expert</option>
+          </select>
+          <button class="secondary-btn" id="add-bot-btn" type="button">🤖 Ajouter un robot</button>
+        </div>
         <div class="voice-row" id="voice-row" hidden>
           <button class="secondary-btn" id="voice-btn" type="button">🎙 Rejoindre le vocal</button>
           <button class="secondary-btn" id="mic-btn" type="button" hidden>Couper mon micro</button>
+          <button class="link-btn" id="mic-test-btn" type="button">Tester mon micro</button>
         </div>
         <p class="hint voice-hint" id="voice-hint"></p>
         <p class="hint skin-hint" id="skin-hint"></p>

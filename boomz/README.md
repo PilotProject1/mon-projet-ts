@@ -349,6 +349,26 @@ npm run build        # vérification des types + version de production dans dist
 npm start            # serveur de production : sert dist/ et les parties (variable PORT)
 ```
 
+## Robots
+
+L'hôte peut compléter la partie avec des robots, **seulement s'il le
+souhaite** : dans le salon, choisir le niveau puis « 🤖 Ajouter un robot »
+(jusqu'à 6 joueurs en tout ; ✕ pour en retirer un). Un joueur seul peut
+ainsi jouer, en ligne comme en local. Les robots tournent sur le serveur (ou
+sur le téléphone hôte en local), avec les mêmes règles que les joueurs
+(`src/game/bot.ts`).
+
+| Niveau | Réaction | Comportement |
+|---|---|---|
+| Débutant | lente (¼ s), parfois distrait | casse des caisses, n'attaque pas exprès, flâne |
+| Professionnel | rapide (0,1 s) | ramasse les bonus, attaque quand l'occasion se présente |
+| Expert | quasi immédiate | chasse les adversaires, ne se laisse pas enfermer |
+
+Tous prévoient leur fuite en posant une bombe, évitent les flammes et les
+réactions en chaîne, et les murs du resserrement. Simulations robot contre
+robot : l'Expert bat le Professionnel, qui bat le Débutant ; un robot ne se
+fait presque jamais sauter lui-même (`src/game/bot.test.ts`).
+
 ## Chat vocal (parties en ligne)
 
 Dans le salon, « 🎙 Rejoindre le vocal » ouvre le micro (l'iPhone demande
@@ -367,6 +387,9 @@ et rien n'est enregistré. Un lien par autre joueur présent dans le vocal.
   `turn:relais.exemple:3478,turns:relais.exemple:443`), `TURN_USERNAME` et
   `TURN_CREDENTIAL` d'un service de relais : le serveur les transmet aux
   téléphones, sans nouvelle version de l'application.
+- « Tester mon micro » (seul) : enregistre 3 s avec les réglages du vocal
+  puis les fait réécouter, micro ouvert — de quoi vérifier l'autorisation,
+  la qualité et le son du jeu pendant le vocal sans second joueur.
 - Vérifié dans le navigateur avec des micros simulés (liaison établie, son
   transmis dans les deux sens, détection de la parole) ; à vérifier sur de
   vrais iPhone : qualité, écho, volume du jeu pendant le vocal.

@@ -1,3 +1,4 @@
+import { BOT_LEVELS } from '../game/bot';
 import { ARENA_IDS } from '../game/types';
 import type { ClientMessage, ServerMessage, VoiceSignal } from './protocol';
 import { createPeer, type Peer, type Room } from './room';
@@ -129,6 +130,15 @@ export class Session {
         return;
       case 'detonate':
         room.requestDetonation(peer.id);
+        return;
+      case 'addBot': {
+        if (!BOT_LEVELS.includes(message.level)) return;
+        const error = room.addBot(peer.id, message.level);
+        if (error) send({ type: 'error', message: error });
+        return;
+      }
+      case 'removeBot':
+        room.removeBot(peer.id, String(message.id));
         return;
       case 'voice':
         room.setVoice(peer.id, message.on === true);

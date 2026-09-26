@@ -1,4 +1,5 @@
 import type { ArenaChoice, MatchState } from '../game/match';
+import type { BotLevel } from '../game/bot';
 import type { Direction } from '../game/types';
 
 export const MIN_PLAYERS = 2;
@@ -19,6 +20,8 @@ export interface LobbyPlayer {
   skin: number;
   /** Présent dans le chat vocal du salon. */
   voice: boolean;
+  /** Robot ajouté par l'hôte, avec son niveau ; absent pour un joueur humain. */
+  bot?: BotLevel;
 }
 
 /**
@@ -55,6 +58,10 @@ export type ClientMessage =
   | { type: 'detonate' }
   /** Mesure de la latence : le serveur renvoie aussitôt `sent`. */
   | { type: 'ping'; sent: number }
+  /** Ajoute un robot au salon (réservé à l'hôte). */
+  | { type: 'addBot'; level: BotLevel }
+  /** Retire un robot du salon (réservé à l'hôte). */
+  | { type: 'removeBot'; id: string }
   /** Rejoint ou quitte le chat vocal du salon. */
   | { type: 'voice'; on: boolean }
   /** Mise en relation vocale avec un autre joueur du salon (relayée telle quelle). */
