@@ -3,7 +3,7 @@ import { COUNTDOWN_TICKS } from '../src/game/constants';
 import type { ServerMessage } from '../src/net/protocol';
 import { applyBonus } from '../src/game/round';
 import { Bonus } from '../src/game/types';
-import { createPeer, Room } from './room';
+import { createPeer, Room } from '../src/net/room';
 import { GameStats } from './stats';
 
 describe('statistiques d’équilibrage', () => {

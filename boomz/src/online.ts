@@ -11,6 +11,7 @@ import { ARENA_IDS, Bonus, type Direction, type Player } from './game/types';
 import { KeyboardInput } from './input/keyboard';
 import { TouchPad } from './input/touch';
 import { Connection, SnapshotBuffer } from './net/connection';
+import { nearbyAvailable, NearbyGuestLink, NearbyHostLink, NearbyScanner, type Link, type NearbyHost } from './net/nearby';
 import { MIN_PLAYERS, RECONNECT_GRACE_SECONDS, type LobbyPlayer, type ServerMessage } from './net/protocol';
 import { BONUS_INFO, BONUS_ORDER, paintBonusCanvas } from './render/bonuses';
 import { drawAvatar, PLAYER_LOOKS, SKIN_NAMES } from './render/characters';
@@ -126,7 +127,13 @@ function storedSession(): StoredSession | null {
 
 // ---- État du client ----
 
-let connection: Connection | null = null;
+let connection: Link | null = null;
+/** Fabrique la connexion : au serveur en ligne, ou à des téléphones proches (sans internet). */
+type LinkFactory = (onMessage: (message: ServerMessage) => void, onClose: () => void) => Link;
+const onlineLink: LinkFactory = (onMessage, onClose) => new Connection(onMessage, onClose);
+let linkFactory: LinkFactory = onlineLink;
+/** Partie sans internet en cours (téléphones proches). */
+let offline = false;
 let session: StoredSession | null = null;
 let you: string | null = null;
 let lobby: Extract<ServerMessage, { type: 'lobby' }> | null = null;
@@ -202,14 +209,23 @@ function clearWakeHint(): void {
   setText(homeStatus, '');
 }
 
-function connect(first: () => void): void {
+function connect(first: () => void, factory: LinkFactory = linkFactory): void {
   connection?.close();
   clearWakeHint();
+  linkFactory = factory;
+  offline = factory !== onlineLink;
+  screens.lobby.classList.toggle('offline', offline);
   // Serveur gratuit endormi : la première connexion peut prendre jusqu'à une minute.
-  wakeHintTimer = window.setTimeout(() => {
-    setText(homeStatus, 'Réveil du serveur… Le premier lancement peut prendre jusqu’à une minute.');
-  }, WAKE_HINT_MS);
-  const current = new Connection(
+  wakeHintTimer = window.setTimeout(
+    () => {
+      setText(
+        homeStatus,
+        offline ? 'Recherche du salon à proximité…' : 'Réveil du serveur… Le premier lancement peut prendre jusqu’à une minute.',
+      );
+    },
+    offline ? 0 : WAKE_HINT_MS,
+  );
+  const current = factory(
     (message) => {
       if (connection !== current) return;
       clearWakeHint();
@@ -228,7 +244,14 @@ function onConnectionLost(): void {
   if (!session) {
     // La connexion n'a jamais abouti (réseau coupé, serveur indisponible).
     clearWakeHint();
-    if (screen === 'home') setText(homeError, 'Impossible de joindre le serveur. Vérifiez la connexion et réessayez.');
+    if (screen === 'home') {
+      setText(
+        homeError,
+        offline
+          ? 'Salon introuvable à proximité. Rapprochez les téléphones, vérifiez que le Bluetooth et le Wi-Fi sont activés, puis réessayez.'
+          : 'Impossible de joindre le serveur. Vérifiez la connexion et réessayez.',
+      );
+    }
     return;
   }
   // Le serveur garde la place quelques secondes : on tente de la reprendre.
@@ -276,8 +299,11 @@ function onMessage(message: ServerMessage): void {
     case 'welcome':
       you = message.you;
       session = { room: message.room, token: message.token };
-      writeStorage(() => sessionStorage, SESSION_KEY, JSON.stringify(session));
-      history.replaceState(null, '', `/?salon=${message.room}`);
+      // Sans internet, le salon vit sur le téléphone hôte : rien à reprendre après un rechargement.
+      if (!offline) {
+        writeStorage(() => sessionStorage, SESSION_KEY, JSON.stringify(session));
+        history.replaceState(null, '', `/?salon=${message.room}`);
+      }
       reconnectUntil = 0;
       connectionBanner.hidden = true;
       setText(homeError, '');
@@ -305,6 +331,10 @@ function onMessage(message: ServerMessage): void {
       if (latencies.length > 20) latencies.shift();
       return;
     case 'error':
+      if (message.code === 'closed') {
+        giveUp(message.message);
+        return;
+      }
       if (message.code === 'resume-failed') {
         giveUp(session ? 'Votre place dans le salon a expiré.' : '');
         return;
@@ -358,7 +388,11 @@ function renderLobby(): void {
   startButton.disabled = players.length < MIN_PLAYERS || !othersReady || !allHere;
 
   let hint = '';
-  if (players.length < MIN_PLAYERS) hint = 'Partagez le lien : il faut au moins 2 joueurs.';
+  if (players.length < MIN_PLAYERS) {
+    hint = offline
+      ? 'Sur les autres téléphones : « Jouer sans internet », puis touchez ce salon. Il faut au moins 2 joueurs.'
+      : 'Partagez le lien : il faut au moins 2 joueurs.';
+  }
   else if (!allHere) hint = 'Un joueur se reconnecte…';
   else if (isHost && !othersReady) hint = 'En attente que tout le monde soit prêt.';
   else if (!isHost) hint = me?.ready ? 'L’hôte va lancer la partie.' : 'Appuyez sur « Je suis prêt ».';
@@ -617,7 +651,7 @@ function playerName(): string {
 required<HTMLButtonElement>('#create-btn').addEventListener('click', () => {
   setText(homeError, '');
   const name = playerName();
-  connect(() => connection?.send({ type: 'create', name }));
+  connect(() => connection?.send({ type: 'create', name }), onlineLink);
 });
 
 required<HTMLFormElement>('#join-form').addEventListener('submit', (event) => {
@@ -629,7 +663,71 @@ required<HTMLFormElement>('#join-form').addEventListener('submit', (event) => {
   }
   setText(homeError, '');
   const name = playerName();
-  connect(() => connection?.send({ type: 'join', room, name }));
+  connect(() => connection?.send({ type: 'join', room, name }), onlineLink);
+});
+
+// ---- Sans internet : téléphones proches (Bluetooth et Wi-Fi direct) ----
+
+const nearbyButton = required<HTMLButtonElement>('#nearby-btn');
+const nearbyDialog = required<HTMLDialogElement>('#nearby');
+const nearbyList = required<HTMLUListElement>('#nearby-list');
+const nearbySearching = required<HTMLElement>('#nearby-searching');
+let scanner: NearbyScanner | null = null;
+
+/** Ferme la fenêtre ; `keepRadio` : une connexion va suivre et relancera le module elle-même. */
+function closeNearby(keepRadio: boolean): void {
+  scanner?.stop(keepRadio);
+  scanner = null;
+  if (nearbyDialog.open) nearbyDialog.close();
+}
+
+function renderNearbyHosts(hosts: NearbyHost[]): void {
+  nearbySearching.hidden = hosts.length > 0;
+  nearbyList.replaceChildren(
+    ...hosts.map((host) => {
+      const item = document.createElement('li');
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'secondary-btn wide';
+      button.textContent = `Rejoindre le salon de ${host.name || 'Joueur'}`;
+      button.addEventListener('click', () => {
+        closeNearby(true);
+        setText(homeError, '');
+        const name = playerName();
+        connect(
+          () => connection?.send({ type: 'join', room: host.room, name }),
+          (onMessage, onClose) => new NearbyGuestLink(host.room, onMessage, onClose),
+        );
+      });
+      item.append(button);
+      return item;
+    }),
+  );
+}
+
+nearbyButton.addEventListener('click', () => {
+  setText(homeError, '');
+  renderNearbyHosts([]);
+  scanner?.stop();
+  scanner = new NearbyScanner(renderNearbyHosts);
+  nearbyDialog.showModal();
+});
+
+nearbyDialog.addEventListener('close', () => closeNearby(false));
+required<HTMLButtonElement>('#nearby-close').addEventListener('click', () => closeNearby(false));
+
+required<HTMLButtonElement>('#nearby-host-btn').addEventListener('click', () => {
+  closeNearby(true);
+  setText(homeError, '');
+  const name = playerName();
+  connect(
+    () => connection?.send({ type: 'create', name }),
+    (onMessage) => new NearbyHostLink(name || 'Joueur', onMessage),
+  );
+});
+
+void nearbyAvailable().then((available) => {
+  nearbyButton.hidden = !available;
 });
 
 readyButton.addEventListener('click', () => {

@@ -1,15 +1,15 @@
-import { SKIN_COUNT, TICK_RATE } from '../src/game/constants';
-import { createMatch, stepMatch, type ArenaChoice, type MatchState } from '../src/game/match';
-import { eliminatePlayer } from '../src/game/round';
-import type { Direction, PlayerInput } from '../src/game/types';
-import type { GameStats } from './stats';
-import {
-  MAX_PLAYERS,
-  MIN_PLAYERS,
-  RECONNECT_GRACE_SECONDS,
-  SNAPSHOT_EVERY_TICKS,
-  type ServerMessage,
-} from '../src/net/protocol';
+import { SKIN_COUNT, TICK_RATE } from '../game/constants';
+import { createMatch, stepMatch, type ArenaChoice, type MatchState } from '../game/match';
+import { eliminatePlayer } from '../game/round';
+import type { Direction, PlayerInput, RoundEvent } from '../game/types';
+import { MAX_PLAYERS, MIN_PLAYERS, RECONNECT_GRACE_SECONDS, SNAPSHOT_EVERY_TICKS, type ServerMessage } from './protocol';
+
+/** Statistiques de jeu tenues par le serveur en ligne (voir server/stats.ts). */
+export interface RoomStats {
+  recordMatchStart(playerCount: number): void;
+  recordEvents(events: RoundEvent[]): void;
+  recordRoundEnd(match: MatchState): void;
+}
 
 const GRACE_TICKS = RECONNECT_GRACE_SECONDS * TICK_RATE;
 
@@ -44,7 +44,8 @@ export function createPeer(id: string, token: string, name: string, send: (messa
 }
 
 /**
- * Un salon : ses joueurs, et la partie qu'il héberge. Le serveur fait
+ * Un salon : ses joueurs, et la partie qu'il héberge. Celui qui l'héberge (le
+ * serveur en ligne, ou le téléphone hôte d'une partie sans internet) fait
  * autorité : il est seul à faire avancer la simulation, les téléphones
  * n'envoient que leurs commandes et affichent l'état reçu.
  */
@@ -62,12 +63,12 @@ export class Room {
   private clock = 0;
   private matchTicks = 0;
   private readonly randomSeed: () => number;
-  private readonly stats: GameStats | null;
+  private readonly stats: RoomStats | null;
 
   constructor(
     code: string,
     randomSeed: () => number = () => Math.floor(Math.random() * 2 ** 31),
-    stats: GameStats | null = null,
+    stats: RoomStats | null = null,
   ) {
     this.code = code;
     this.randomSeed = randomSeed;

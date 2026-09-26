@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { COUNTDOWN_TICKS, TICK_RATE } from '../src/game/constants';
-import type { MatchState } from '../src/game/match';
-import { RECONNECT_GRACE_SECONDS, type ServerMessage } from '../src/net/protocol';
+import { COUNTDOWN_TICKS, TICK_RATE } from '../game/constants';
+import type { MatchState } from '../game/match';
+import { RECONNECT_GRACE_SECONDS, type ServerMessage } from './protocol';
 import { createPeer, Room, type Peer } from './room';
 
 type FakePeer = Peer & { inbox: ServerMessage[] };

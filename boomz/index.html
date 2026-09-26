@@ -44,6 +44,7 @@
             <input id="code" type="text" maxlength="5" autocapitalize="characters" autocomplete="off" placeholder="CODE" aria-label="Code du salon" />
             <button class="secondary-btn" id="join-btn" type="submit">Rejoindre</button>
           </form>
+          <button class="secondary-btn wide nearby-btn" id="nearby-btn" type="button" hidden>Jouer sans internet, à côté</button>
           <p class="hint" id="home-status" role="status"></p>
           <p class="error" id="home-error" role="alert"></p>
           <div class="home-links">
@@ -151,6 +152,19 @@
           <li><strong>Station spatiale</strong> : les tapis roulants vous emportent.</li>
         </ul>
         <button class="primary-btn" id="help-close" type="button">C'est parti !</button>
+      </div>
+    </dialog>
+
+    <!-- Sans internet : salons des téléphones proches -->
+    <dialog class="help" id="nearby" aria-labelledby="nearby-title">
+      <div class="help-card">
+        <h2 id="nearby-title">Jouer sans internet</h2>
+        <p class="legend-intro">Pour jouer à quelques mètres les uns des autres, sans réseau : activez le Bluetooth et le Wi-Fi (inutile d'être connecté à une box). Un téléphone crée le salon, les autres le rejoignent.</p>
+        <button class="primary-btn" id="nearby-host-btn" type="button">Créer un salon ici</button>
+        <h3>Salons à proximité</h3>
+        <p class="hint" id="nearby-searching">Recherche des salons…</p>
+        <ul class="nearby-list" id="nearby-list"></ul>
+        <button class="link-btn" id="nearby-close" type="button">Fermer</button>
       </div>
     </dialog>
 

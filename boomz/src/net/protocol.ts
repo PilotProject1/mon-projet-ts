@@ -52,4 +52,5 @@ export type ServerMessage =
     }
   | { type: 'snapshot'; match: MatchState }
   | { type: 'pong'; sent: number }
-  | { type: 'error'; message: string; code?: 'resume-failed' };
+  /** `closed` : l'hôte d'une partie sans internet a fermé son salon. */
+  | { type: 'error'; message: string; code?: 'resume-failed' | 'closed' };

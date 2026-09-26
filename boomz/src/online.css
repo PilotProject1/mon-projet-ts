@@ -1255,3 +1255,30 @@ textarea {
     outline: 2px solid var(--danger);
   }
 }
+
+/* ---- Sans internet (téléphones proches) ---- */
+
+.nearby-btn {
+  margin-top: 10px;
+}
+
+.nearby-list {
+  display: grid;
+  gap: 8px;
+  margin: 0 0 12px;
+  padding: 0;
+  list-style: none;
+}
+
+.nearby-list button {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Pas de lien à partager : les autres téléphones trouvent le salon d'eux-mêmes. */
+#lobby.offline #share-btn,
+#lobby.offline #invite-link {
+  display: none;
+}

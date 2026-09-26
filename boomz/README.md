@@ -4,8 +4,9 @@ Jeu d'action en labyrinthe : chaque joueur pose des bombes pour détruire les
 caisses et piéger ses adversaires, le dernier debout gagne la manche.
 
 **Un joueur par téléphone** : chacun voit la partie sur son propre écran. On
-joue ensemble en ligne, en simultané, via un code ou un lien d'invitation ; le
-mode Bluetooth (sans internet) est prévu en phase 4.
+joue ensemble en ligne, en simultané, via un code ou un lien d'invitation, ou
+sans internet entre iPhone proches (Bluetooth et Wi-Fi direct, dans
+l'application).
 
 Ce dossier est indépendant de SYNeco (`frontend/`, `backend/`) : il n'est ni
 déployé ni relié à leur code.
@@ -17,7 +18,7 @@ déployé ni relié à leur code.
 | 1. Prototype jouable | mécanique bombe/flamme/blocs, testée à 2 sur un même écran | fait (le mode test a été retiré depuis) |
 | 2. MVP multijoueur | en ligne à 2-4 joueurs via lien d'invitation, salon d'attente, 1 arène finalisée | fait |
 | 3. Alpha | 6 joueurs, 3-4 arènes, bonus classiques, tests externes | fait, sauf les tests avec des joueurs externes (à organiser) |
-| 4. Bêta | mode Bluetooth / local sans internet, équilibrage, perf/batterie, cosmétiques | en cours : cosmétiques, perf/batterie et statistiques d'équilibrage faits ; équilibrage à faire sur les chiffres des tests ; Bluetooth en attente de décision (application installée) |
+| 4. Bêta | mode Bluetooth / local sans internet, équilibrage, perf/batterie, cosmétiques | en cours : cosmétiques, perf/batterie et statistiques d'équilibrage faits ; équilibrage à faire sur les chiffres des tests ; mode sans internet fait sur iPhone (application), Android à venir |
 | 5. Lancement | polish final, fiches des stores, analytics, sortie iOS/Android | en cours : application Android/iOS, APK de test, site installable, confidentialité et fiches prêts ; publication en attente des comptes développeur |
 
 ### Règles communes
@@ -227,11 +228,9 @@ Elles sont en mémoire : un redémarrage du serveur (redéploiement, mise en
 veille de l'offre gratuite) les remet à zéro. Relever les chiffres après une
 session de tests, avant qu'il ne s'endorme.
 
-### Mode Bluetooth : décision à prendre
+### Mode sans internet (Bluetooth)
 
-Voir « Mode Bluetooth (phase 4) : contrainte à connaître » plus bas : il faut
-une application installée (Android et iPhone), ce qui suppose des outils et
-des comptes développeur.
+Voir « Jouer sans internet » plus bas.
 
 ## Phase 5 (lancement)
 
@@ -340,22 +339,36 @@ npm run build        # vérification des types + version de production dans dist
 npm start            # serveur de production : sert dist/ et les parties (variable PORT)
 ```
 
-## Mode Bluetooth (phase 4) : contrainte à connaître
+## Jouer sans internet (Bluetooth et Wi-Fi direct)
 
-Un navigateur ne peut pas relier des téléphones entre eux en Bluetooth : le
-Web Bluetooth ne sait parler qu'à des objets connectés (montre, capteur), pas
-à un autre téléphone, et il n'existe pas sur iPhone. Le mode sans internet
-demandera donc d'emballer le jeu dans une **application installée** (par
-exemple avec Capacitor, qui réutilise ce code tel quel) et d'utiliser les
-briques natives citées dans la roadmap : Nearby Connections sur Android,
-Multipeer Connectivity sur iPhone. Ces deux briques ne se parlent pas entre
-elles : pour mêler Android et iPhone dans une même partie, il faudra une brique
-commune aux deux (Google propose une version iPhone de Nearby Connections),
-à valider au début de la phase 4.
+Dans l'**application iPhone**, le bouton « Jouer sans internet, à côté »
+permet de jouer à quelques mètres les uns des autres, sans réseau mobile ni
+box : un téléphone crée le salon, les autres le voient apparaître (« Rejoindre
+le salon de Léa ») et le touchent. Jusqu'à 6 joueurs, mêmes règles, arènes et
+bonus qu'en ligne.
 
-Le code est déjà organisé pour ce mode : la simulation ne dépend ni du
-navigateur ni du serveur, le téléphone hôte pourra la faire tourner et relayer
-l'état aux autres, comme le fait aujourd'hui le serveur en ligne.
+- **Transport** : Multipeer Connectivity d'Apple
+  (`ios/App/App/NearbyPlugin.swift`), qui passe par le Bluetooth et le Wi-Fi
+  direct entre iPhone ; messages chiffrés et compressés (zlib). Au premier
+  usage, l'iPhone demande l'autorisation « réseau local ».
+- **Le téléphone hôte fait le serveur** : il fait tourner le même salon
+  (`src/net/room.ts`) et la même logique de connexion (`src/net/session.ts`)
+  que le serveur en ligne, y joue lui-même et envoie l'état aux autres
+  (`src/net/nearby.ts`). S'il quitte, les autres sont prévenus aussitôt. Un
+  invité qui perd le contact quelques secondes reprend sa place.
+- **Android** : pas encore. Il faudra la brique Nearby Connections de Google ;
+  elle ne parle pas à Multipeer, donc une partie sans internet ne mêlera pas
+  Android et iPhone. Le bouton n'apparaît que là où le mode fonctionne.
+- **Navigateur** : impossible (le Web Bluetooth ne relie pas deux
+  téléphones). En développement seulement (`npm run dev`), le mode est simulé
+  entre onglets du même navigateur (`src/net/nearby-web.ts`), ce qui permet de
+  tout vérifier sans iPhone.
+- **Limite** : l'hôte fait tourner la partie ; s'il met l'application en
+  arrière-plan, la partie s'interrompt pour tous.
+
+À vérifier sur de vrais iPhone : la portée, la fluidité à 4–6 joueurs et la
+batterie de l'hôte (le code compile sur le Mac de GitHub, mais Multipeer ne
+fonctionne pas dans le simulateur de la CI).
 
 ## Mise en ligne
 
@@ -380,9 +393,12 @@ la première connexion suivante prend alors quelques dizaines de secondes.
 
 - `src/game/` — la simulation, sans aucun accès au navigateur : pas de temps
   fixe (60 ticks/s), graine aléatoire, donc parties reproductibles. Elle tourne
-  sur le serveur ; en mode Bluetooth, elle tournera sur le téléphone hôte.
-- `server/` — serveur de jeu : salons, reconnexion, boucle de simulation.
-- `src/net/` — protocole et client réseau (connexion, interpolation).
+  sur le serveur, ou sur le téléphone hôte d'une partie sans internet.
+- `server/` — serveur en ligne : fichiers du jeu, WebSocket, boucle de
+  simulation, statistiques.
+- `src/net/` — protocole, salon (`room.ts`) et connexion d'un téléphone
+  (`session.ts`) partagés par le serveur et l'hôte sans internet ; client
+  réseau (connexion, interpolation) ; mode sans internet (`nearby.ts`).
 - `src/render/` — arène et personnages (Canvas 2D).
 - `src/input/` — clavier et manettes tactiles.
 - `src/online.ts` / `index.html` — l'application : accueil, salon, partie.

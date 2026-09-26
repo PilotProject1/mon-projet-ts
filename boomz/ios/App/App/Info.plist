@@ -57,6 +57,13 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>Boomz cherche les téléphones à proximité pour jouer ensemble sans internet.</string>
+	<key>NSBonjourServices</key>
+	<array>
+		<string>_boomz-jeu._tcp</string>
+		<string>_boomz-jeu._udp</string>
+	</array>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
 	<key>UIViewControllerBasedStatusBarAppearance</key>

@@ -44,6 +44,11 @@ captures sont dans [`captures/`](captures/), aux formats exigés.
 > Traverse-bombe et Kick : ramassez-les sous les caisses… avant les autres.
 > Et poussez vos bombes pour piéger vos adversaires à distance !
 >
+> ◆ MÊME SANS INTERNET
+> Dans le train, en vacances, sans réseau : jouez à côté les uns des autres,
+> en Bluetooth et Wi-Fi direct. Un téléphone crée le salon, les autres le
+> rejoignent d'une touche.
+>
 > ◆ FACILE À PRENDRE EN MAIN
 > Un doigt n'importe où à gauche de l'écran pour bouger, un bouton pour poser
 > une bombe. L'arène s'adapte à votre écran, en portrait comme en paysage.
@@ -56,7 +61,8 @@ captures sont dans [`captures/`](captures/), aux formats exigés.
 > Aucun compte, aucune publicité, aucun traceur. Votre pseudo n'est connu que
 > des joueurs de votre partie.
 >
-> Une connexion internet est nécessaire pour jouer.
+> Une connexion internet est nécessaire pour jouer en ligne ; le jeu sans
+> internet est réservé à l'iPhone pour l'instant.
 
 **Mots-clés** (App Store, 100 caractères max, séparés par des virgules — 96) :
 

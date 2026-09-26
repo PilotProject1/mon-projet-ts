@@ -4,15 +4,13 @@ import { createServer } from 'node:http';
 import { extname, join, normalize, resolve } from 'node:path';
 import { WebSocketServer, type WebSocket } from 'ws';
 import { TICK_SECONDS } from '../src/game/constants';
-import { ARENA_IDS } from '../src/game/types';
 import { WS_PATH, type ClientMessage, type ServerMessage } from '../src/net/protocol';
-import { createPeer, Room, type Peer } from './room';
+import { Room } from '../src/net/room';
+import { newRoomCode, Session, type RoomDirectory } from '../src/net/session';
 import { GameStats } from './stats';
 
 const PORT = Number(process.env.PORT ?? 8787);
 const DIST = resolve(import.meta.dirname, '../dist');
-const ROOM_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
-const ROOM_CODE_LENGTH = 5;
 const MAX_MESSAGE_BYTES = 1024;
 /** Identifiant de l'application installée (voir capacitor.config.ts). */
 const APP_ID = 'fr.boomz.jeu';
@@ -31,18 +29,14 @@ const CONTENT_TYPES: Record<string, string> = {
 const rooms = new Map<string, Room>();
 const stats = new GameStats();
 
-function newRoomCode(): string {
-  let code: string;
-  do {
-    code = Array.from({ length: ROOM_CODE_LENGTH }, () => ROOM_ALPHABET[Math.floor(Math.random() * ROOM_ALPHABET.length)]).join('');
-  } while (rooms.has(code));
-  return code;
-}
-
-function cleanName(raw: unknown): string {
-  const name = typeof raw === 'string' ? raw.replace(/\s+/g, ' ').trim().slice(0, 16) : '';
-  return name || 'Joueur';
-}
+const directory: RoomDirectory = {
+  create() {
+    const room = new Room(newRoomCode((code) => rooms.has(code)), undefined, stats);
+    rooms.set(room.code, room);
+    return room;
+  },
+  find: (code) => rooms.get(code),
+};
 
 // ---- Fichiers du jeu (la version compilée par `vite build`) ----
 
@@ -122,8 +116,7 @@ wss.on('connection', (socket) => {
   const send = (message: ServerMessage) => {
     if (socket.readyState === socket.OPEN) socket.send(JSON.stringify(message));
   };
-  let peer: Peer | null = null;
-  let room: Room | null = null;
+  const session = new Session(directory, send, randomUUID);
 
   socket.on('message', (data) => {
     let message: ClientMessage;
@@ -132,87 +125,10 @@ wss.on('connection', (socket) => {
     } catch {
       return;
     }
-    switch (message.type) {
-      case 'create':
-      case 'join': {
-        if (room) return;
-        const target =
-          message.type === 'create' ? new Room(newRoomCode(), undefined, stats) : rooms.get(String(message.room).trim().toUpperCase());
-        if (!target) {
-          send({ type: 'error', message: 'Salon introuvable : vérifiez le code ou demandez un nouveau lien.' });
-          return;
-        }
-        const candidate = createPeer(randomUUID(), randomUUID(), cleanName(message.name), send);
-        const error = target.join(candidate);
-        if (error) {
-          send({ type: 'error', message: error });
-          return;
-        }
-        rooms.set(target.code, target);
-        room = target;
-        peer = candidate;
-        return;
-      }
-      case 'resume': {
-        if (room) return;
-        const target = rooms.get(String(message.room).toUpperCase());
-        const resumed = target?.resume(String(message.token), send) ?? null;
-        if (!target || !resumed) {
-          send({ type: 'error', code: 'resume-failed', message: 'La place dans ce salon a expiré.' });
-          return;
-        }
-        room = target;
-        peer = resumed;
-        return;
-      }
-      case 'ping':
-        // Mesure de latence, pour les avis des testeurs.
-        if (typeof message.sent === 'number') send({ type: 'pong', sent: message.sent });
-        return;
-      case 'leave':
-        if (room && peer) room.leave(peer.id);
-        room = null;
-        peer = null;
-        return;
-    }
-    if (!room || !peer) return;
-    switch (message.type) {
-      case 'ready':
-        room.setReady(peer.id, message.ready === true);
-        return;
-      case 'skin':
-        room.setSkin(peer.id, Number(message.skin));
-        return;
-      case 'arena':
-        if (message.arena === 'rotation' || (ARENA_IDS as readonly string[]).includes(message.arena)) {
-          room.setArena(peer.id, message.arena);
-        }
-        return;
-      case 'start': {
-        const error = room.start(peer.id);
-        if (error) send({ type: 'error', message: error });
-        return;
-      }
-      case 'input':
-        if (message.direction === null || ['up', 'down', 'left', 'right'].includes(message.direction)) {
-          room.setDirection(peer.id, message.direction);
-        }
-        return;
-      case 'bomb':
-        room.requestBomb(peer.id);
-        return;
-      case 'detonate':
-        room.requestDetonation(peer.id);
-        return;
-    }
+    session.handle(message);
   });
 
-  socket.on('close', () => {
-    // Le joueur garde sa place quelques secondes : un téléphone qui change de
-    // réseau ou recharge la page peut la reprendre.
-    // Si la place a déjà été reprise par une nouvelle connexion, rien à faire.
-    if (room && peer && peer.send === send) room.disconnect(peer.id);
-  });
+  socket.on('close', () => session.closed());
 });
 
 // Détecte les téléphones partis sans fermer la connexion (réseau coupé, veille).
