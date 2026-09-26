@@ -125,10 +125,13 @@ l'état aux autres, comme le fait aujourd'hui le serveur en ligne.
 
 ## Mise en ligne
 
-Non faite : c'est une décision à prendre. Le jeu a besoin d'un hébergeur qui
+Le jeu est en ligne sur **https://boomz.onrender.com** (service Web Render
+séparé de SYNeco, offre gratuite). Render redéploie à chaque envoi sur la
+branche suivie ; un redéploiement ferme les parties en cours.
+
+Le jeu a besoin d'un hébergeur qui
 fait tourner un serveur Node en continu avec WebSocket (un hébergement de
-fichiers statiques comme Vercel ne suffit pas). Exemple avec Render, déjà
-utilisé pour SYNeco, en créant un **service Web séparé** :
+fichiers statiques comme Vercel ne suffit pas). Réglages du service Render :
 
 - répertoire racine : `boomz` ;
 - commande de build : `npm ci && npm run build` ;
