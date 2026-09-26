@@ -12,11 +12,12 @@ import { KeyboardInput } from './input/keyboard';
 import { TouchPad } from './input/touch';
 import { Connection, SnapshotBuffer } from './net/connection';
 import { VoiceChat } from './voice/voice';
+import { pickTaunt, VictoryDance } from './render/victory';
 import { BOT_LEVEL_NAMES, BOT_LEVEL_SHORT, BOT_LEVELS, type BotLevel } from './game/bot';
 import { nearbyAvailable, NearbyGuestLink, NearbyHostLink, NearbyScanner, type Link, type NearbyHost } from './net/nearby';
 import { MAX_PLAYERS, MIN_PLAYERS, RECONNECT_GRACE_SECONDS, type LobbyPlayer, type ServerMessage } from './net/protocol';
 import { BONUS_INFO, BONUS_ORDER, paintBonusCanvas } from './render/bonuses';
-import { drawAvatar, PLAYER_LOOKS, SKIN_NAMES } from './render/characters';
+import { drawAvatar, lookFor, PLAYER_LOOKS, SKIN_NAMES } from './render/characters';
 import { Renderer } from './render/renderer';
 import { screenToGrid } from './render/view';
 import { PUBLIC_ORIGIN } from './net/server';
@@ -662,11 +663,63 @@ function updateGameHud(match: MatchState): void {
   banner.hidden = title === '';
   // Pendant le compte à rebours, le numéro de manche s'affiche sous les chiffres.
   if (match.phase === 'countdown') banner.hidden = true;
+  updateVictory(match, me);
+  if (!victory.hidden) banner.hidden = true;
   setText(bannerText, title);
   setText(bannerSub, subtitle);
   backButton.hidden = match.phase !== 'matchOver';
   feedbackEndButton.hidden = match.phase !== 'matchOver';
 }
+
+// ---- Fin de match : danse du gagnant ----
+
+const victory = required<HTMLElement>('#victory');
+const victoryActions = required<HTMLElement>('#victory-actions');
+const victoryDance = new VictoryDance(required<HTMLCanvasElement>('#victory-stage'), required<HTMLCanvasElement>('#victory-sky'));
+/** Match déjà fêté (pour ne pas relancer l'animation à chaque image). */
+let celebrated: MatchState | null = null;
+let victoryActionsTimer: number | null = null;
+
+function updateVictory(match: MatchState, me: number | null): void {
+  const show = match.phase === 'matchOver' && match.matchWinner !== null && screen === 'game';
+  if (!show) {
+    if (!victory.hidden) {
+      victory.hidden = true;
+      victoryDance.stop();
+    }
+    if (match.phase !== 'matchOver') celebrated = null;
+    return;
+  }
+  if (celebrated && celebrated.scores.join() === match.scores.join() && celebrated.roundNumber === match.roundNumber && !victory.hidden) return;
+  if (celebrated && celebrated.scores.join() === match.scores.join() && celebrated.roundNumber === match.roundNumber) {
+    // Retour sur les résultats : pas de nouvelle animation d'entrée.
+    victory.hidden = false;
+    return;
+  }
+  celebrated = match;
+  const winner = match.matchWinner!;
+  const winnerId = lobby ? Object.entries(lobby.seats).find(([, seat]) => seat === winner)?.[0] : undefined;
+  const winnerIsBot = !!lobby?.players.find((player) => player.id === winnerId)?.bot;
+  const mine = winner === me;
+  setText(required<HTMLElement>('#victory-eyebrow'), mine ? 'Victoire !' : 'Fin du match');
+  setText(required<HTMLElement>('#victory-title'), mine ? `Bravo ${seatName(winner)} !` : `${seatName(winner)} remporte le match`);
+  setText(required<HTMLElement>('#victory-taunt'), pickTaunt(winnerIsBot));
+  setText(required<HTMLElement>('#victory-score'), [...match.scores].sort((a, b) => b - a).join(' – '));
+  victory.classList.toggle('mine', mine);
+  victory.hidden = false;
+  victoryDance.play(lookFor(winner, match.skins?.[winner] ?? 0));
+  // Les boutons arrivent après le spectacle.
+  victoryActions.classList.remove('shown');
+  if (victoryActionsTimer !== null) window.clearTimeout(victoryActionsTimer);
+  victoryActionsTimer = window.setTimeout(() => victoryActions.classList.add('shown'), 2200);
+}
+
+required<HTMLButtonElement>('#victory-back').addEventListener('click', () => {
+  victory.hidden = true;
+  victoryDance.stop();
+  backButton.click();
+});
+required<HTMLButtonElement>('#victory-feedback').addEventListener('click', () => feedbackEndButton.click());
 
 let detonateRequested = false;
 detonateButton.addEventListener('pointerdown', (event) => {
