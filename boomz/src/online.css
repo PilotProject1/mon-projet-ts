@@ -7,9 +7,11 @@
   --accent: #ffcf33;
   --bomb: #ef5a2e;
   --danger: #ff6b5a;
-  --hud-h: 44px;
-  --controls-min: 170px;
-  --side-min: 130px;
+  --hud-h: 38px;
+  /* Hauteur de la bande de commandes en portrait. */
+  --controls-h: 120px;
+  /* Largeur minimale des colonnes latérales en paysage. */
+  --side-min: 112px;
   --board-ratio: calc(13 / 11);
   color-scheme: dark;
 }
@@ -253,12 +255,14 @@ input {
   color: var(--muted);
 }
 
-/* ---- Partie : portrait (un joueur, un téléphone) ---- */
+/* ---- Partie : portrait (un joueur, un téléphone) ----
+   Priorité à l'arène : elle prend toute la largeur, la manette se réduit à un
+   petit joystick et un bouton, en bas de l'écran sous les pouces. */
 
 .game {
   display: grid;
-  grid-template-areas: 'hud hud' 'board board' 'stick bomb';
-  grid-template-rows: var(--hud-h) auto minmax(var(--controls-min), 1fr);
+  grid-template-areas: 'hud hud' 'board board' '. .' 'stick bomb';
+  grid-template-rows: var(--hud-h) auto minmax(0, 1fr) var(--controls-h);
   grid-template-columns: minmax(0, 1fr) auto;
   height: 100dvh;
   padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
@@ -273,15 +277,15 @@ input {
   grid-area: hud;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   min-width: 0;
-  padding: 0 10px;
+  padding: 0 6px;
 }
 
 .scores {
   display: flex;
   flex: 1;
-  gap: 6px;
+  gap: 5px;
   min-width: 0;
   margin: 0;
   padding: 0;
@@ -293,7 +297,7 @@ input {
   align-items: center;
   gap: 5px;
   min-width: 0;
-  padding: 3px 8px;
+  padding: 2px 8px 2px 3px;
   border-radius: 999px;
   background: var(--panel);
   font-size: 13px;
@@ -305,11 +309,6 @@ input {
 
 .scores li.out {
   opacity: 0.45;
-}
-
-.scores .player-dot {
-  width: 10px;
-  height: 10px;
 }
 
 .score-name {
@@ -347,12 +346,12 @@ input {
   justify-content: center;
   min-width: 0;
   min-height: 0;
-  padding: 4px 8px;
+  padding: 0 4px;
 }
 
 .board-frame {
   position: relative;
-  width: min(100vw - 16px, (100dvh - var(--hud-h) - var(--controls-min) - 16px) * var(--board-ratio));
+  width: min(100vw - 8px, (100dvh - var(--hud-h) - var(--controls-h) - 8px) * var(--board-ratio));
   aspect-ratio: 13 / 11;
 }
 
@@ -360,45 +359,31 @@ canvas {
   display: block;
   width: 100%;
   height: 100%;
-  border-radius: 10px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
 }
 
+/* Zone tactile du joystick : invisible, le joystick apparaît sous le pouce. */
 .stick-zone {
   grid-area: stick;
   position: relative;
   min-width: 0;
   min-height: 0;
-  margin: 8px 0 12px 12px;
   overflow: hidden;
-  border: 2px dashed var(--panel-border);
-  border-radius: 18px;
-  background: rgba(255, 255, 255, 0.03);
   touch-action: none;
-}
-
-.stick-hint {
-  position: absolute;
-  left: 50%;
-  bottom: 6px;
-  transform: translateX(-50%);
-  font-size: 11px;
-  color: var(--muted);
-  white-space: nowrap;
-  pointer-events: none;
 }
 
 .stick-base {
   position: absolute;
   left: 50%;
   top: 50%;
-  width: 92px;
-  height: 92px;
+  width: 72px;
+  height: 72px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.08);
-  border: 2px solid rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.07);
+  border: 2px solid rgba(255, 255, 255, 0.2);
   transform: translate(-50%, -50%);
-  opacity: 0.55;
+  opacity: 0.5;
   pointer-events: none;
 }
 
@@ -410,11 +395,11 @@ canvas {
   position: absolute;
   left: 50%;
   top: 50%;
-  width: 44px;
-  height: 44px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
   background: var(--text);
-  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
   transform: translate(-50%, -50%);
 }
 
@@ -424,35 +409,35 @@ canvas {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 10px;
+  gap: 8px;
   min-width: 0;
-  padding: 8px 16px 12px;
+  padding: 0 16px;
 }
 
 .bomb-btn {
   flex: none;
-  width: 96px;
-  height: 96px;
+  width: 64px;
+  height: 64px;
   border: none;
   border-radius: 50%;
   background: radial-gradient(circle at 35% 30%, #ff8a5c, var(--bomb) 60%, #b83a17);
   color: #fff;
   font-weight: 800;
-  font-size: 16px;
-  box-shadow: 0 6px 0 #8f2c10, 0 10px 18px rgba(0, 0, 0, 0.4);
+  font-size: 12px;
+  box-shadow: 0 4px 0 #8f2c10, 0 6px 12px rgba(0, 0, 0, 0.4);
   touch-action: none;
   cursor: pointer;
 }
 
 .bomb-btn.pressed {
-  transform: translateY(4px);
-  box-shadow: 0 2px 0 #8f2c10, 0 4px 10px rgba(0, 0, 0, 0.4);
+  transform: translateY(3px);
+  box-shadow: 0 1px 0 #8f2c10, 0 3px 8px rgba(0, 0, 0, 0.4);
 }
 
 .keys-hint {
-  max-width: 120px;
+  max-width: 110px;
   color: var(--muted);
-  font-size: 12px;
+  font-size: 11px;
   text-align: center;
 }
 
@@ -462,28 +447,63 @@ canvas {
   }
 }
 
-/* ---- Partie : paysage (téléphone tenu à deux mains, ou ordinateur) ---- */
+/* ---- Partie : paysage (téléphone tenu à deux mains, ou ordinateur) ----
+   L'arène prend toute la hauteur ; scores, chrono et bouton bombe passent sur
+   le côté droit, le joystick sur le côté gauche. */
 
 @media (orientation: landscape) {
   .game {
-    grid-template-areas: 'stick hud bomb' 'stick board bomb';
-    grid-template-rows: var(--hud-h) minmax(0, 1fr);
+    grid-template-areas: 'stick board hud' 'stick board bomb';
+    grid-template-rows: minmax(0, 1fr) auto;
     grid-template-columns: minmax(var(--side-min), 1fr) auto minmax(var(--side-min), 1fr);
   }
 
+  .board {
+    padding: 4px 0;
+  }
+
   .board-frame {
-    width: min((100dvh - var(--hud-h) - 16px) * var(--board-ratio), 100vw - 2 * var(--side-min) - 32px, 1100px);
+    width: min((100dvh - 8px) * var(--board-ratio), 100vw - 2 * var(--side-min), 1100px);
   }
 
   .hud {
-    min-width: 0;
-    max-width: min((100dvh - var(--hud-h) - 16px) * var(--board-ratio), 100vw - 2 * var(--side-min) - 32px, 1100px);
-    justify-self: center;
-    width: 100%;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: flex-start;
+    padding: 8px;
   }
 
-  .stick-zone {
-    margin: 12px 0 12px 12px;
+  .scores {
+    flex: none;
+    flex-direction: column;
+  }
+
+  /* Colonne étroite : avatar à gauche, nom puis manches gagnées en dessous. */
+  .scores li {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    column-gap: 6px;
+    align-items: center;
+    padding: 3px 8px 3px 3px;
+    border-radius: 12px;
+  }
+
+  .scores li .avatar {
+    grid-row: span 2;
+  }
+
+  .score-wins {
+    font-size: 11px;
+    line-height: 1.1;
+  }
+
+  .hud-timer {
+    align-self: flex-start;
+    order: -1;
+  }
+
+  .bomb-area {
+    padding: 8px 8px 20px;
   }
 }
 
@@ -604,20 +624,23 @@ a.link-btn {
   font-size: 14px;
 }
 
-/* Barre des scores : à 3 ou 4 joueurs dans une barre étroite (téléphone), les
-   noms sont masqués plutôt qu'écrasés ; l'avatar identifie le joueur. */
+/* Barre des scores en portrait : à 3 ou 4 joueurs dans une barre étroite, les
+   noms sont masqués plutôt qu'écrasés ; l'avatar identifie le joueur. En
+   paysage, les scores sont empilés sur le côté et les noms ont la place. */
 .hud {
   container-type: inline-size;
 }
 
-@container (max-width: 560px) {
-  .scores[data-count='3'] .score-name,
-  .scores[data-count='4'] .score-name {
-    display: none;
-  }
+@media (orientation: portrait) {
+  @container (max-width: 560px) {
+    .scores[data-count='3'] .score-name,
+    .scores[data-count='4'] .score-name {
+      display: none;
+    }
 
-  .scores li {
-    gap: 4px;
-    padding: 3px 6px;
+    .scores li {
+      gap: 4px;
+      padding: 2px 6px 2px 3px;
+    }
   }
 }

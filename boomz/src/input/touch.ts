@@ -1,7 +1,7 @@
 import type { Direction } from '../game/types';
 
-const DEAD_ZONE = 14; // px
-const KNOB_TRAVEL = 36; // px
+const DEAD_ZONE = 12; // px
+const KNOB_TRAVEL = 26; // px
 
 /**
  * Manette tactile : un joystick flottant (il apparaît sous le pouce) et un
