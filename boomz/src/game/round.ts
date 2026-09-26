@@ -6,6 +6,7 @@ import {
   BOMB_FUSE_TICKS,
   BOMB_SLIDE_SPEED,
   BONUS_DURATION_TICKS,
+  UNTIL_USED,
   CONVEYOR_SPEED,
   CORNER_ASSIST,
   FLAME_TICKS,
@@ -280,13 +281,14 @@ const MAX_LEVEL: Partial<Record<Bonus, number>> = {
 /**
  * Ramassage d'un bonus : actif pendant 10 secondes à partir de `tick`.
  * Reprendre le même relance le compteur (et monte d'un niveau s'il se cumule).
+ * Le Gilet fait exception : il dure jusqu'à ce qu'une explosion l'use.
  */
 export function applyBonus(player: Player, bonus: Bonus, tick = 0): void {
   if (bonus === Bonus.None) return;
   const active = player.buffUntil[bonus] > tick;
   const max = MAX_LEVEL[bonus] ?? 1;
   player.buffLevel[bonus] = Math.min(max, (active ? player.buffLevel[bonus] : 0) + 1);
-  player.buffUntil[bonus] = tick + BONUS_DURATION_TICKS;
+  player.buffUntil[bonus] = bonus === Bonus.Vest ? UNTIL_USED : tick + BONUS_DURATION_TICKS;
   refreshBuffs(player, tick);
 }
 

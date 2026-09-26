@@ -318,3 +318,20 @@ describe('pousser sa bombe', () => {
     expect(state.bombs[0].cx).toBe(7);
   });
 });
+
+describe('gilet pare-flamme sans limite de temps', () => {
+  it('reste actif au-delà de 10 s, et disparaît à la première explosion', () => {
+    const state = createRound(2, 1);
+    clearArena(state);
+    const player = state.players[0];
+    applyBonus(player, Bonus.Vest, state.tick);
+    run(state, BONUS_DURATION_TICKS * 3);
+    expect(player.vest).toBe(true);
+    // L'échéance reste un nombre : elle traverse le JSON envoyé aux téléphones.
+    expect(JSON.parse(JSON.stringify(player)).buffUntil[Bonus.Vest]).toBeGreaterThan(state.tick);
+    stepRound(state, [BOMB]);
+    run(state, BOMB_FUSE_TICKS);
+    expect(player.alive).toBe(true);
+    expect(player.vest).toBe(false);
+  });
+});

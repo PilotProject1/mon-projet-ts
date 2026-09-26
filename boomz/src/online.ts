@@ -5,7 +5,7 @@ import { composeFeedback, describeDevice, median, type FeedbackAnswers } from '.
 import { drawMascot, MenuDemo } from './menu/demo';
 import { COUNTDOWN_TICKS, SUDDEN_DEATH_TICKS, TICK_RATE, WINS_TO_TAKE_MATCH } from './game/constants';
 import { ARENA_NAMES } from './game/arena';
-import { SKIN_COUNT } from './game/constants';
+import { SKIN_COUNT, UNTIL_USED } from './game/constants';
 import type { ArenaChoice, MatchState } from './game/match';
 import { ARENA_IDS, Bonus, type Direction, type Player } from './game/types';
 import { KeyboardInput } from './input/keyboard';
@@ -498,14 +498,16 @@ let renderedPowersKey = '';
 
 /** Rangée des bonus actifs de ce joueur, avec leur niveau et les secondes restantes. */
 function renderPowers(player: Player | undefined, tick: number): void {
-  const entries: Array<{ bonus: Exclude<Bonus, 0>; level: string; seconds: number }> = [];
+  const entries: Array<{ bonus: Exclude<Bonus, 0>; level: string; seconds: number | null }> = [];
   if (player) {
     for (const bonus of BONUS_ORDER) {
       const left = player.buffUntil[bonus] - tick;
       if (left <= 0) continue;
       const level = player.buffLevel[bonus];
       const stacked = bonus === Bonus.Flame || bonus === Bonus.Bomb || bonus === Bonus.Speed;
-      entries.push({ bonus, level: stacked && level > 1 ? `×${level}` : '', seconds: Math.ceil(left / TICK_RATE) });
+      // Le Gilet n'a pas de compte à rebours : il dure jusqu'à la prochaine explosion.
+      const seconds = player.buffUntil[bonus] >= UNTIL_USED ? null : Math.ceil(left / TICK_RATE);
+      entries.push({ bonus, level: stacked && level > 1 ? `×${level}` : '', seconds });
     }
   }
   const key = JSON.stringify(entries);
@@ -516,13 +518,17 @@ function renderPowers(player: Player | undefined, tick: number): void {
       const chip = document.createElement('span');
       chip.className = 'power';
       // Les 3 dernières secondes, la pastille clignote.
-      chip.classList.toggle('ending', seconds <= 3);
+      chip.classList.toggle('ending', seconds !== null && seconds <= 3);
       chip.title = BONUS_INFO[bonus].name;
       const icon = document.createElement('canvas');
       icon.className = 'power-icon';
-      const text = document.createElement('span');
-      text.textContent = `${level ? `${level} ` : ''}${seconds}s`;
-      chip.append(icon, text);
+      chip.append(icon);
+      const label = [level, seconds === null ? '' : `${seconds}s`].filter(Boolean).join(' ');
+      if (label) {
+        const text = document.createElement('span');
+        text.textContent = label;
+        chip.append(text);
+      }
       requestAnimationFrame(() => paintBonusCanvas(icon, bonus));
       return chip;
     }),

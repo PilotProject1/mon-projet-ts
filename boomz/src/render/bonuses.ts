@@ -10,7 +10,7 @@ export const BONUS_INFO: Record<Exclude<Bonus, 0>, BonusInfo> = {
   [Bonus.Flame]: { name: 'Flamme+', effect: 'Explosions plus longues', color: '#ff7a2a' },
   [Bonus.Bomb]: { name: 'Bombe+', effect: 'Une bombe de plus à la fois', color: '#5b6cff' },
   [Bonus.Speed]: { name: 'Vitesse+', effect: 'Déplacement plus rapide', color: '#1fb87a' },
-  [Bonus.Vest]: { name: 'Gilet pare-flamme', effect: 'Encaisse une explosion', color: '#2aa7d8' },
+  [Bonus.Vest]: { name: 'Gilet pare-flamme', effect: 'Encaisse une explosion (sans limite de temps)', color: '#2aa7d8' },
   [Bonus.Detonator]: { name: 'Détonateur', effect: 'Vos bombes explosent sur commande', color: '#d8372b' },
   [Bonus.WallPass]: { name: 'Traverse-mur', effect: 'Passe à travers les caisses', color: '#9b6a3d' },
   [Bonus.BombPass]: { name: 'Traverse-bombe', effect: 'Passe sur ses propres bombes', color: '#7a4fd6' },

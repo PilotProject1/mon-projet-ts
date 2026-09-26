@@ -36,7 +36,8 @@ déployé ni relié à leur code.
 
 Environ une caisse sur trois cache un bonus, révélé quand elle a brûlé. On le
 ramasse en marchant dessus ; une flamme le détruit. **Chaque bonus dure
-10 secondes** ; reprendre le même relance le compteur (et, pour Flamme+,
+10 secondes**, sauf le Gilet pare-flamme, qui reste jusqu'à ce qu'une explosion
+l'use ; reprendre le même relance le compteur (et, pour Flamme+,
 Bombe+ et Vitesse+, ajoute un niveau). Les bonus actifs s'affichent avec leurs
 secondes restantes et clignotent les 3 dernières. Le tirage est fait par le
 serveur, qui ne dévoile jamais aux téléphones ce que cachent les caisses.
@@ -46,7 +47,7 @@ serveur, qui ne dévoile jamais aux téléphones ce que cachent les caisses.
 | Flamme+ | Portée des explosions +1 (jusqu'à 8) |
 | Bombe+ | Une bombe de plus en même temps (jusqu'à 8) |
 | Vitesse+ | Déplacement plus rapide (plafonné) |
-| Gilet pare-flamme | Encaisse une explosion (il disparaît alors) ; clignote 1 s ensuite |
+| Gilet pare-flamme | Encaisse une explosion, sans limite de temps (il disparaît alors) ; clignote 1 s ensuite |
 | Détonateur | Les bombes n'explosent que sur commande (bouton **Boum**, touche E) ; à la fin des 10 s, celles encore posées redeviennent des bombes normales |
 | Traverse-mur | Passe à travers les caisses (pas les piliers) |
 | Traverse-bombe | Passe sur ses propres bombes |
