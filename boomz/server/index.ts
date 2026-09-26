@@ -94,9 +94,13 @@ const server = createServer(async (request, response) => {
   }
   // Le jeu se joue dans l'application : le site ne montre plus que la page
   // d'accueil (qui renvoie vers l'application et affiche le code des liens
-  // d'invitation) et la page de confidentialité exigée par l'App Store.
+  // d'invitation) et les pages de confidentialité et d'assistance exigées par l'App Store.
   if (path === '/confidentialite') {
     await sendFile(response, 'confidentialite.html');
+    return;
+  }
+  if (path === '/assistance') {
+    await sendFile(response, 'assistance.html');
     return;
   }
   if (path === '/sw.js' || path === '/favicon.png' || /^\/icons\/[\w-]+\.png$/.test(path)) {

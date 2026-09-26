@@ -15,23 +15,27 @@ captures sont dans [`captures/`](captures/), aux formats exigés.
 
 > Bombes et pièges entre amis
 
-**Texte promotionnel** (App Store, 170 caractères max, modifiable sans nouvelle version — 123) :
+**Texte promotionnel** (App Store, 170 caractères max, modifiable sans nouvelle version — 156) :
 
-> Invitez jusqu'à 5 amis d'un simple lien : chacun joue sur son téléphone, sans compte ni inscription. Dernier debout gagne !
+> Nouveau : jouez seul contre des robots, même sans connexion ! Et entre amis, jusqu'à 6 sur vos téléphones, avec chat vocal et émojis. Dernier debout gagne !
 
 **Description** (les deux stores, 4 000 caractères max) :
 
-> Posez des bombes, faites sauter les caisses et piégez vos amis : le dernier
-> debout gagne la manche !
+> Posez des bombes, faites sauter les caisses et piégez vos amis : le dernier debout gagne la manche !
 >
-> Boomz est un jeu d'action en labyrinthe, rapide et nerveux, pensé pour jouer
-> entre amis. Chacun joue sur son propre téléphone, en même temps : créez une
-> partie, envoyez le lien d'invitation par WhatsApp ou SMS, et c'est parti.
-> Pas de compte, pas d'inscription.
+> Boomz est un jeu d'action en labyrinthe, rapide et nerveux, pensé pour jouer entre amis. Chacun joue sur son propre téléphone, en même temps : créez une partie, envoyez le lien d'invitation par WhatsApp ou SMS, et c'est parti. Pas de compte, pas d'inscription.
 >
 > ◆ JUSQU'À 6 JOUEURS
-> Des parties de 2 à 4 minutes, en 3 manches gagnantes. Parfait pour une pause,
-> une soirée ou un trajet.
+> Des parties de 2 à 4 minutes, en 3 manches gagnantes. Parfait pour une pause, une soirée ou un trajet. Et à la fin, le gagnant fait sa danse de la victoire… avant la revanche !
+>
+> ◆ SEUL OU ENTRE AMIS : LES ROBOTS
+> Pas assez de joueurs ? Ajoutez des robots, en trois niveaux : Débutant, Professionnel et Expert. Jouez seul contre eux, même sans connexion, ou complétez votre partie entre amis.
+>
+> ◆ EN LOCAL, SANS CONNEXION
+> Dans le train, en vacances, sans réseau : jouez à côté les uns des autres, en Bluetooth et Wi-Fi direct. Un téléphone crée le salon, les autres le rejoignent d'une touche.
+>
+> ◆ CHAT VOCAL ET ÉMOJIS
+> Parlez à vos amis pendant les parties en ligne (facultatif, et chacun peut couper qui il veut), et envoyez-leur un émoji rapide en pleine partie.
 >
 > ◆ 4 ARÈNES
 > • Chantier : l'arène classique.
@@ -40,33 +44,22 @@ captures sont dans [`captures/`](captures/), aux formats exigés.
 > • Station spatiale : des tapis roulants vous emportent.
 >
 > ◆ 8 BONUS
-> Flamme+, Bombe+, Vitesse+, Gilet pare-flamme, Détonateur, Traverse-mur,
-> Traverse-bombe et Kick : ramassez-les sous les caisses… avant les autres.
-> Et poussez vos bombes pour piéger vos adversaires à distance !
->
-> ◆ EN LOCAL, SANS CONNEXION
-> Dans le train, en vacances, sans réseau : jouez à côté les uns des autres,
-> en Bluetooth et Wi-Fi direct. Un téléphone crée le salon, les autres le
-> rejoignent d'une touche.
+> Flamme+, Bombe+, Vitesse+, Gilet pare-flamme, Détonateur, Traverse-mur, Traverse-bombe et Kick : ramassez-les sous les caisses… avant les autres. Et poussez vos bombes pour piéger vos adversaires à distance !
 >
 > ◆ FACILE À PRENDRE EN MAIN
-> Un doigt n'importe où à gauche de l'écran pour bouger, un bouton pour poser
-> une bombe. L'arène s'adapte à votre écran, en portrait comme en paysage.
+> Un tutoriel de 20 secondes au premier lancement, un doigt à gauche de l'écran pour bouger, un bouton pour poser une bombe. Vibrations à chaque explosion proche.
 >
 > ◆ VOS PERSONNAGES
-> Boomer, Blaster, Frost, Toxic, Boomette et Omega, chacun en trois
-> apparences. Purement esthétiques : tout le monde joue à armes égales.
+> Boomer, Blaster, Frost, Toxic, Boomette et Omega, chacun en trois apparences. Purement esthétiques : tout le monde joue à armes égales.
 >
 > ◆ RESPECT DE LA VIE PRIVÉE
-> Aucun compte, aucune publicité, aucun traceur. Votre pseudo n'est connu que
-> des joueurs de votre partie.
+> Aucun compte, aucune publicité, aucun achat, aucun traceur. Votre pseudo n'est connu que des joueurs de votre partie, et votre voix n'est jamais enregistrée.
 >
-> Une connexion internet est nécessaire pour jouer en ligne ; le jeu en
-> local (sans connexion) est réservé à l'iPhone pour l'instant.
+> Une connexion internet est nécessaire pour jouer en ligne avec des amis à distance. Le jeu contre les robots et le jeu en local fonctionnent sans connexion.
 
-**Mots-clés** (App Store, 100 caractères max, séparés par des virgules — 96) :
+**Mots-clés** (App Store, 100 caractères max, séparés par des virgules — 95) :
 
-> bombe,multijoueur,amis,arcade,labyrinthe,explosion,party,fête,piège,rapide,duel,stratégie,action
+> bombe,multijoueur,amis,arcade,labyrinthe,explosion,robot,local,bluetooth,piège,vocal,hors ligne
 
 ## Google Play (en pause : priorité à l'App Store)
 
@@ -98,8 +91,25 @@ captures sont dans [`captures/`](captures/), aux formats exigés.
   vocal passe en direct d'un téléphone à l'autre, sans être enregistrée ni
   reçue par l'éditeur).
 - **URL de confidentialité** : https://boomz.onrender.com/confidentialite
-- **URL d'assistance** : la même page (contact : boomz-service@outlook.com).
-- **Captures** : `captures/iphone-6.9-*.png` (1290 × 2796 et 2796 × 1290,
+- **URL d'assistance** : https://boomz.onrender.com/assistance (contact et questions fréquentes).
+- **URL marketing** : https://boomz.onrender.com
+- **Copyright** : 2026 Loïc Vincent
+- **Notes pour la vérification (App Review)** :
+
+> Bonjour,
+>
+> Boomz est un jeu multijoueur, mais vous pouvez l'essayer seul, sans compte ni connexion :
+> 1. À l'ouverture, touchez « Lancer le tutoriel » (partie guidée de 20 secondes contre un robot), ou « Jouer contre des robots » sur l'écran d'accueil.
+> 2. Dans le salon, ajoutez des robots (3 niveaux) puis « Lancer la partie ».
+> Commandes : glissez le doigt sur la moitié gauche de l'écran pour bouger, bouton « Bombe » à droite.
+>
+> Parties en ligne entre amis : « Créer une partie » sur un appareil, puis rejoindre avec le code à 5 lettres sur un second appareil (l'hôte peut aussi compléter avec des robots). Le chat vocal, facultatif, n'est proposé que dans ces parties en ligne ; la voix passe directement d'un appareil à l'autre (WebRTC) et n'est ni enregistrée ni reçue par nos serveurs.
+> « Jouer en local » relie des iPhone proches par Multipeer Connectivity (Bluetooth / Wi-Fi direct), d'où la demande d'accès au réseau local.
+>
+> Aucun compte, aucun achat, aucune publicité. Contact : boomz-service@outlook.com
+
+- **Aperçu vidéo** : `captures/iphone-6.5/boomz-apercu.mp4` (29 s, 886 × 1920, 30 i/s ; Apple limite les aperçus à 30 s).
+- **Captures** : `captures/iphone-6.5/boomz-0*.png` (1284 × 2778, avec titres ; 1.0 avec robots, tutoriel, émojis) ; anciennes : `captures/iphone-6.9-*.png` (1290 × 2796 et 2796 × 1290,
   format iPhone 6,9 pouces, accepté pour toutes les tailles d'iPhone).
 
 ## Avant de publier

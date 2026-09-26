@@ -15,7 +15,7 @@ import { Connection, SnapshotBuffer } from './net/connection';
 import { VoiceChat } from './voice/voice';
 import { pickTaunt, VictoryDance } from './render/victory';
 import { Tutorial } from './tutorial';
-import { BOT_LEVEL_NAMES, BOT_LEVEL_SHORT, BOT_LEVELS, type BotLevel } from './game/bot';
+import { BotBrain, BOT_LEVEL_NAMES, BOT_LEVEL_SHORT, BOT_LEVELS, type BotLevel } from './game/bot';
 import { nearbyAvailable, NearbyGuestLink, NearbyHostLink, NearbyScanner, type Link, type NearbyHost } from './net/nearby';
 import { EMOTES, MAX_PLAYERS, MIN_PLAYERS, RECONNECT_GRACE_SECONDS, type LobbyPlayer, type ServerMessage } from './net/protocol';
 import { BONUS_INFO, BONUS_ORDER, paintBonusCanvas } from './render/bonuses';
@@ -846,6 +846,8 @@ document.addEventListener('pointerdown', (event) => {
 });
 
 let detonateRequested = false;
+/** Développement : robot aux commandes de ce téléphone. */
+let devAutopilot: BotBrain | null = null;
 detonateButton.addEventListener('pointerdown', (event) => {
   event.preventDefault();
   detonateRequested = true;
@@ -905,12 +907,19 @@ function sendInputs(match: MatchState | null): void {
   // Le joueur pousse selon ce qu'il voit : si l'arène est affichée pivotée,
   // la direction à l'écran est convertie en direction dans l'arène.
   const pushed = playing ? (touch.direction() ?? keyboard.direction()) : null;
-  const direction = pushed && screenToGrid(pushed, renderer.rotated);
+  let direction = pushed && screenToGrid(pushed, renderer.rotated);
+  // Développement : un robot joue à la place de ce téléphone (vidéos de présentation).
+  let autoBomb = false;
+  if (import.meta.env.DEV && devAutopilot && playing && match && mySeat() !== null) {
+    const input = devAutopilot.decide(match.round, mySeat()!);
+    direction = input.direction;
+    autoBomb = input.bomb;
+  }
   if (direction !== lastSentDirection) {
     connection.send({ type: 'input', direction });
     lastSentDirection = direction;
   }
-  if (playing && (touchBomb || keyBomb)) connection.send({ type: 'bomb' });
+  if (playing && (touchBomb || keyBomb || autoBomb)) connection.send({ type: 'bomb' });
   if (playing && detonate) connection.send({ type: 'detonate' });
 }
 
@@ -1327,6 +1336,11 @@ if (import.meta.env.DEV) {
       freeze: () => {
         devFrozen = true;
       },
+      /** Un robot joue à la place de ce téléphone (vidéos et captures de présentation). */
+      autopilot: (level: BotLevel | null) => {
+        devAutopilot = level ? new BotBrain(level, Math.random) : null;
+      },
+      emote: (index: number) => connection?.send({ type: 'emote', emote: index }),
     },
   });
 }
