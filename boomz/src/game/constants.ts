@@ -1,6 +1,6 @@
 // Toute la simulation avance par pas fixes : les durées sont exprimées en ticks.
-// Un pas fixe rend la partie déterministe, ce qui préparera le mode en ligne
-// (serveur autoritaire, rejeu des entrées) de la phase 2.
+// Un pas fixe rend la partie déterministe : le serveur fait autorité, et le
+// même code pourra tourner sur le téléphone hôte en mode Bluetooth.
 export const TICK_RATE = 60;
 export const TICK_SECONDS = 1 / TICK_RATE;
 
@@ -16,6 +16,22 @@ export const FLAME_TICKS = Math.round(0.5 * TICK_RATE);
 export const BASE_SPEED = 3.4 / TICK_RATE; // cases par tick
 export const BASE_RANGE = 2;
 export const BASE_MAX_BOMBS = 1;
+
+// Bonus : plafonds et effets.
+export const SPEED_STEP = 0.5 / TICK_RATE;
+export const MAX_SPEED = 5.9 / TICK_RATE;
+export const MAX_RANGE = 8;
+export const MAX_BOMBS = 8;
+/** Probabilité qu'une caisse cache un bonus. */
+export const BONUS_DROP_CHANCE = 0.35;
+/** Invulnérabilité après avoir perdu le gilet, pour ne pas mourir de la même flamme. */
+export const VEST_GRACE_TICKS = TICK_RATE;
+/** Une bombe télécommandée oubliée finit quand même par exploser. */
+export const REMOTE_FUSE_TICKS = 10 * TICK_RATE;
+export const BOMB_SLIDE_SPEED = 7 / TICK_RATE;
+export const CONVEYOR_SPEED = 1.8 / TICK_RATE;
+/** Distance au centre d'un téléporteur en dessous de laquelle il s'active. */
+export const TELEPORT_RADIUS = 0.2;
 
 /** Au-delà d'un léger décalage, le personnage glisse vers le couloir libre le plus proche. */
 export const CORNER_ASSIST = 0.3;

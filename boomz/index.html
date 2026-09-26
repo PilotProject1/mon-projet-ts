@@ -34,12 +34,33 @@
         <p class="room-code" id="room-code"></p>
         <button class="secondary-btn wide" id="share-btn" type="button">Partager le lien d'invitation</button>
         <p class="invite-link" id="invite-link"></p>
-        <p class="arena-line">Arène : <strong>Chantier</strong></p>
+        <div class="arena-row">
+          <label class="arena-label" for="arena-select">Arène</label>
+          <select id="arena-select">
+            <option value="rotation">Une différente à chaque manche</option>
+            <option value="chantier">Chantier</option>
+            <option value="laboratoire">Laboratoire</option>
+            <option value="temple">Temple englouti</option>
+            <option value="station">Station spatiale</option>
+          </select>
+          <strong class="arena-name" id="arena-name" hidden></strong>
+        </div>
         <ul class="player-list" id="player-list"></ul>
         <button class="primary-btn" id="ready-btn" type="button">Je suis prêt</button>
         <button class="primary-btn" id="start-btn" type="button">Lancer la partie</button>
         <p class="hint" id="lobby-hint"></p>
         <p class="error" id="lobby-error" role="alert"></p>
+        <details class="legend">
+          <summary>Bonus et arènes</summary>
+          <p class="legend-intro">Certaines caisses cachent un bonus : marchez dessus pour le ramasser. Les flammes les détruisent.</p>
+          <ul class="bonus-list" id="bonus-list"></ul>
+          <ul class="arena-list">
+            <li><strong>Chantier</strong> : l'arène classique.</li>
+            <li><strong>Laboratoire</strong> : les téléporteurs de même couleur sont reliés.</li>
+            <li><strong>Temple englouti</strong> : les dalles fissurées s'effondrent derrière vous.</li>
+            <li><strong>Station spatiale</strong> : les tapis roulants vous emportent.</li>
+          </ul>
+        </details>
         <button class="link-btn" id="leave-btn" type="button">Quitter le salon</button>
       </div>
     </section>
@@ -53,7 +74,10 @@
       <main class="board">
         <div class="board-frame" id="board-frame">
           <canvas id="arena" aria-label="Arène"></canvas>
-          <div class="countdown" id="countdown" hidden></div>
+          <div class="countdown" id="countdown" hidden>
+            <span class="countdown-number" id="countdown-number"></span>
+            <span class="countdown-arena" id="countdown-arena"></span>
+          </div>
           <div class="banner" id="banner" hidden>
             <div class="banner-card">
               <p class="banner-text" id="banner-text"></p>
@@ -63,12 +87,14 @@
           </div>
         </div>
       </main>
+      <div class="powers" id="powers" aria-label="Vos bonus"></div>
       <div class="stick-zone" id="stick-zone">
         <div class="stick-base" id="stick-base"><div class="stick-knob" id="stick-knob"></div></div>
       </div>
       <div class="bomb-area">
+        <button class="detonate-btn" id="detonate-btn" type="button" aria-label="Faire exploser vos bombes" hidden>Boum</button>
         <button class="bomb-btn" id="bomb-btn" type="button" aria-label="Poser une bombe">Bombe</button>
-        <span class="keys-hint">Flèches ou ZQSD · Espace</span>
+        <span class="keys-hint">Flèches ou ZQSD · Espace · E pour faire exploser</span>
       </div>
     </section>
 

@@ -4,6 +4,7 @@ import { createServer } from 'node:http';
 import { extname, join, normalize, resolve } from 'node:path';
 import { WebSocketServer, type WebSocket } from 'ws';
 import { TICK_SECONDS } from '../src/game/constants';
+import { ARENA_IDS } from '../src/game/types';
 import { WS_PATH, type ClientMessage, type ServerMessage } from '../src/net/protocol';
 import { createPeer, Room, type Peer } from './room';
 
@@ -65,7 +66,14 @@ const server = createServer(async (request, response) => {
 
 // ---- Connexions des téléphones ----
 
-const wss = new WebSocketServer({ server, path: WS_PATH, maxPayload: MAX_MESSAGE_BYTES });
+const wss = new WebSocketServer({
+  server,
+  path: WS_PATH,
+  maxPayload: MAX_MESSAGE_BYTES,
+  // L'état de la partie (≈ 4 Ko, 20 fois par seconde) se compresse très bien :
+  // environ 7 fois moins de données mobiles consommées par joueur.
+  perMessageDeflate: { threshold: 256, zlibDeflateOptions: { level: 3 } },
+});
 const alive = new WeakSet<WebSocket>();
 
 wss.on('connection', (socket) => {
@@ -129,6 +137,11 @@ wss.on('connection', (socket) => {
       case 'ready':
         room.setReady(peer.id, message.ready === true);
         return;
+      case 'arena':
+        if (message.arena === 'rotation' || (ARENA_IDS as readonly string[]).includes(message.arena)) {
+          room.setArena(peer.id, message.arena);
+        }
+        return;
       case 'start': {
         const error = room.start(peer.id);
         if (error) send({ type: 'error', message: error });
@@ -141,6 +154,9 @@ wss.on('connection', (socket) => {
         return;
       case 'bomb':
         room.requestBomb(peer.id);
+        return;
+      case 'detonate':
+        room.requestDetonation(peer.id);
         return;
     }
   });

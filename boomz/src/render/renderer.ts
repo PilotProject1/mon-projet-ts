@@ -1,28 +1,134 @@
 import { BOMB_FUSE_TICKS, FLAME_TICKS, SUDDEN_DEATH_TICKS, TICK_RATE } from '../game/constants';
 import type { MatchState } from '../game/match';
 import { createRng } from '../game/rng';
-import { Tile, type Bomb, type Player, type RoundState } from '../game/types';
+import {
+  Bonus,
+  CONVEYOR_DIRECTIONS,
+  DIRECTION_VECTORS,
+  Feature,
+  Tile,
+  type ArenaId,
+  type Bomb,
+  type Player,
+  type RoundState,
+} from '../game/types';
+import { drawBonusIcon } from './bonuses';
 import { drawCharacter, PLAYER_LOOKS } from './characters';
 
-// Arène « Chantier » : sol de terre battue, piliers en béton cerclés de bandes
-// de sécurité, caisses en bois à faire sauter.
-const ARENA = {
-  groundA: '#d8b57a',
-  groundB: '#d1ac6f',
-  groundSpeck: 'rgba(120, 84, 40, 0.18)',
-  groundLight: 'rgba(255, 244, 214, 0.22)',
-  concreteTop: '#c3c6cc',
-  concreteTopEdge: '#d9dbe0',
-  concreteFront: '#8b909b',
-  concreteDark: '#6c717c',
-  hazardYellow: '#f5c211',
-  hazardBlack: '#23242b',
-  crateTop: '#dea461',
-  crateFront: '#a8672c',
-  crateLine: '#9a5e28',
-  crateBolt: '#6b4a2a',
-  shadow: 'rgba(40, 24, 8, 0.28)',
+interface Theme {
+  groundA: string;
+  groundB: string;
+  groundSpeck: string;
+  groundLight: string;
+  groundJoint: string;
+  wallTop: string;
+  wallTopEdge: string;
+  wallFront: string;
+  /** Bande sur la face avant des piliers. */
+  wallBand: string;
+  /** Rayures de la bordure de l'arène. */
+  stripeA: string;
+  stripeB: string;
+  pillarStyle: 'formwork' | 'lab' | 'carved' | 'hull';
+  blockTop: string;
+  blockFront: string;
+  blockLine: string;
+  blockBolt: string;
+  blockStyle: 'crate' | 'metal' | 'stone' | 'cargo';
+  shadow: string;
+}
+
+// Une ambiance par arène (thèmes de la roadmap). Toutes partagent la même
+// lecture : sol clair et plat, murs en relief, caisses destructibles bien
+// distinctes des piliers.
+const THEMES: Record<ArenaId, Theme> = {
+  // Terre battue, piliers en béton, bandes de sécurité, caisses en bois.
+  chantier: {
+    groundA: '#d8b57a',
+    groundB: '#d1ac6f',
+    groundSpeck: 'rgba(120, 84, 40, 0.18)',
+    groundLight: 'rgba(255, 244, 214, 0.22)',
+    groundJoint: 'rgba(120, 84, 40, 0.12)',
+    wallTop: '#c3c6cc',
+    wallTopEdge: '#d9dbe0',
+    wallFront: '#8b909b',
+    wallBand: '#6c717c',
+    stripeA: '#f5c211',
+    stripeB: '#23242b',
+    pillarStyle: 'formwork',
+    blockTop: '#dea461',
+    blockFront: '#a8672c',
+    blockLine: '#9a5e28',
+    blockBolt: '#6b4a2a',
+    blockStyle: 'crate',
+    shadow: 'rgba(40, 24, 8, 0.28)',
+  },
+  // Carrelage blanc, machines aux voyants turquoise, conteneurs d'échantillons ambrés.
+  laboratoire: {
+    groundA: '#e8edf2',
+    groundB: '#dfe6ed',
+    groundSpeck: 'rgba(90, 120, 150, 0.1)',
+    groundLight: 'rgba(255, 255, 255, 0.55)',
+    groundJoint: 'rgba(70, 100, 130, 0.2)',
+    wallTop: '#f4f7fa',
+    wallTopEdge: '#ffffff',
+    wallFront: '#9fb2c4',
+    wallBand: '#3fc1c9',
+    stripeA: '#3fc1c9',
+    stripeB: '#1d3b50',
+    pillarStyle: 'lab',
+    blockTop: '#f0b44c',
+    blockFront: '#b87b1c',
+    blockLine: '#c98e2a',
+    blockBolt: '#6b4a12',
+    blockStyle: 'metal',
+    shadow: 'rgba(20, 40, 70, 0.22)',
+  },
+  // Dalles moussues, grès sculpté aux incrustations de jade, blocs de terre cuite.
+  temple: {
+    groundA: '#8fa38a',
+    groundB: '#86997f',
+    groundSpeck: 'rgba(40, 60, 40, 0.2)',
+    groundLight: 'rgba(220, 240, 200, 0.18)',
+    groundJoint: 'rgba(30, 50, 30, 0.28)',
+    wallTop: '#c9b48a',
+    wallTopEdge: '#dccb9f',
+    wallFront: '#9a845a',
+    wallBand: '#7a6644',
+    stripeA: '#2f8f83',
+    stripeB: '#c9b48a',
+    pillarStyle: 'carved',
+    blockTop: '#c0724a',
+    blockFront: '#83442a',
+    blockLine: '#8a4a2c',
+    blockBolt: '#5a2c18',
+    blockStyle: 'stone',
+    shadow: 'rgba(10, 30, 20, 0.3)',
+  },
+  // Plaques de métal sombre, coque aux néons cyan, conteneurs de fret orange.
+  station: {
+    groundA: '#3a415b',
+    groundB: '#343b54',
+    groundSpeck: 'rgba(0, 0, 0, 0.25)',
+    groundLight: 'rgba(140, 200, 255, 0.1)',
+    groundJoint: 'rgba(120, 170, 255, 0.2)',
+    wallTop: '#5a6380',
+    wallTopEdge: '#7a84a3',
+    wallFront: '#2b3148',
+    wallBand: '#1a1f33',
+    stripeA: '#28e0ff',
+    stripeB: '#1a1f33',
+    pillarStyle: 'hull',
+    blockTop: '#e0873a',
+    blockFront: '#a85a1d',
+    blockLine: '#c46f28',
+    blockBolt: '#5a2e0e',
+    blockStyle: 'cargo',
+    shadow: 'rgba(0, 0, 0, 0.35)',
+  },
 };
+
+const TELEPORTER_COLORS = ['#35d6ff', '#ff4fd8', '#9dff5c'];
 
 /**
  * Hauteur de la face avant des murs et caisses (vue 3/4), en fraction de case.
@@ -47,8 +153,10 @@ export class Renderer {
   private readonly ctx: CanvasRenderingContext2D;
   private readonly canvas: HTMLCanvasElement;
   private cell = 32;
-  /** Sol pré-dessiné : il ne change jamais pendant une manche. */
+  private theme: Theme = THEMES.chantier;
+  /** Sol pré-dessiné, par arène : il ne change jamais pendant une manche. */
   private floor: HTMLCanvasElement | null = null;
+  private floorArena: ArenaId | null = null;
   private particles: Particle[] = [];
   private shake = 0;
   private lastFrame = 0;
@@ -78,6 +186,7 @@ export class Renderer {
     if (canvas.width === 0 || canvas.height === 0) return;
     const round = match.round;
     this.cell = canvas.width / round.width;
+    this.theme = THEMES[round.arena] ?? THEMES.chantier;
     const dt = this.lastFrame ? Math.min((now - this.lastFrame) / 1000, 0.1) : 0;
     this.lastFrame = now;
 
@@ -92,17 +201,20 @@ export class Renderer {
       this.shake = Math.max(0, this.shake - dt * 5);
     }
 
-    ctx.drawImage(this.floorLayer(round), 0, 0);
-    for (let y = 0; y < round.height; y++) {
-      for (let x = 0; x < round.width; x++) this.drawTile(round, x, y);
-    }
-    // Les flammes passent sur les caisses qui brûlent, sous les personnages.
-    this.drawFlames(round);
-
     // La manche est figée une fois terminée : on poursuit l'animation des
     // éliminations avec l'horloge de la phase.
     const frozen = match.phase === 'roundOver' || match.phase === 'matchOver';
     const tick = round.tick + (frozen ? match.phaseTick : 0);
+
+    ctx.drawImage(this.floorLayer(round), 0, 0);
+    this.drawFeatures(round, tick);
+    for (let y = 0; y < round.height; y++) {
+      for (let x = 0; x < round.width; x++) this.drawTile(round, x, y, tick);
+    }
+    this.drawBonuses(round, tick);
+    // Les flammes passent sur les caisses qui brûlent, sous les personnages.
+    this.drawFlames(round);
+
     for (const bomb of round.bombs) this.drawBomb(bomb, tick);
     // Du fond vers l'avant : un personnage plus bas à l'écran passe devant.
     const players = [...round.players].sort((a, b) => a.y - b.y);
@@ -115,9 +227,15 @@ export class Renderer {
   // ---- Sol ----
 
   private floorLayer(round: RoundState): HTMLCanvasElement {
-    if (this.floor && this.floor.width === this.canvas.width && this.floor.height === this.canvas.height) {
+    if (
+      this.floor &&
+      this.floorArena === round.arena &&
+      this.floor.width === this.canvas.width &&
+      this.floor.height === this.canvas.height
+    ) {
       return this.floor;
     }
+    const t = this.theme;
     const layer = document.createElement('canvas');
     layer.width = this.canvas.width;
     layer.height = this.canvas.height;
@@ -129,53 +247,58 @@ export class Renderer {
       for (let x = 0; x < round.width; x++) {
         const px = x * cell;
         const py = y * cell;
-        ctx.fillStyle = (x + y) % 2 === 0 ? ARENA.groundA : ARENA.groundB;
+        ctx.fillStyle = (x + y) % 2 === 0 ? t.groundA : t.groundB;
         ctx.fillRect(px, py, cell + 1, cell + 1);
         // Graviers et reflets, toujours au même endroit grâce à la graine.
         for (let i = 0; i < 7; i++) {
-          ctx.fillStyle = rng() < 0.7 ? ARENA.groundSpeck : ARENA.groundLight;
+          ctx.fillStyle = rng() < 0.7 ? t.groundSpeck : t.groundLight;
           const size = cell * (0.03 + rng() * 0.05);
           ctx.beginPath();
           ctx.arc(px + rng() * cell, py + rng() * cell, size, 0, Math.PI * 2);
           ctx.fill();
         }
-        // Joint discret entre les dalles de terre.
-        ctx.fillStyle = 'rgba(120, 84, 40, 0.12)';
+        // Joint discret entre les dalles.
+        ctx.fillStyle = t.groundJoint;
         ctx.fillRect(px, py + cell - 1, cell, 1);
         ctx.fillRect(px + cell - 1, py, 1, cell);
       }
     }
     this.floor = layer;
+    this.floorArena = round.arena;
     return layer;
   }
 
   // ---- Murs et caisses ----
 
-  private drawTile(round: RoundState, x: number, y: number): void {
+  private drawTile(round: RoundState, x: number, y: number, tick: number): void {
     const tile = round.tiles[y * round.width + x];
     if (tile === Tile.Floor) return;
+    if (tile === Tile.Pit) {
+      this.drawPit(x, y, tick);
+      return;
+    }
     if (tile === Tile.Wall) {
       const border = x === 0 || y === 0 || x === round.width - 1 || y === round.height - 1;
-      this.drawConcrete(x, y, border);
+      this.drawWall(x, y, border);
       return;
     }
     const burning = tile === Tile.Burning;
     const progress = burning ? 1 - round.flames[y * round.width + x] / FLAME_TICKS : 0;
-    this.drawCrate(x, y, burning, progress);
+    this.drawBlock(x, y, burning, progress);
   }
 
-  private drawConcrete(x: number, y: number, border: boolean): void {
-    const { ctx, cell } = this;
+  private drawWall(x: number, y: number, border: boolean): void {
+    const { ctx, cell, theme: t } = this;
     const px = x * cell;
     const py = y * cell;
     const depth = cell * DEPTH;
 
     // Ombre portée sur le sol, vers le bas à droite.
-    ctx.fillStyle = ARENA.shadow;
+    ctx.fillStyle = t.shadow;
     ctx.fillRect(px + cell * 0.12, py + cell * 0.12, cell, cell - depth * 0.3);
 
-    // Face avant, avec une bande de sécurité jaune et noire.
-    ctx.fillStyle = ARENA.concreteFront;
+    // Face avant, avec une bande : rayée sur la bordure, unie sur les piliers.
+    ctx.fillStyle = t.wallFront;
     ctx.fillRect(px, py + cell - depth, cell, depth);
     const bandY = py + cell - depth * 0.72;
     const bandH = depth * 0.42;
@@ -183,10 +306,10 @@ export class Renderer {
     ctx.beginPath();
     ctx.rect(px, bandY, cell, bandH);
     ctx.clip();
-    ctx.fillStyle = border ? ARENA.hazardYellow : ARENA.concreteDark;
+    ctx.fillStyle = border ? t.stripeA : t.wallBand;
     ctx.fillRect(px, bandY, cell, bandH);
     if (border) {
-      ctx.fillStyle = ARENA.hazardBlack;
+      ctx.fillStyle = t.stripeB;
       const stripe = cell * 0.18;
       for (let sx = px - cell; sx < px + cell * 2; sx += stripe * 2) {
         ctx.beginPath();
@@ -201,26 +324,65 @@ export class Renderer {
 
     // Dessus.
     const topH = cell - depth;
-    ctx.fillStyle = ARENA.concreteTop;
+    ctx.fillStyle = t.wallTop;
     ctx.fillRect(px, py, cell, topH);
-    ctx.fillStyle = ARENA.concreteTopEdge;
+    ctx.fillStyle = t.wallTopEdge;
     ctx.fillRect(px, py, cell, cell * 0.07);
-    if (!border) {
-      // Pilier : plaque centrale et petits trous de coffrage.
-      ctx.strokeStyle = 'rgba(0, 0, 0, 0.12)';
-      ctx.lineWidth = Math.max(1, cell * 0.04);
-      ctx.strokeRect(px + cell * 0.14, py + topH * 0.14, cell * 0.72, topH * 0.72);
-      ctx.fillStyle = 'rgba(0, 0, 0, 0.18)';
-      for (const [ox, oy] of [[0.28, 0.28], [0.72, 0.28], [0.28, 0.72], [0.72, 0.72]]) {
+    if (border) return;
+    ctx.lineWidth = Math.max(1, cell * 0.04);
+    switch (t.pillarStyle) {
+      case 'formwork':
+        // Plaque de coffrage et ses trous.
+        ctx.strokeStyle = 'rgba(0, 0, 0, 0.12)';
+        ctx.strokeRect(px + cell * 0.14, py + topH * 0.14, cell * 0.72, topH * 0.72);
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.18)';
+        for (const [ox, oy] of [[0.28, 0.28], [0.72, 0.28], [0.28, 0.72], [0.72, 0.72]]) {
+          ctx.beginPath();
+          ctx.arc(px + cell * ox, py + topH * oy, cell * 0.035, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        break;
+      case 'lab':
+        // Machine : écran turquoise et deux voyants.
+        ctx.fillStyle = '#1d3b50';
+        ctx.fillRect(px + cell * 0.2, py + topH * 0.2, cell * 0.6, topH * 0.45);
+        ctx.fillStyle = t.wallBand;
+        ctx.fillRect(px + cell * 0.26, py + topH * 0.28, cell * 0.48, topH * 0.08);
+        ctx.fillRect(px + cell * 0.26, py + topH * 0.44, cell * 0.3, topH * 0.08);
+        ctx.fillStyle = '#ff5a5a';
         ctx.beginPath();
-        ctx.arc(px + cell * ox, py + topH * oy, cell * 0.035, 0, Math.PI * 2);
+        ctx.arc(px + cell * 0.3, py + topH * 0.82, cell * 0.04, 0, Math.PI * 2);
         ctx.fill();
-      }
+        ctx.fillStyle = '#5aff8a';
+        ctx.beginPath();
+        ctx.arc(px + cell * 0.44, py + topH * 0.82, cell * 0.04, 0, Math.PI * 2);
+        ctx.fill();
+        break;
+      case 'carved':
+        // Grès sculpté : disque de jade gravé.
+        ctx.strokeStyle = 'rgba(80, 60, 30, 0.35)';
+        ctx.strokeRect(px + cell * 0.1, py + topH * 0.1, cell * 0.8, topH * 0.8);
+        ctx.fillStyle = t.stripeA;
+        ctx.beginPath();
+        ctx.arc(px + cell / 2, py + topH / 2, cell * 0.18, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = '#c9f2e8';
+        ctx.beginPath();
+        ctx.arc(px + cell / 2, py + topH / 2, cell * 0.09, 0, Math.PI * 2);
+        ctx.stroke();
+        break;
+      case 'hull':
+        // Coque : plaque rivetée et liseré néon.
+        ctx.strokeStyle = 'rgba(0, 0, 0, 0.3)';
+        ctx.strokeRect(px + cell * 0.12, py + topH * 0.12, cell * 0.76, topH * 0.76);
+        ctx.fillStyle = t.stripeA;
+        ctx.fillRect(px + cell * 0.12, py + topH * 0.46, cell * 0.76, topH * 0.08);
+        break;
     }
   }
 
-  private drawCrate(x: number, y: number, burning: boolean, progress: number): void {
-    const { ctx, cell } = this;
+  private drawBlock(x: number, y: number, burning: boolean, progress: number): void {
+    const { ctx, cell, theme: t } = this;
     const inset = cell * (0.05 + progress * 0.28);
     const size = cell - inset * 2;
     const depth = size * DEPTH;
@@ -228,34 +390,198 @@ export class Renderer {
     const py = y * cell + inset;
     ctx.globalAlpha = 1 - progress * 0.85;
 
-    ctx.fillStyle = ARENA.shadow;
+    ctx.fillStyle = t.shadow;
     ctx.fillRect(px + size * 0.12, py + size * 0.14, size, size - depth * 0.3);
 
-    ctx.fillStyle = burning ? '#6d3217' : ARENA.crateFront;
+    ctx.fillStyle = burning ? '#6d3217' : t.blockFront;
     ctx.fillRect(px, py + size - depth, size, depth);
     ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
     ctx.fillRect(px, py + size - depth * 0.5, size, 1);
 
     const topH = size - depth;
-    ctx.fillStyle = burning ? '#b8521f' : ARENA.crateTop;
+    ctx.fillStyle = burning ? '#b8521f' : t.blockTop;
     ctx.fillRect(px, py, size, topH);
-    // Planches et croisillon.
-    ctx.strokeStyle = burning ? '#7a3313' : ARENA.crateLine;
+    ctx.strokeStyle = burning ? '#7a3313' : t.blockLine;
+    ctx.fillStyle = t.blockBolt;
     ctx.lineWidth = Math.max(1, cell * 0.045);
-    ctx.strokeRect(px + size * 0.06, py + topH * 0.08, size * 0.88, topH * 0.84);
-    ctx.beginPath();
-    ctx.moveTo(px + size * 0.1, py + topH * 0.12);
-    ctx.lineTo(px + size * 0.9, py + topH * 0.88);
-    ctx.moveTo(px + size * 0.9, py + topH * 0.12);
-    ctx.lineTo(px + size * 0.1, py + topH * 0.88);
-    ctx.stroke();
-    ctx.fillStyle = ARENA.crateBolt;
-    for (const [ox, oy] of [[0.12, 0.14], [0.88, 0.14], [0.12, 0.86], [0.88, 0.86]]) {
-      ctx.beginPath();
-      ctx.arc(px + size * ox, py + topH * oy, size * 0.045, 0, Math.PI * 2);
-      ctx.fill();
+    const bolts = (points: number[][]) => {
+      for (const [ox, oy] of points) {
+        ctx.beginPath();
+        ctx.arc(px + size * ox, py + topH * oy, size * 0.045, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    };
+    switch (t.blockStyle) {
+      case 'crate':
+        // Planches et croisillon.
+        ctx.strokeRect(px + size * 0.06, py + topH * 0.08, size * 0.88, topH * 0.84);
+        ctx.beginPath();
+        ctx.moveTo(px + size * 0.1, py + topH * 0.12);
+        ctx.lineTo(px + size * 0.9, py + topH * 0.88);
+        ctx.moveTo(px + size * 0.9, py + topH * 0.12);
+        ctx.lineTo(px + size * 0.1, py + topH * 0.88);
+        ctx.stroke();
+        bolts([[0.12, 0.14], [0.88, 0.14], [0.12, 0.86], [0.88, 0.86]]);
+        break;
+      case 'metal':
+        // Conteneur : couvercle rainuré et rivets.
+        ctx.strokeRect(px + size * 0.1, py + topH * 0.12, size * 0.8, topH * 0.76);
+        ctx.beginPath();
+        ctx.moveTo(px + size * 0.1, py + topH * 0.5);
+        ctx.lineTo(px + size * 0.9, py + topH * 0.5);
+        ctx.stroke();
+        bolts([[0.18, 0.22], [0.82, 0.22], [0.18, 0.78], [0.82, 0.78]]);
+        break;
+      case 'stone':
+        // Bloc de pierre fissuré.
+        ctx.beginPath();
+        ctx.moveTo(px + size * 0.18, py + topH * 0.2);
+        ctx.lineTo(px + size * 0.42, py + topH * 0.46);
+        ctx.lineTo(px + size * 0.36, py + topH * 0.8);
+        ctx.moveTo(px + size * 0.42, py + topH * 0.46);
+        ctx.lineTo(px + size * 0.78, py + topH * 0.38);
+        ctx.stroke();
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.15)';
+        ctx.fillRect(px, py, size, topH * 0.12);
+        break;
+      case 'cargo':
+        // Conteneur de fret : nervures verticales.
+        for (const ox of [0.25, 0.5, 0.75]) {
+          ctx.beginPath();
+          ctx.moveTo(px + size * ox, py + topH * 0.1);
+          ctx.lineTo(px + size * ox, py + topH * 0.9);
+          ctx.stroke();
+        }
+        bolts([[0.1, 0.12], [0.9, 0.12], [0.1, 0.88], [0.9, 0.88]]);
+        break;
     }
     ctx.globalAlpha = 1;
+  }
+
+  /** Dalle effondrée : bassin d'eau sombre qui ondule. */
+  private drawPit(x: number, y: number, tick: number): void {
+    const { ctx, cell } = this;
+    const px = x * cell;
+    const py = y * cell;
+    ctx.fillStyle = '#1f4e63';
+    ctx.fillRect(px, py, cell, cell);
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+    ctx.fillRect(px, py, cell, cell * 0.22);
+    ctx.strokeStyle = 'rgba(160, 230, 255, 0.35)';
+    ctx.lineWidth = Math.max(1, cell * 0.035);
+    const phase = (tick * 0.03 + x * 0.7 + y * 0.3) % 1;
+    ctx.beginPath();
+    ctx.ellipse(px + cell / 2, py + cell * 0.6, cell * (0.12 + phase * 0.3), cell * (0.05 + phase * 0.12), 0, 0, Math.PI * 2);
+    ctx.globalAlpha = 1 - phase;
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+  }
+
+  // ---- Éléments au sol : téléporteurs, tapis roulants, dalles fissurées ----
+
+  private drawFeatures(round: RoundState, tick: number): void {
+    const { ctx, cell } = this;
+    // Chaque paire de téléporteurs a sa couleur.
+    const pairColor = new Map<number, string>();
+    for (let index = 0; index < round.features.length; index++) {
+      const feature = round.features[index];
+      if (feature === Feature.None) continue;
+      const x = index % round.width;
+      const y = Math.floor(index / round.width);
+      const px = x * cell;
+      const py = y * cell;
+      const cx = px + cell / 2;
+      const cy = py + cell / 2;
+
+      if (feature === Feature.Teleporter) {
+        const key = Math.min(index, round.teleportTargets[index]);
+        if (!pairColor.has(key)) pairColor.set(key, TELEPORTER_COLORS[pairColor.size % TELEPORTER_COLORS.length]);
+        const color = pairColor.get(key) ?? TELEPORTER_COLORS[0];
+        ctx.fillStyle = '#26303f';
+        ctx.beginPath();
+        ctx.arc(cx, cy, cell * 0.42, 0, Math.PI * 2);
+        ctx.fill();
+        const glow = ctx.createRadialGradient(cx, cy, 0, cx, cy, cell * 0.36);
+        glow.addColorStop(0, '#ffffff');
+        glow.addColorStop(0.35, color);
+        glow.addColorStop(1, 'rgba(0, 0, 0, 0)');
+        ctx.fillStyle = glow;
+        ctx.beginPath();
+        ctx.arc(cx, cy, cell * 0.36, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = color;
+        ctx.lineWidth = Math.max(1.5, cell * 0.06);
+        const angle = tick * 0.08;
+        for (let i = 0; i < 3; i++) {
+          ctx.beginPath();
+          ctx.arc(cx, cy, cell * 0.4, angle + (i * Math.PI * 2) / 3, angle + (i * Math.PI * 2) / 3 + 1.2);
+          ctx.stroke();
+        }
+        continue;
+      }
+
+      const conveyor = CONVEYOR_DIRECTIONS[feature];
+      if (conveyor) {
+        const [dx, dy] = DIRECTION_VECTORS[conveyor];
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(px, py, cell, cell);
+        ctx.clip();
+        ctx.fillStyle = '#20263a';
+        ctx.fillRect(px, py + cell * 0.08, cell, cell * 0.84);
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.06)';
+        ctx.fillRect(px, py + cell * 0.08, cell, cell * 0.08);
+        // Chevrons qui défilent dans le sens du tapis.
+        ctx.strokeStyle = '#f5c211';
+        ctx.lineWidth = Math.max(1.5, cell * 0.08);
+        const shift = ((tick * 0.03) % 1) * cell * 0.5;
+        for (let k = -2; k <= 2; k++) {
+          const offset = k * cell * 0.5 + shift;
+          const ox = cx + dx * offset;
+          const oy = cy + dy * offset;
+          ctx.beginPath();
+          ctx.moveTo(ox - dx * cell * 0.12 - dy * cell * 0.2, oy - dy * cell * 0.12 - dx * cell * 0.2);
+          ctx.lineTo(ox + dx * cell * 0.08, oy + dy * cell * 0.08);
+          ctx.lineTo(ox - dx * cell * 0.12 + dy * cell * 0.2, oy - dy * cell * 0.12 + dx * cell * 0.2);
+          ctx.stroke();
+        }
+        ctx.restore();
+        continue;
+      }
+
+      if (feature === Feature.Cracked) {
+        const stepped = round.steppedOn[index] === 1;
+        ctx.fillStyle = stepped ? 'rgba(40, 20, 0, 0.25)' : 'rgba(40, 20, 0, 0.1)';
+        ctx.fillRect(px + 1, py + 1, cell - 2, cell - 2);
+        ctx.strokeStyle = stepped ? 'rgba(30, 15, 0, 0.8)' : 'rgba(30, 15, 0, 0.5)';
+        ctx.lineWidth = Math.max(1, cell * 0.045);
+        ctx.beginPath();
+        ctx.moveTo(px + cell * 0.15, py + cell * 0.25);
+        ctx.lineTo(px + cell * 0.45, py + cell * 0.45);
+        ctx.lineTo(px + cell * 0.4, py + cell * 0.85);
+        ctx.moveTo(px + cell * 0.45, py + cell * 0.45);
+        ctx.lineTo(px + cell * 0.85, py + cell * 0.3);
+        ctx.moveTo(px + cell * 0.6, py + cell * 0.4);
+        ctx.lineTo(px + cell * 0.75, py + cell * 0.8);
+        ctx.stroke();
+      }
+    }
+  }
+
+  private drawBonuses(round: RoundState, tick: number): void {
+    const { ctx, cell } = this;
+    for (let index = 0; index < round.bonuses.length; index++) {
+      const bonus = round.bonuses[index];
+      if (bonus === Bonus.None) continue;
+      const cx = (index % round.width) * cell + cell / 2;
+      const cy = Math.floor(index / round.width) * cell + cell / 2;
+      const bob = Math.sin(tick * 0.1 + index) * cell * 0.04;
+      ctx.fillStyle = this.theme.shadow;
+      ctx.beginPath();
+      ctx.ellipse(cx, cy + cell * 0.3, cell * 0.26, cell * 0.08, 0, 0, Math.PI * 2);
+      ctx.fill();
+      drawBonusIcon(ctx, bonus, cx, cy - cell * 0.04 + bob, cell * 0.6);
+    }
   }
 
   // ---- Flammes ----
@@ -310,14 +636,16 @@ export class Renderer {
 
   private drawBomb(bomb: Bomb, tick: number): void {
     const { ctx, cell } = this;
-    const cx = bomb.cx * cell + cell / 2;
-    const cy = bomb.cy * cell + cell / 2;
-    // Pulsation qui s'accélère à l'approche de l'explosion.
-    const urgency = 1 - bomb.fuse / BOMB_FUSE_TICKS;
+    // Bombe poussée : elle glisse entre deux cases.
+    const [sx, sy] = bomb.slide ? DIRECTION_VECTORS[bomb.slide] : [0, 0];
+    const cx = (bomb.cx + sx * bomb.slideProgress) * cell + cell / 2;
+    const cy = (bomb.cy + sy * bomb.slideProgress) * cell + cell / 2;
+    // Pulsation qui s'accélère à l'approche de l'explosion (sauf bombe télécommandée).
+    const urgency = bomb.remote ? 0 : 1 - bomb.fuse / BOMB_FUSE_TICKS;
     const pulse = 1 + 0.08 * Math.sin(tick * (0.15 + urgency * 0.5));
     const radius = cell * 0.36 * pulse;
 
-    ctx.fillStyle = ARENA.shadow;
+    ctx.fillStyle = this.theme.shadow;
     ctx.beginPath();
     ctx.ellipse(cx + radius * 0.15, cy + radius * 0.85, radius * 0.95, radius * 0.35, 0, 0, Math.PI * 2);
     ctx.fill();
@@ -338,9 +666,23 @@ export class Renderer {
     ctx.ellipse(cx - radius * 0.38, cy - radius * 0.42, radius * 0.18, radius * 0.11, -0.6, 0, Math.PI * 2);
     ctx.fill();
 
-    // Bouchon et mèche.
     ctx.fillStyle = '#3a3d4a';
     ctx.fillRect(cx + radius * 0.25, cy - radius * 1.05, radius * 0.4, radius * 0.32);
+    if (bomb.remote) {
+      // Bombe télécommandée : antenne et voyant rouge au lieu de la mèche.
+      ctx.strokeStyle = '#9aa0b0';
+      ctx.lineWidth = Math.max(1, cell * 0.035);
+      ctx.beginPath();
+      ctx.moveTo(cx + radius * 0.45, cy - radius * 1.02);
+      ctx.lineTo(cx + radius * 0.6, cy - radius * 1.7);
+      ctx.stroke();
+      ctx.fillStyle = Math.floor(tick / 10) % 2 === 0 ? '#ff3b30' : '#7a1a15';
+      ctx.beginPath();
+      ctx.arc(cx + radius * 0.6, cy - radius * 1.7, cell * 0.07, 0, Math.PI * 2);
+      ctx.fill();
+      return;
+    }
+    // Mèche et étincelle.
     ctx.strokeStyle = '#7a6440';
     ctx.lineWidth = Math.max(1.5, cell * 0.05);
     ctx.beginPath();
@@ -379,7 +721,7 @@ export class Renderer {
     const r = cell * 0.36 * scale;
 
     ctx.globalAlpha = alpha;
-    ctx.fillStyle = ARENA.shadow;
+    ctx.fillStyle = this.theme.shadow;
     ctx.beginPath();
     ctx.ellipse(player.x * cell, player.y * cell + r * 0.8, r * 0.8, r * 0.28, 0, 0, Math.PI * 2);
     ctx.fill();
@@ -391,7 +733,19 @@ export class Renderer {
       ctx.ellipse(player.x * cell, player.y * cell + r * 0.8, r * 0.95, r * 0.36, 0, 0, Math.PI * 2);
       ctx.stroke();
     }
+    // Invulnérable juste après avoir perdu le gilet : le personnage clignote.
+    if (player.alive && tick < player.invulnerableUntil && Math.floor(tick / 5) % 2 === 0) ctx.globalAlpha = 0.35;
     drawCharacter(ctx, look, cx, cy, r, player.facing);
+    if (player.alive && player.vest) {
+      // Gilet pare-flamme : bulle protectrice.
+      ctx.fillStyle = 'rgba(120, 220, 255, 0.14)';
+      ctx.strokeStyle = 'rgba(120, 220, 255, 0.85)';
+      ctx.lineWidth = Math.max(1.5, cell * 0.045);
+      ctx.beginPath();
+      ctx.arc(cx, cy + r * 0.05, r * 1.3, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+    }
     ctx.globalAlpha = 1;
 
     if (isYou && player.alive) this.drawYouMarker(cx, cy - r * 1.55, tick);
@@ -435,7 +789,7 @@ export class Renderer {
       if (previous.tiles[i] === Tile.Block && round.tiles[i] === Tile.Burning) {
         const x = ((i % round.width) + 0.5) * cell;
         const y = (Math.floor(i / round.width) + 0.3) * cell;
-        this.emit(x, y, 10, [ARENA.crateTop, ARENA.crateFront, ARENA.crateLine], 2.4, 0.9, 6);
+        this.emit(x, y, 10, [this.theme.blockTop, this.theme.blockFront, this.theme.blockLine], 2.4, 0.9, 6);
       }
     }
   }

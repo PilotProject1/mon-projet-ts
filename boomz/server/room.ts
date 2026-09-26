@@ -1,5 +1,5 @@
 import { TICK_RATE } from '../src/game/constants';
-import { createMatch, stepMatch, type MatchState } from '../src/game/match';
+import { createMatch, stepMatch, type ArenaChoice, type MatchState } from '../src/game/match';
 import { eliminatePlayer } from '../src/game/round';
 import type { Direction, PlayerInput } from '../src/game/types';
 import {
@@ -12,9 +12,16 @@ import {
 
 const GRACE_TICKS = RECONNECT_GRACE_SECONDS * TICK_RATE;
 
-/** L'ordre du resserrement ne sert qu'au serveur : inutile de l'envoyer 20 fois par seconde. */
+/**
+ * État envoyé aux téléphones. Les bonus cachés sous les caisses restent sur le
+ * serveur (sinon un joueur pourrait les lire) ; l'ordre du resserrement ne sert
+ * qu'au serveur.
+ */
 function snapshotMessage(match: MatchState): ServerMessage {
-  return { type: 'snapshot', match: { ...match, round: { ...match.round, suddenDeathOrder: [] } } };
+  return {
+    type: 'snapshot',
+    match: { ...match, round: { ...match.round, suddenDeathOrder: [], hiddenBonuses: [] } },
+  };
 }
 
 export interface Peer {
@@ -47,6 +54,8 @@ export class Room {
   private seats = new Map<string, number>();
   private directions: Array<Direction | null> = [];
   private pendingBombs: boolean[] = [];
+  private pendingDetonations: boolean[] = [];
+  private arena: ArenaChoice = 'rotation';
   private clock = 0;
   private matchTicks = 0;
   private readonly randomSeed: () => number;
@@ -114,6 +123,12 @@ export class Room {
     this.broadcastLobby();
   }
 
+  setArena(peerId: string, arena: ArenaChoice): void {
+    if (peerId !== this.hostId || this.inMatch) return;
+    this.arena = arena;
+    this.broadcastLobby();
+  }
+
   start(peerId: string): string | null {
     if (peerId !== this.hostId) return 'Seul l’hôte peut lancer la partie.';
     if (this.inMatch) return 'La partie est déjà en cours.';
@@ -124,8 +139,9 @@ export class Room {
     this.seats = new Map(this.peers.map((peer, seat) => [peer.id, seat]));
     this.directions = this.peers.map(() => null);
     this.pendingBombs = this.peers.map(() => false);
+    this.pendingDetonations = this.peers.map(() => false);
     for (const peer of this.peers) peer.ready = false;
-    this.match = createMatch(this.peers.length, this.randomSeed());
+    this.match = createMatch(this.peers.length, this.randomSeed(), this.arena);
     this.matchTicks = 0;
     this.broadcastLobby();
     this.broadcast(snapshotMessage(this.match));
@@ -140,6 +156,11 @@ export class Room {
   requestBomb(peerId: string): void {
     const seat = this.seats.get(peerId);
     if (seat !== undefined && this.inMatch) this.pendingBombs[seat] = true;
+  }
+
+  requestDetonation(peerId: string): void {
+    const seat = this.seats.get(peerId);
+    if (seat !== undefined && this.inMatch) this.pendingDetonations[seat] = true;
   }
 
   tick(): void {
@@ -157,9 +178,11 @@ export class Room {
     const inputs: PlayerInput[] = this.directions.map((direction, seat) => ({
       direction,
       bomb: this.pendingBombs[seat],
+      detonate: this.pendingDetonations[seat],
     }));
-    // Une bombe demandée pendant le compte à rebours est ignorée, pas mise en réserve.
+    // Une commande reçue pendant le compte à rebours est ignorée, pas mise en réserve.
     this.pendingBombs.fill(false);
+    this.pendingDetonations.fill(false);
     stepMatch(match, inputs);
     this.matchTicks++;
 
@@ -192,6 +215,7 @@ export class Room {
       players: this.peers.map(({ id, name, connected, ready }) => ({ id, name, connected, ready })),
       seats: Object.fromEntries(this.seats),
       inMatch: this.inMatch,
+      arena: this.arena,
     });
   }
 

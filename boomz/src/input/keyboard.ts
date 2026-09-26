@@ -13,12 +13,15 @@ const DIRECTION_KEYS: Record<string, Direction> = {
   KeyD: 'right',
 };
 const BOMB_KEYS = ['Space', 'Enter', 'NumpadEnter'];
+/** Déclenchement des bombes (bonus Détonateur). */
+const DETONATE_KEYS = ['KeyE', 'ShiftLeft', 'ShiftRight'];
 
 /** Clavier, pour jouer depuis un ordinateur. */
 export class KeyboardInput {
   /** Directions tenues, la plus récente en dernier. */
   private held: Direction[] = [];
   private bombRequested = false;
+  private detonateRequested = false;
 
   constructor(target: Window) {
     target.addEventListener('keydown', (event) => this.onKey(event, true));
@@ -42,6 +45,9 @@ export class KeyboardInput {
     } else if (BOMB_KEYS.includes(event.code)) {
       event.preventDefault();
       if (down && !event.repeat) this.bombRequested = true;
+    } else if (DETONATE_KEYS.includes(event.code)) {
+      event.preventDefault();
+      if (down && !event.repeat) this.detonateRequested = true;
     }
   }
 
@@ -53,6 +59,12 @@ export class KeyboardInput {
   consumeBomb(): boolean {
     const requested = this.bombRequested;
     this.bombRequested = false;
+    return requested;
+  }
+
+  consumeDetonate(): boolean {
+    const requested = this.detonateRequested;
+    this.detonateRequested = false;
     return requested;
   }
 }

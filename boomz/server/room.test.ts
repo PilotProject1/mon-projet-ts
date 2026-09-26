@@ -47,10 +47,31 @@ describe('salon', () => {
     expect(room.join(fakePeer('carol'))).toMatch(/déjà commencé/);
   });
 
-  it('refuse un cinquième joueur', () => {
+  it('accueille jusqu’à six joueurs et refuse le septième', () => {
     const room = new Room('ABCDE');
-    for (const id of ['a', 'b', 'c', 'd']) expect(room.join(fakePeer(id))).toBeNull();
-    expect(room.join(fakePeer('e'))).toMatch(/complet/);
+    for (const id of ['a', 'b', 'c', 'd', 'e', 'f']) expect(room.join(fakePeer(id))).toBeNull();
+    expect(room.join(fakePeer('g'))).toMatch(/complet/);
+  });
+
+  it('laisse l’hôte seul choisir l’arène, utilisée au lancement', () => {
+    const room = new Room('ABCDE', () => 1);
+    const alice = fakePeer('alice');
+    const bob = fakePeer('bob');
+    room.join(alice);
+    room.join(bob);
+    expect(lastOf(bob, 'lobby').arena).toBe('rotation');
+    room.setArena('bob', 'station');
+    expect(lastOf(bob, 'lobby').arena).toBe('rotation');
+    room.setArena('alice', 'temple');
+    expect(lastOf(bob, 'lobby').arena).toBe('temple');
+    room.setReady('bob', true);
+    room.start('alice');
+    expect(snapshot(bob).round.arena).toBe('temple');
+  });
+
+  it('ne dévoile pas aux téléphones les bonus cachés sous les caisses', () => {
+    const { alice } = startedRoom();
+    expect(snapshot(alice).round.hiddenBonuses).toEqual([]);
   });
 
   it('applique les commandes de chaque téléphone à son propre personnage', () => {

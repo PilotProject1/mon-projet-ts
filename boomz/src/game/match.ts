@@ -1,6 +1,10 @@
 import { COUNTDOWN_TICKS, ROUND_OVER_TICKS, WINS_TO_TAKE_MATCH } from './constants';
 import { alivePlayers, createRound, stepRound } from './round';
-import type { PlayerInput, RoundEvent, RoundState } from './types';
+import { createRng } from './rng';
+import { ARENA_IDS, type ArenaId, type PlayerInput, type RoundEvent, type RoundState } from './types';
+
+/** Une arène imposée pour tout le match, ou une arène différente à chaque manche. */
+export type ArenaChoice = ArenaId | 'rotation';
 
 export type MatchPhase = 'countdown' | 'playing' | 'roundOver' | 'matchOver';
 
@@ -15,10 +19,29 @@ export interface MatchState {
   /** Vainqueur de la dernière manche, `null` en cas d'égalité. */
   roundWinner: number | null;
   matchWinner: number | null;
+  /** Arène de chaque manche, dans l'ordre (répétée si le match dure plus longtemps). */
+  arenas: ArenaId[];
   round: RoundState;
 }
 
-export function createMatch(playerCount: number, seed: number): MatchState {
+function arenaPlan(choice: ArenaChoice, seed: number): ArenaId[] {
+  if (choice !== 'rotation') return [choice];
+  // Ordre mélangé, mais fixé par la graine.
+  const rng = createRng(seed ^ 0x5bd1e995);
+  const order = [...ARENA_IDS];
+  for (let i = order.length - 1; i > 0; i--) {
+    const j = Math.floor(rng() * (i + 1));
+    [order[i], order[j]] = [order[j], order[i]];
+  }
+  return order;
+}
+
+export function arenaForRound(match: Pick<MatchState, 'arenas'>, roundNumber: number): ArenaId {
+  return match.arenas[(roundNumber - 1) % match.arenas.length];
+}
+
+export function createMatch(playerCount: number, seed: number, arenaChoice: ArenaChoice = 'chantier'): MatchState {
+  const arenas = arenaPlan(arenaChoice, seed);
   return {
     playerCount,
     seed,
@@ -28,7 +51,8 @@ export function createMatch(playerCount: number, seed: number): MatchState {
     scores: new Array<number>(playerCount).fill(0),
     roundWinner: null,
     matchWinner: null,
-    round: createRound(playerCount, seed),
+    arenas,
+    round: createRound(playerCount, seed, arenas[0]),
   };
 }
 
@@ -61,7 +85,7 @@ export function stepMatch(match: MatchState, inputs: ReadonlyArray<PlayerInput>)
     case 'roundOver':
       if (match.phaseTick >= ROUND_OVER_TICKS) {
         match.roundNumber++;
-        match.round = createRound(match.playerCount, match.seed + match.roundNumber);
+        match.round = createRound(match.playerCount, match.seed + match.roundNumber, arenaForRound(match, match.roundNumber));
         setPhase(match, 'countdown');
       }
       return [];

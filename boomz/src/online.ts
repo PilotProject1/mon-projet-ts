@@ -1,11 +1,14 @@
 import './online.css';
 import { COUNTDOWN_TICKS, SUDDEN_DEATH_TICKS, TICK_RATE, WINS_TO_TAKE_MATCH } from './game/constants';
-import type { MatchState } from './game/match';
-import type { Direction } from './game/types';
+import { ARENA_NAMES } from './game/arena';
+import { BASE_MAX_BOMBS, BASE_RANGE, BASE_SPEED, SPEED_STEP } from './game/constants';
+import type { ArenaChoice, MatchState } from './game/match';
+import { ARENA_IDS, Bonus, type Direction, type Player } from './game/types';
 import { KeyboardInput } from './input/keyboard';
 import { TouchPad } from './input/touch';
 import { Connection, SnapshotBuffer } from './net/connection';
 import { MIN_PLAYERS, RECONNECT_GRACE_SECONDS, type LobbyPlayer, type ServerMessage } from './net/protocol';
+import { BONUS_INFO, BONUS_ORDER, paintBonusCanvas } from './render/bonuses';
 import { drawAvatar, PLAYER_LOOKS } from './render/characters';
 import { Renderer } from './render/renderer';
 
@@ -42,6 +45,12 @@ const lobbyError = required<HTMLElement>('#lobby-error');
 const scoresList = required<HTMLUListElement>('#scores');
 const timer = required<HTMLElement>('#timer');
 const countdown = required<HTMLElement>('#countdown');
+const countdownNumber = required<HTMLElement>('#countdown-number');
+const countdownArena = required<HTMLElement>('#countdown-arena');
+const arenaSelect = required<HTMLSelectElement>('#arena-select');
+const arenaName = required<HTMLElement>('#arena-name');
+const powers = required<HTMLElement>('#powers');
+const detonateButton = required<HTMLButtonElement>('#detonate-btn');
 const banner = required<HTMLElement>('#banner');
 const bannerText = required<HTMLElement>('#banner-text');
 const bannerSub = required<HTMLElement>('#banner-sub');
@@ -251,6 +260,11 @@ function renderLobby(): void {
     ...players.map((player, index) => lobbyRow(player, index, player.id === lobby?.host, player.id === you)),
   );
 
+  arenaSelect.hidden = !isHost;
+  arenaName.hidden = isHost;
+  if (arenaSelect.value !== lobby.arena) arenaSelect.value = lobby.arena;
+  setText(arenaName, arenaLabel(lobby.arena));
+
   const othersReady = players.filter((player) => player.id !== lobby?.host).every((player) => player.ready);
   const allHere = players.every((player) => player.connected);
   readyButton.hidden = isHost;
@@ -265,6 +279,10 @@ function renderLobby(): void {
   else if (!isHost) hint = me?.ready ? 'L’hôte va lancer la partie.' : 'Appuyez sur « Je suis prêt ».';
   setText(lobbyHint, hint);
   setText(lobbyError, '');
+}
+
+function arenaLabel(choice: ArenaChoice): string {
+  return choice === 'rotation' ? 'Une différente à chaque manche' : ARENA_NAMES[choice];
 }
 
 function lobbyRow(player: LobbyPlayer, index: number, host: boolean, self: boolean): HTMLLIElement {
@@ -326,7 +344,11 @@ function renderScores(match: MatchState): void {
       wins.className = 'score-wins';
       const score = match.scores[player.id];
       wins.textContent = '●'.repeat(score) + '○'.repeat(Math.max(0, WINS_TO_TAKE_MATCH - score));
-      item.append(avatar, name, wins);
+      // Version courte (un chiffre), affichée à la place des pastilles quand la place manque.
+      const count = document.createElement('span');
+      count.className = 'score-count';
+      count.textContent = String(score);
+      item.append(avatar, name, wins, count);
       requestAnimationFrame(() => drawAvatar(avatar, player.id));
       return item;
     }),
@@ -352,10 +374,18 @@ function updateGameHud(match: MatchState): void {
   countdown.hidden = !showCountdown;
   if (showCountdown) {
     setText(
-      countdown,
+      countdownNumber,
       match.phase === 'countdown' ? String(Math.max(1, Math.ceil((COUNTDOWN_TICKS - match.phaseTick) / TICK_RATE))) : 'Go !',
     );
+    setText(
+      countdownArena,
+      match.phase === 'countdown' ? `Manche ${match.roundNumber} · ${ARENA_NAMES[match.round.arena]}` : '',
+    );
   }
+
+  const mine = me === null ? undefined : match.round.players[me];
+  renderPowers(mine);
+  detonateButton.hidden = !(mine?.alive && mine.detonator && match.phase === 'playing');
 
   const remaining = SUDDEN_DEATH_TICKS - match.round.tick;
   setText(timer, remaining > 0 ? formatClock(remaining) : 'Le mur avance !');
@@ -384,10 +414,61 @@ function updateGameHud(match: MatchState): void {
   backButton.hidden = match.phase !== 'matchOver';
 }
 
+let detonateRequested = false;
+detonateButton.addEventListener('pointerdown', (event) => {
+  event.preventDefault();
+  detonateRequested = true;
+});
+
+// ---- Bonus du joueur ----
+
+let renderedPowersKey = '';
+
+/** Rangée des bonus de ce joueur : niveaux de portée, de bombes et de vitesse, puis pouvoirs. */
+function renderPowers(player: Player | undefined): void {
+  const entries: Array<[Bonus, string]> = [];
+  if (player) {
+    entries.push([Bonus.Flame, String(player.range)]);
+    entries.push([Bonus.Bomb, String(player.maxBombs)]);
+    const speedLevel = Math.round((player.speed - BASE_SPEED) / SPEED_STEP);
+    if (speedLevel > 0) entries.push([Bonus.Speed, `+${speedLevel}`]);
+    if (player.vest) entries.push([Bonus.Vest, '']);
+    if (player.detonator) entries.push([Bonus.Detonator, '']);
+    if (player.kick) entries.push([Bonus.Kick, '']);
+    if (player.bombPass) entries.push([Bonus.BombPass, '']);
+    if (player.wallPass) entries.push([Bonus.WallPass, '']);
+  }
+  const key = JSON.stringify(entries);
+  if (key === renderedPowersKey) return;
+  renderedPowersKey = key;
+  // Rien à montrer tant que le joueur n'a que ses caractéristiques de départ.
+  const upgraded =
+    player && (player.range > BASE_RANGE || player.maxBombs > BASE_MAX_BOMBS || entries.length > 2);
+  powers.replaceChildren(
+    ...(upgraded ? entries : []).map(([bonus, level]) => {
+      const chip = document.createElement('span');
+      chip.className = 'power';
+      chip.title = BONUS_INFO[bonus as Exclude<Bonus, 0>].name;
+      const icon = document.createElement('canvas');
+      icon.className = 'power-icon';
+      chip.append(icon);
+      if (level) {
+        const text = document.createElement('span');
+        text.textContent = level;
+        chip.append(text);
+      }
+      requestAnimationFrame(() => paintBonusCanvas(icon, bonus));
+      return chip;
+    }),
+  );
+}
+
 function sendInputs(match: MatchState | null): void {
   if (!connection) return;
   const touchBomb = touch.consumeBomb();
   const keyBomb = keyboard.consumeBomb();
+  const detonate = keyboard.consumeDetonate() || detonateRequested;
+  detonateRequested = false;
   const playing = screen === 'game' && match?.phase === 'playing';
   const direction = playing ? (touch.direction() ?? keyboard.direction()) : null;
   if (direction !== lastSentDirection) {
@@ -395,6 +476,7 @@ function sendInputs(match: MatchState | null): void {
     lastSentDirection = direction;
   }
   if (playing && (touchBomb || keyBomb)) connection.send({ type: 'bomb' });
+  if (playing && detonate) connection.send({ type: 'detonate' });
 }
 
 function frameLoop(now: number): void {
@@ -449,6 +531,30 @@ readyButton.addEventListener('click', () => {
 
 startButton.addEventListener('click', () => connection?.send({ type: 'start' }));
 
+arenaSelect.addEventListener('change', () => {
+  const value = arenaSelect.value;
+  if (value === 'rotation' || (ARENA_IDS as readonly string[]).includes(value)) {
+    connection?.send({ type: 'arena', arena: value as ArenaChoice });
+  }
+});
+
+// Légende des bonus, dans le salon.
+required<HTMLUListElement>('#bonus-list').replaceChildren(
+  ...BONUS_ORDER.map((bonus) => {
+    const item = document.createElement('li');
+    const icon = document.createElement('canvas');
+    icon.className = 'bonus-icon';
+    const text = document.createElement('span');
+    const name = document.createElement('strong');
+    name.textContent = BONUS_INFO[bonus].name;
+    text.append(name, ` : ${BONUS_INFO[bonus].effect}`);
+    item.append(icon, text);
+    // Le canvas n'a sa taille qu'une fois la légende dépliée.
+    required<HTMLDetailsElement>('.legend').addEventListener('toggle', () => paintBonusCanvas(icon, bonus));
+    return item;
+  }),
+);
+
 shareButton.addEventListener('click', async () => {
   if (!session) return;
   const url = inviteLink(session.room);
@@ -494,5 +600,12 @@ requestAnimationFrame(frameLoop);
 
 if (import.meta.env.DEV) {
   // Accès à l'état pour les vérifications automatisées en développement.
-  Object.assign(window, { boomz: { getMatch: () => snapshots.latest(), getLobby: () => lobby } });
+  Object.assign(window, {
+    boomz: {
+      getMatch: () => snapshots.latest(),
+      getLobby: () => lobby,
+      /** Injecte un état, pour vérifier l'affichage de situations rares (bonus, détonateur). */
+      inject: (match: MatchState) => snapshots.push(match, performance.now()),
+    },
+  });
 }

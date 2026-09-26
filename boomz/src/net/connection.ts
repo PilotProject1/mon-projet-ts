@@ -1,4 +1,5 @@
 import type { MatchState } from '../game/match';
+import { DIRECTION_VECTORS, type Bomb } from '../game/types';
 import { WS_PATH, type ClientMessage, type ServerMessage } from './protocol';
 
 export class Connection {
@@ -78,7 +79,21 @@ export class SnapshotBuffer {
           if (!previous || !player.alive) return player;
           return { ...player, x: lerp(previous.x, player.x), y: lerp(previous.y, player.y) };
         }),
+        bombs: round.bombs.map((bomb) => interpolateBomb(before.match.round.bombs, bomb, lerp)),
       },
     };
   }
+}
+
+/** Bombe poussée (Kick) : sa position glisse d'un état à l'autre au lieu d'avancer par à-coups. */
+function interpolateBomb(previousBombs: Bomb[], bomb: Bomb, lerp: (a: number, b: number) => number): Bomb {
+  const previous = previousBombs.find((candidate) => candidate.id === bomb.id);
+  const direction = bomb.slide ?? previous?.slide;
+  if (!previous || !direction) return bomb;
+  const [dx, dy] = DIRECTION_VECTORS[direction];
+  // Position le long de l'axe du glissement, avant et après.
+  const along = (candidate: Bomb) =>
+    candidate.cx * dx + candidate.cy * dy + (candidate.slide ? candidate.slideProgress : 0);
+  const base = bomb.cx * dx + bomb.cy * dy;
+  return { ...bomb, slide: direction, slideProgress: lerp(along(previous), along(bomb)) - base };
 }

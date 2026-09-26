@@ -1,21 +1,34 @@
-import { generateTiles, suddenDeathOrder } from './arena';
+import { generateArena, suddenDeathOrder } from './arena';
 import {
   BASE_MAX_BOMBS,
   BASE_RANGE,
   BASE_SPEED,
   BOMB_FUSE_TICKS,
+  BOMB_SLIDE_SPEED,
+  CONVEYOR_SPEED,
   CORNER_ASSIST,
   FLAME_TICKS,
   GRID_HEIGHT,
   GRID_WIDTH,
+  MAX_BOMBS,
+  MAX_RANGE,
+  MAX_SPEED,
+  REMOTE_FUSE_TICKS,
   SPAWNS,
+  SPEED_STEP,
   SUDDEN_DEATH_INTERVAL_TICKS,
   SUDDEN_DEATH_TICKS,
+  TELEPORT_RADIUS,
+  VEST_GRACE_TICKS,
 } from './constants';
 import {
+  Bonus,
+  CONVEYOR_DIRECTIONS,
   DIRECTION_VECTORS,
+  Feature,
   NO_INPUT,
   Tile,
+  type ArenaId,
   type Bomb,
   type Direction,
   type Player,
@@ -26,10 +39,8 @@ import {
 
 const DIRECTIONS: Direction[] = ['up', 'down', 'left', 'right'];
 
-export function createRound(playerCount: number, seed: number): RoundState {
-  const width = GRID_WIDTH;
-  const height = GRID_HEIGHT;
-  const players: Player[] = SPAWNS.slice(0, playerCount).map(([x, y], id) => ({
+export function createPlayer(id: number, x: number, y: number): Player {
+  return {
     id,
     x: x + 0.5,
     y: y + 0.5,
@@ -39,14 +50,33 @@ export function createRound(playerCount: number, seed: number): RoundState {
     speed: BASE_SPEED,
     range: BASE_RANGE,
     maxBombs: BASE_MAX_BOMBS,
+    vest: false,
+    invulnerableUntil: 0,
+    detonator: false,
+    wallPass: false,
+    bombPass: false,
+    kick: false,
+    teleportLock: -1,
     diedAt: null,
-  }));
+  };
+}
+
+export function createRound(playerCount: number, seed: number, arena: ArenaId = 'chantier'): RoundState {
+  const width = GRID_WIDTH;
+  const height = GRID_HEIGHT;
+  const generated = generateArena(arena, width, height, playerCount, seed);
   return {
+    arena,
     width,
     height,
-    tiles: generateTiles(width, height, playerCount, seed),
+    tiles: generated.tiles,
+    features: generated.features,
+    teleportTargets: generated.teleportTargets,
+    steppedOn: new Array<number>(width * height).fill(0),
+    bonuses: new Array<Bonus>(width * height).fill(Bonus.None),
+    hiddenBonuses: generated.hiddenBonuses,
     flames: new Array<number>(width * height).fill(0),
-    players,
+    players: SPAWNS.slice(0, playerCount).map(([x, y], id) => createPlayer(id, x, y)),
     bombs: [],
     tick: 0,
     nextBombId: 1,
@@ -67,19 +97,34 @@ function inBounds(state: RoundState, cx: number, cy: number): boolean {
   return cx >= 0 && cy >= 0 && cx < state.width && cy < state.height;
 }
 
-function isWalkable(state: RoundState, cx: number, cy: number, playerId: number): boolean {
+function isWalkable(state: RoundState, cx: number, cy: number, player: Player): boolean {
+  if (!inBounds(state, cx, cy)) return false;
+  const tile = state.tiles[cy * state.width + cx];
+  if (tile !== Tile.Floor && !(tile === Tile.Block && player.wallPass)) return false;
+  const bomb = bombAt(state, cx, cy);
+  if (!bomb) return true;
+  return bomb.passThrough.includes(player.id) || (player.bombPass && bomb.owner === player.id);
+}
+
+/** Une bombe peut glisser vers cette case : sol libre, sans bombe ni joueur. */
+function canBombEnter(state: RoundState, cx: number, cy: number): boolean {
   if (!inBounds(state, cx, cy)) return false;
   if (state.tiles[cy * state.width + cx] !== Tile.Floor) return false;
-  const bomb = bombAt(state, cx, cy);
-  return !bomb || bomb.passThrough.includes(playerId);
+  if (bombAt(state, cx, cy)) return false;
+  return !state.players.some((player) => {
+    if (!player.alive) return false;
+    const [px, py] = cellOf(player);
+    return px === cx && py === cy;
+  });
 }
 
 /**
  * Déplacement case par case façon labyrinthe : le personnage se recentre dans
  * son couloir avant d'avancer, et glisse dans un couloir voisin quand il est
  * suffisamment décalé vers lui, pour que les virages ne coincent pas.
+ * Renvoie vrai si le personnage bute contre une bombe (pour le Kick).
  */
-function movePlayer(state: RoundState, player: Player, direction: Direction): void {
+function movePlayer(state: RoundState, player: Player, direction: Direction, distance: number): Bomb | null {
   const [dx, dy] = DIRECTION_VECTORS[direction];
   const horizontal = dx !== 0;
   // Axe du mouvement (main) et axe perpendiculaire (cross).
@@ -87,11 +132,9 @@ function movePlayer(state: RoundState, player: Player, direction: Direction): vo
   let cross = horizontal ? player.y : player.x;
   const step = horizontal ? dx : dy;
   const walkable = (mainCell: number, crossCell: number) =>
-    horizontal
-      ? isWalkable(state, mainCell, crossCell, player.id)
-      : isWalkable(state, crossCell, mainCell, player.id);
+    horizontal ? isWalkable(state, mainCell, crossCell, player) : isWalkable(state, crossCell, mainCell, player);
 
-  let remaining = player.speed;
+  let remaining = distance;
   const mainCell = Math.floor(main);
   const crossCell = Math.floor(cross);
   const offset = cross - (crossCell + 0.5);
@@ -130,6 +173,12 @@ function movePlayer(state: RoundState, player: Player, direction: Direction): vo
     player.y = main;
     player.x = cross;
   }
+
+  // Arrêté au centre de sa case face à une bombe : c'est elle qui bloque.
+  const [px, py] = cellOf(player);
+  const stopped = Math.abs(main - (Math.floor(main) + 0.5)) < 0.02 && Math.abs(cross - (Math.floor(cross) + 0.5)) < 0.2;
+  const ahead = bombAt(state, px + dx, py + dy);
+  return stopped && ahead && !walkable(Math.floor(main) + step, Math.floor(cross)) ? ahead : null;
 }
 
 function placeBomb(state: RoundState, player: Player, events: RoundEvent[]): void {
@@ -146,9 +195,12 @@ function placeBomb(state: RoundState, player: Player, events: RoundEvent[]): voi
     owner: player.id,
     cx,
     cy,
-    fuse: BOMB_FUSE_TICKS,
+    fuse: player.detonator ? REMOTE_FUSE_TICKS : BOMB_FUSE_TICKS,
     range: player.range,
     passThrough,
+    remote: player.detonator,
+    slide: null,
+    slideProgress: 0,
   });
   events.push({ type: 'bombPlaced', player: player.id });
 }
@@ -172,6 +224,11 @@ function explode(state: RoundState, bomb: Bomb, events: RoundEvent[]): void {
         events.push({ type: 'blockDestroyed', cx: x, cy: y });
         break;
       }
+      if (state.bonuses[index] !== Bonus.None) {
+        // Un bonus au sol est détruit par la flamme, qui s'arrête dessus.
+        state.bonuses[index] = Bonus.None;
+        break;
+      }
       const hit = bombAt(state, x, y);
       if (hit) {
         // Réaction en chaîne : la bombe touchée explose dans le même tick.
@@ -190,6 +247,9 @@ function dropSuddenDeathWall(state: RoundState, events: RoundEvent[]): void {
     const cy = Math.floor(index / state.width);
     state.tiles[index] = Tile.Wall;
     state.flames[index] = 0;
+    state.features[index] = Feature.None;
+    state.bonuses[index] = Bonus.None;
+    state.hiddenBonuses[index] = Bonus.None;
     state.bombs = state.bombs.filter((bomb) => bomb.cx !== cx || bomb.cy !== cy);
     for (const player of state.players) {
       const [px, py] = cellOf(player);
@@ -207,6 +267,102 @@ function killPlayer(state: RoundState, player: Player, events: RoundEvent[]): vo
   events.push({ type: 'playerDied', player: player.id });
 }
 
+export function applyBonus(player: Player, bonus: Bonus): void {
+  switch (bonus) {
+    case Bonus.Flame:
+      player.range = Math.min(MAX_RANGE, player.range + 1);
+      break;
+    case Bonus.Bomb:
+      player.maxBombs = Math.min(MAX_BOMBS, player.maxBombs + 1);
+      break;
+    case Bonus.Speed:
+      player.speed = Math.min(MAX_SPEED, player.speed + SPEED_STEP);
+      break;
+    case Bonus.Vest:
+      player.vest = true;
+      break;
+    case Bonus.Detonator:
+      player.detonator = true;
+      break;
+    case Bonus.WallPass:
+      player.wallPass = true;
+      break;
+    case Bonus.BombPass:
+      player.bombPass = true;
+      break;
+    case Bonus.Kick:
+      player.kick = true;
+      break;
+  }
+}
+
+function slideBombs(state: RoundState): void {
+  for (const bomb of state.bombs) {
+    if (!bomb.slide) continue;
+    const [dx, dy] = DIRECTION_VECTORS[bomb.slide];
+    if (!canBombEnter(state, bomb.cx + dx, bomb.cy + dy)) {
+      bomb.slide = null;
+      bomb.slideProgress = 0;
+      continue;
+    }
+    bomb.slideProgress += BOMB_SLIDE_SPEED;
+    if (bomb.slideProgress >= 1) {
+      bomb.cx += dx;
+      bomb.cy += dy;
+      bomb.slideProgress -= 1;
+    }
+  }
+}
+
+/** Téléporteurs, tapis roulants et dalles fissurées. */
+function applyArenaFeatures(state: RoundState, events: RoundEvent[]): void {
+  for (const player of state.players) {
+    if (!player.alive) continue;
+    let [px, py] = cellOf(player);
+    let index = py * state.width + px;
+    const feature = state.features[index];
+
+    const conveyor = CONVEYOR_DIRECTIONS[feature];
+    if (conveyor) {
+      // Le tapis emporte le joueur sans changer la direction de son regard.
+      movePlayer(state, player, conveyor, CONVEYOR_SPEED);
+      [px, py] = cellOf(player);
+      index = py * state.width + px;
+    }
+
+    if (player.teleportLock !== -1 && player.teleportLock !== index) player.teleportLock = -1;
+    if (state.features[index] === Feature.Teleporter && player.teleportLock === -1) {
+      const near = Math.hypot(player.x - (px + 0.5), player.y - (py + 0.5)) <= TELEPORT_RADIUS;
+      const target = state.teleportTargets[index];
+      const tx = target % state.width;
+      const ty = Math.floor(target / state.width);
+      if (near && target !== -1 && state.tiles[target] === Tile.Floor && !bombAt(state, tx, ty)) {
+        player.x = tx + 0.5;
+        player.y = ty + 0.5;
+        player.teleportLock = target;
+        events.push({ type: 'teleported', player: player.id });
+      }
+    }
+
+    [px, py] = cellOf(player);
+    index = py * state.width + px;
+    if (state.features[index] === Feature.Cracked) state.steppedOn[index] = 1;
+  }
+
+  // Une dalle fissurée foulée s'effondre dès qu'elle est libre.
+  for (let index = 0; index < state.features.length; index++) {
+    if (state.features[index] !== Feature.Cracked || !state.steppedOn[index]) continue;
+    const cx = index % state.width;
+    const cy = Math.floor(index / state.width);
+    const occupied = state.players.some((player) => player.alive && cellOf(player)[0] === cx && cellOf(player)[1] === cy);
+    if (occupied || bombAt(state, cx, cy)) continue;
+    state.tiles[index] = Tile.Pit;
+    state.features[index] = Feature.None;
+    state.bonuses[index] = Bonus.None;
+    events.push({ type: 'floorCollapsed', cx, cy });
+  }
+}
+
 /** Avance la manche d'un tick. `inputs[i]` est l'entrée du joueur i. */
 export function stepRound(state: RoundState, inputs: ReadonlyArray<PlayerInput>): RoundEvent[] {
   const events: RoundEvent[] = [];
@@ -216,12 +372,23 @@ export function stepRound(state: RoundState, inputs: ReadonlyArray<PlayerInput>)
     if (!player.alive) continue;
     const input = inputs[player.id] ?? NO_INPUT;
     if (input.bomb) placeBomb(state, player, events);
+    if (input.detonate && player.detonator) {
+      for (const bomb of state.bombs) if (bomb.owner === player.id && bomb.remote) bomb.fuse = 0;
+    }
     player.moving = input.direction !== null;
     if (input.direction) {
       player.facing = input.direction;
-      movePlayer(state, player, input.direction);
+      const blocker = movePlayer(state, player, input.direction, player.speed);
+      if (blocker && player.kick && !blocker.slide) {
+        blocker.slide = input.direction;
+        blocker.slideProgress = 0;
+        events.push({ type: 'bombKicked', player: player.id });
+      }
     }
   }
+
+  applyArenaFeatures(state, events);
+  slideBombs(state);
 
   // Un joueur ne peut plus revenir sur une bombe dont il est sorti.
   for (const bomb of state.bombs) {
@@ -233,7 +400,10 @@ export function stepRound(state: RoundState, inputs: ReadonlyArray<PlayerInput>)
 
   for (let i = 0; i < state.flames.length; i++) {
     if (state.flames[i] > 0 && --state.flames[i] === 0 && state.tiles[i] === Tile.Burning) {
+      // La caisse disparaît et révèle le bonus qu'elle cachait.
       state.tiles[i] = Tile.Floor;
+      state.bonuses[i] = state.hiddenBonuses[i];
+      state.hiddenBonuses[i] = Bonus.None;
     }
   }
 
@@ -256,7 +426,23 @@ export function stepRound(state: RoundState, inputs: ReadonlyArray<PlayerInput>)
   for (const player of state.players) {
     if (!player.alive) continue;
     const [px, py] = cellOf(player);
-    if (state.flames[py * state.width + px] > 0) killPlayer(state, player, events);
+    const index = py * state.width + px;
+    if (state.flames[index] > 0 && state.tick >= player.invulnerableUntil) {
+      if (player.vest) {
+        player.vest = false;
+        player.invulnerableUntil = state.tick + VEST_GRACE_TICKS;
+        events.push({ type: 'vestLost', player: player.id });
+      } else {
+        killPlayer(state, player, events);
+        continue;
+      }
+    }
+    const bonus = state.bonuses[index];
+    if (bonus !== Bonus.None && state.tiles[index] === Tile.Floor) {
+      applyBonus(player, bonus);
+      state.bonuses[index] = Bonus.None;
+      events.push({ type: 'bonusPicked', player: player.id, bonus });
+    }
   }
 
   return events;

@@ -1,10 +1,63 @@
-import { BLOCK_DENSITY, SPAWNS } from './constants';
+import { BLOCK_DENSITY, BONUS_DROP_CHANCE, SPAWNS } from './constants';
 import { createRng } from './rng';
-import { Tile } from './types';
+import { Bonus, Feature, Tile, type ArenaId } from './types';
 
 export function isPillar(x: number, y: number, width: number, height: number): boolean {
   if (x === 0 || y === 0 || x === width - 1 || y === height - 1) return true;
   return x % 2 === 0 && y % 2 === 0;
+}
+
+/** Éléments au sol d'une arène : ils ne sont jamais recouverts d'une caisse. */
+interface ArenaLayout {
+  features: Feature[];
+  teleportTargets: number[];
+}
+
+export const ARENA_NAMES: Record<ArenaId, string> = {
+  chantier: 'Chantier',
+  laboratoire: 'Laboratoire',
+  temple: 'Temple englouti',
+  station: 'Station spatiale',
+};
+
+function arenaLayout(arena: ArenaId, width: number, height: number): ArenaLayout {
+  const features = new Array<Feature>(width * height).fill(Feature.None);
+  const teleportTargets = new Array<number>(width * height).fill(-1);
+  const at = (x: number, y: number) => y * width + x;
+  const midX = Math.floor(width / 2);
+  const midY = Math.floor(height / 2);
+
+  switch (arena) {
+    case 'chantier':
+      break;
+    case 'laboratoire': {
+      // Deux paires de téléporteurs : bords gauche/droit, et haut/bas du centre.
+      const pairs: Array<[number, number, number, number]> = [
+        [1, midY, width - 2, midY],
+        [midX, 3, midX, height - 4],
+      ];
+      for (const [ax, ay, bx, by] of pairs) {
+        features[at(ax, ay)] = Feature.Teleporter;
+        features[at(bx, by)] = Feature.Teleporter;
+        teleportTargets[at(ax, ay)] = at(bx, by);
+        teleportTargets[at(bx, by)] = at(ax, ay);
+      }
+      break;
+    }
+    case 'temple':
+      // Une croix de dalles fissurées au centre : chaque passage les fait tomber.
+      for (let x = 3; x <= width - 4; x++) features[at(x, midY)] = Feature.Cracked;
+      for (const y of [3, height - 4]) features[at(midX, y)] = Feature.Cracked;
+      break;
+    case 'station':
+      // Deux tapis roulants en sens opposés.
+      for (let x = 1; x <= width - 2; x++) {
+        features[at(x, 3)] = Feature.ConveyorRight;
+        features[at(x, height - 4)] = Feature.ConveyorLeft;
+      }
+      break;
+  }
+  return { features, teleportTargets };
 }
 
 /**
@@ -23,18 +76,65 @@ function spawnSafeCells(width: number, height: number, playerCount: number): Set
   return safe;
 }
 
-export function generateTiles(width: number, height: number, playerCount: number, seed: number): Tile[] {
+export interface GeneratedArena extends ArenaLayout {
+  tiles: Tile[];
+  /** Bonus cachés sous les caisses. */
+  hiddenBonuses: Bonus[];
+}
+
+/** Tirage pondéré : les bonus de base sont plus fréquents que les pouvoirs spéciaux. */
+const BONUS_WEIGHTS: Array<[Bonus, number]> = [
+  [Bonus.Flame, 24],
+  [Bonus.Bomb, 24],
+  [Bonus.Speed, 16],
+  [Bonus.Kick, 10],
+  [Bonus.Vest, 8],
+  [Bonus.BombPass, 7],
+  [Bonus.WallPass, 5],
+  [Bonus.Detonator, 6],
+];
+const TOTAL_WEIGHT = BONUS_WEIGHTS.reduce((sum, [, weight]) => sum + weight, 0);
+
+function pickBonus(roll: number): Bonus {
+  let threshold = roll * TOTAL_WEIGHT;
+  for (const [bonus, weight] of BONUS_WEIGHTS) {
+    threshold -= weight;
+    if (threshold < 0) return bonus;
+  }
+  return Bonus.Flame;
+}
+
+export function generateArena(
+  arena: ArenaId,
+  width: number,
+  height: number,
+  playerCount: number,
+  seed: number,
+): GeneratedArena {
   const rng = createRng(seed);
+  const layout = arenaLayout(arena, width, height);
   const safe = spawnSafeCells(width, height, playerCount);
   const tiles: Tile[] = [];
+  const hiddenBonuses: Bonus[] = [];
   for (let y = 0; y < height; y++) {
     for (let x = 0; x < width; x++) {
-      if (isPillar(x, y, width, height)) tiles.push(Tile.Wall);
-      else if (safe.has(y * width + x)) tiles.push(Tile.Floor);
-      else tiles.push(rng() < BLOCK_DENSITY ? Tile.Block : Tile.Floor);
+      const index = y * width + x;
+      // Deux tirages par case, toujours consommés, pour que l'arène ne dépende que de la graine.
+      const blockRoll = rng();
+      const bonusRoll = rng();
+      if (isPillar(x, y, width, height)) {
+        tiles.push(Tile.Wall);
+        hiddenBonuses.push(Bonus.None);
+      } else if (safe.has(index) || layout.features[index] !== Feature.None || blockRoll >= BLOCK_DENSITY) {
+        tiles.push(Tile.Floor);
+        hiddenBonuses.push(Bonus.None);
+      } else {
+        tiles.push(Tile.Block);
+        hiddenBonuses.push(bonusRoll < BONUS_DROP_CHANCE ? pickBonus(bonusRoll / BONUS_DROP_CHANCE) : Bonus.None);
+      }
     }
   }
-  return tiles;
+  return { ...layout, tiles, hiddenBonuses };
 }
 
 /**

@@ -16,7 +16,7 @@ déployé ni relié à leur code.
 |---|---|---|
 | 1. Prototype jouable | mécanique bombe/flamme/blocs, testée à 2 sur un même écran | fait (le mode test a été retiré depuis) |
 | 2. MVP multijoueur | en ligne à 2-4 joueurs via lien d'invitation, salon d'attente, 1 arène finalisée | fait |
-| 3. Alpha | 6 joueurs, 3-4 arènes, bonus classiques, tests externes | à venir |
+| 3. Alpha | 6 joueurs, 3-4 arènes, bonus classiques, tests externes | fait, sauf les tests avec des joueurs externes (à organiser) |
 | 4. Bêta | mode Bluetooth / local sans internet, équilibrage, cosmétiques | à venir |
 
 ### Règles communes
@@ -25,14 +25,44 @@ déployé ni relié à leur code.
   réparties aléatoirement (départs toujours dégagés).
 - Bombes à retardement (2,5 s), flammes en croix (portée 2) arrêtées par les
   murs, première caisse touchée détruite, réactions en chaîne.
-- Une bombe à la fois par joueur ; on peut quitter sa bombe mais pas y revenir.
+- Une bombe à la fois au départ ; on peut quitter sa bombe mais pas y revenir.
 - Élimination au contact d'une flamme, manche au dernier survivant, match en
   3 manches gagnantes.
 - Resserrement de l'arène : à 2:00, des murs tombent en spirale.
 
-Pas encore de bonus ni de pouvoirs : ils arrivent en phase 3 et au-delà. Les
-caractéristiques des joueurs (`speed`, `range`, `maxBombs`) sont prêtes à les
-recevoir.
+### Bonus (phase 3)
+
+Environ une caisse sur trois cache un bonus, révélé quand elle a brûlé. On le
+ramasse en marchant dessus ; une flamme le détruit. Le tirage est fait par le
+serveur, qui ne dévoile jamais aux téléphones ce que cachent les caisses.
+
+| Bonus | Effet |
+|---|---|
+| Flamme+ | Portée des explosions +1 (jusqu'à 8) |
+| Bombe+ | Une bombe de plus en même temps (jusqu'à 8) |
+| Vitesse+ | Déplacement plus rapide (plafonné) |
+| Gilet pare-flamme | Encaisse une explosion ; clignote 1 s ensuite |
+| Détonateur | Les bombes n'explosent que sur commande (bouton **Boum**, touche E), ou au bout de 10 s |
+| Traverse-mur | Passe à travers les caisses (pas les piliers) |
+| Traverse-bombe | Passe sur ses propres bombes |
+| Kick | Pousse une bombe en marchant dessus : elle glisse jusqu'au prochain obstacle |
+
+Les bonus du joueur s'affichent sous l'arène (portrait) ou au-dessus du
+joystick (paysage). Les « nouvelles idées » de la roadmap (bombe téléguidée,
+bouclier à charges…) et les pouvoirs des personnages viendront plus tard.
+
+### Arènes (phase 3)
+
+| Arène | Obstacle |
+|---|---|
+| Chantier | aucun : l'arène classique |
+| Laboratoire | deux paires de téléporteurs (même couleur = reliés) |
+| Temple englouti | une croix de dalles fissurées qui s'effondrent derrière le joueur |
+| Station spatiale | deux tapis roulants en sens opposés |
+
+L'hôte choisit l'arène dans le salon, ou « une différente à chaque manche »
+(par défaut, conformément à la roadmap : un match se joue sur des arènes
+différentes).
 
 ## Jouer en ligne
 
@@ -40,13 +70,14 @@ recevoir.
    5 caractères et un lien d'invitation (bouton **Partager**, qui ouvre le
    partage du téléphone : SMS, WhatsApp…).
 2. Les autres ouvrent le lien, ou saisissent le code, et rejoignent le salon
-   (2 à 4 joueurs). Le personnage dépend de l'ordre d'arrivée : Boomer,
-   Blaster, Frost, Toxic.
-3. Chacun appuie sur **Je suis prêt** ; l'hôte **lance la partie**.
+   (2 à 6 joueurs). Le personnage dépend de l'ordre d'arrivée : Boomer,
+   Blaster, Frost, Toxic, Boomette, Omega.
+3. L'hôte choisit l'arène ; chacun appuie sur **Je suis prêt** ; l'hôte
+   **lance la partie**.
 4. En fin de match, **Retour au salon** permet d'enchaîner.
 
 Commandes : joystick à gauche, bouton bombe à droite (paysage conseillé), ou
-clavier (flèches / ZQSD + Espace).
+clavier (flèches / ZQSD + Espace, E pour le Détonateur).
 
 ### Coupures réseau
 
@@ -66,26 +97,43 @@ lui. Un joueur qui quitte volontairement le salon libère sa place tout de suite
   **interpole** les positions entre deux envois : les personnages glissent au
   lieu de sauter (la roadmap demande cette gestion de la latence dès le début).
 - Le même serveur sert les pages du jeu et les connexions WebSocket (`/ws`).
+- Les messages sont compressés (permessage-deflate) : l'état passe d'environ
+  4 Ko à 0,5 Ko, soit 7 fois moins de données mobiles consommées.
 - Les salons vivent en mémoire : un redémarrage du serveur ferme les parties en
   cours. Une seule instance du serveur doit tourner.
 
 Limite connue : sans prédiction côté téléphone, son propre personnage réagit
 avec le délai du réseau plus 100 ms. Correct sur un bon réseau ; à améliorer
-en Alpha (prédiction locale et réconciliation).
+si les tests externes le jugent gênant (prédiction locale et réconciliation).
 
-## Arène « Chantier »
+### Tests avec des joueurs externes
 
-Première arène finalisée graphiquement (phase 2) : vue 3/4, sol de terre
-battue, piliers en béton, bordure cerclée de bandes de sécurité, caisses en
-bois. Explosions avec halo, étincelles, fumée, éclats de bois et légère secousse
-de l'écran. Tout est dessiné en Canvas 2D, sans image à télécharger.
+Dernier jalon de l'Alpha, à organiser : faire jouer des personnes qui ne
+connaissent pas le jeu, sur leur propre téléphone et leur propre réseau, et
+noter :
+
+- s'ils comprennent sans explication comment rejoindre, bouger et poser une
+  bombe ;
+- si le délai de réaction de leur personnage les gêne (réseau mobile) ;
+- les bonus qui paraissent trop forts ou inutiles, les arènes qu'ils préfèrent ;
+- tout affichage cassé, avec le modèle de téléphone.
+
+## Graphismes des arènes
+
+Chaque arène a son ambiance (vue 3/4) : Chantier (terre battue, béton, bandes
+de sécurité, caisses en bois), Laboratoire (carrelage blanc, machines,
+conteneurs ambrés), Temple englouti (dalles moussues, grès sculpté, blocs de
+terre cuite, bassins là où le sol s'est effondré), Station spatiale (métal
+sombre, néons, conteneurs de fret). Les caisses destructibles sont toujours
+d'une couleur nettement différente des piliers. Explosions avec halo,
+étincelles, fumée, éclats et légère secousse de l'écran. Tout est dessiné en Canvas 2D, sans image à télécharger.
 
 ## Personnages
 
 La planche de référence est dans [`docs/personnages.jpg`](docs/personnages.jpg) :
 Boomer (01, personnage principal) puis les 19 autres, avec les pouvoirs
 décrits dans la roadmap. Le jeu dessine pour l'instant une version simplifiée
-des quatre premiers personnages attribués dans le salon (couleurs, casquette,
+des six premiers personnages attribués dans le salon (couleurs, casquette,
 pompon, grands yeux) ; les pouvoirs ne sont pas encore actifs.
 
 ## Lancer en local
@@ -155,10 +203,12 @@ la première connexion suivante prend alors quelques dizaines de secondes.
 
 ## Vérifié
 
-- 390 × 844 (portrait), 844 × 390 (paysage), 1280 × 800 : aucun débordement
-  horizontal, sur l'accueil, le salon et la partie.
-- Quatre navigateurs séparés (deux téléphones en portrait, un en paysage, un
-  ordinateur) : salon rejoint par lien et par code, « prêt », lancement, même
-  état sur tous les écrans, match complet jusqu'à la victoire, retour au salon.
+- 360 × 740 et 390 × 844 (portrait), 667 × 375 et 844 × 390 (paysage),
+  1280 × 800 : aucun débordement, sur l'accueil, le salon et la partie, y
+  compris à 6 joueurs.
+- Six navigateurs séparés : salon rejoint par lien et par code, choix de
+  l'arène, « prêt », lancement, rotation des arènes d'une manche à l'autre,
+  match complet jusqu'à la victoire.
 - Page rechargée en pleine partie : le joueur reprend sa place. Téléphone
   déconnecté : éliminé après 8 secondes.
+- Chaque bonus et chaque obstacle d'arène a son test automatique (`npm test`).
