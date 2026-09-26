@@ -64,8 +64,18 @@ jobs:
           for name in APPLE_TEAM_ID ASC_KEY_ID ASC_ISSUER_ID ASC_KEY_P8; do
             if [ -z "${!name}" ]; then echo "::error::Secret $name manquant (Settings › Secrets and variables › Actions)"; exit 1; fi
           done
-          KEY="$RUNNER_TEMP/AuthKey.p8"
-          printf '%s' "$ASC_KEY_P8" > "$KEY"
+          # Un espace ou un retour à la ligne collé avec l'identifiant suffit à faire refuser la clé.
+          APPLE_TEAM_ID=$(printf '%s' "$APPLE_TEAM_ID" | tr -d '[:space:]')
+          ASC_KEY_ID=$(printf '%s' "$ASC_KEY_ID" | tr -d '[:space:]')
+          ASC_ISSUER_ID=$(printf '%s' "$ASC_ISSUER_ID" | tr -d '[:space:]')
+          # Emplacement et nom attendus par Xcode et altool.
+          mkdir -p ~/.appstoreconnect/private_keys
+          KEY=~/.appstoreconnect/private_keys/AuthKey_$ASC_KEY_ID.p8
+          printf '%s\n' "$ASC_KEY_P8" | tr -d '\r' > "$KEY"
+
+          ASC_KEY_ID="$ASC_KEY_ID" ASC_ISSUER_ID="$ASC_ISSUER_ID" ASC_KEY_FILE="$KEY" BUNDLE_ID=fr.boomz.jeu \
+            node ../../scripts/asc-check.mjs
+
           AUTH=(-allowProvisioningUpdates -authenticationKeyPath "$KEY" -authenticationKeyID "$ASC_KEY_ID" -authenticationKeyIssuerID "$ASC_ISSUER_ID")
           # Archive non signée : la signer ici demanderait un certificat de
           # développement et un iPhone enregistré. C'est l'export qui la signe
@@ -80,7 +90,7 @@ jobs:
           <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
           <plist version="1.0"><dict>
             <key>method</key><string>app-store-connect</string>
-            <key>destination</key><string>upload</string>
+            <key>destination</key><string>export</string>
             <key>teamID</key><string>$APPLE_TEAM_ID</string>
             <key>signingStyle</key><string>automatic</string>
           </dict></plist>
@@ -88,3 +98,5 @@ jobs:
           xcodebuild -exportArchive -archivePath "$RUNNER_TEMP/Boomz.xcarchive" \
             -exportOptionsPlist "$RUNNER_TEMP/export.plist" -exportPath "$RUNNER_TEMP/export" \
             "${AUTH[@]}"
+          IPA=$(ls "$RUNNER_TEMP"/export/*.ipa)
+          xcrun altool --upload-app --type ios --file "$IPA" --apiKey "$ASC_KEY_ID" --apiIssuer "$ASC_ISSUER_ID"
