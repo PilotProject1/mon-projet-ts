@@ -94,8 +94,7 @@ captures sont dans [`captures/`](captures/), aux formats exigés.
 - **Confidentialité de l'app** : « Données non collectées » (le pseudo n'est
   utilisé que le temps de la partie, sans être conservé).
 - **URL de confidentialité** : https://boomz.onrender.com/confidentialite
-- **URL d'assistance** : la même page, une fois l'adresse e-mail de contact
-  renseignée.
+- **URL d'assistance** : la même page (contact : boomz-service@outlook.com).
 - **Captures** : `captures/iphone-6.9-*.png` (1290 × 2796 et 2796 × 1290,
   format iPhone 6,9 pouces, accepté pour toutes les tailles d'iPhone).
 
@@ -108,7 +107,7 @@ captures sont dans [`captures/`](captures/), aux formats exigés.
 | Clé d'API App Store Connect (rôle Admin) et identifiant d'équipe → secrets GitHub `ASC_KEY_ID`, `ASC_ISSUER_ID`, `ASC_KEY_P8`, `APPLE_TEAM_ID` | toi | pas besoin de Mac : le workflow « Boomz iOS » fabrique, signe et envoie l'application sur TestFlight |
 | Fiche de l'app dans App Store Connect (Apps › + › Nouvelle app, identifiant `fr.boomz.jeu`) | toi | à créer avant le premier envoi sur TestFlight |
 | Identifiant de l'application | toi | `fr.boomz.jeu` par défaut ; **définitif** une fois publiée |
-| Champs « À REMPLIR » de /confidentialite | toi | éditeur (non professionnel, sans adresse publiée) et région Render faits ; reste l'e-mail de contact et l'adresse de Render à vérifier |
+| Champs « À REMPLIR » de /confidentialite | toi | éditeur (non professionnel), contact et région Render faits ; reste l'adresse de Render à vérifier |
 | Recherche d'antériorité sur le nom « Boomz » (INPI, EUIPO) et avis sur la ressemblance de la mascotte avec un personnage existant | toi | à faire avant une publication publique |
 | ~~Serveur sans mise en veille (offre payante Render)~~ | toi | **fait** |
 | Clé de signature Android de publication | ensemble | à créer et garder précieusement ; je peux ensuite la brancher dans GitHub Actions (secrets) pour produire le fichier .aab du Play Store |
