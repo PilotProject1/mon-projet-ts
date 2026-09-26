@@ -1122,6 +1122,16 @@ for (const link of document.querySelectorAll<HTMLAnchorElement>('.privacy-link')
   link.href = `${PUBLIC_ORIGIN}/confidentialite`;
 }
 
+// Pas de sélection de texte ni de menu contextuel sur un appui long, hors champs de saisie
+// (le style suffit sur la plupart des téléphones ; ceci couvre les autres).
+const isField = (target: EventTarget | null) => target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement;
+document.addEventListener('selectstart', (event) => {
+  if (!isField(event.target)) event.preventDefault();
+});
+document.addEventListener('contextmenu', (event) => {
+  if (!isField(event.target)) event.preventDefault();
+});
+
 applyScreenAmbience();
 requestAnimationFrame(frameLoop);
 

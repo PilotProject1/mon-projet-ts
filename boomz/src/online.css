@@ -26,6 +26,19 @@ body {
   color: var(--text);
   font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   -webkit-tap-highlight-color: transparent;
+  /* Une application, pas une page web : un appui long ne sélectionne pas le
+     texte et n'ouvre pas le menu (copier, loupe, aperçu d'image). */
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+/* Sauf là où l'on écrit : pseudo, code du salon, avis. */
+input,
+textarea {
+  -webkit-user-select: text;
+  user-select: text;
+  -webkit-touch-callout: default;
 }
 
 button,
