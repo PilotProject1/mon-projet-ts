@@ -104,6 +104,12 @@ jobs:
           UUID=$(plutil -extract UUID raw "$SIGN/profile.plist")
           echo "Profil : $(plutil -extract Name raw "$SIGN/profile.plist") — UUID $UUID — équipe $(plutil -extract TeamIdentifier.0 raw "$SIGN/profile.plist") — expire $(plutil -extract ExpirationDate raw "$SIGN/profile.plist")"
           if [ -z "$UUID" ]; then echo "::error::Profil illisible"; exit 1; fi
+          # L'équipe fait foi dans le profil créé par Apple (le secret APPLE_TEAM_ID peut être mal recopié).
+          PROFILE_TEAM=$(plutil -extract TeamIdentifier.0 raw "$SIGN/profile.plist")
+          if [ "$PROFILE_TEAM" != "$APPLE_TEAM_ID" ]; then
+            echo "::warning::Le secret APPLE_TEAM_ID ne correspond pas à l'équipe du compte ($PROFILE_TEAM) : c'est cette dernière qui est utilisée."
+          fi
+          APPLE_TEAM_ID="$PROFILE_TEAM"
           for dir in "$HOME/Library/MobileDevice/Provisioning Profiles" "$HOME/Library/Developer/Xcode/UserData/Provisioning Profiles"; do
             mkdir -p "$dir"
             cp "$SIGN/profile.mobileprovision" "$dir/$UUID.mobileprovision"
