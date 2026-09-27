@@ -1,7 +1,16 @@
 import type { SoundEvent } from './audio/events';
 import type { MatchState } from './game/match';
 
-export type TutorialStep = 'move' | 'bomb' | 'flee' | 'kick' | 'fight' | 'done';
+export type TutorialStep = 'move' | 'bomb' | 'flee' | 'kick' | 'power' | 'fight' | 'done';
+
+/** Pouvoir du personnage du joueur, présenté pendant le tutoriel. */
+export interface TutorialHero {
+  power: string;
+  description: string;
+}
+
+/** Au bout de ce délai sans utiliser le pouvoir, le tutoriel passe à la suite (ms). */
+const POWER_TIP_MS = 12000;
 
 /** Au bout de ce délai, l'astuce de la poussée laisse place à la suite (ms). */
 const KICK_TIP_MS = 9000;
@@ -22,9 +31,12 @@ export class Tutorial {
   private start: { x: number; y: number; round: number } | null = null;
   private stepAt = 0;
   private readonly touch: boolean;
+  private readonly hero: TutorialHero | null;
 
-  constructor(touch: boolean) {
+  /** `hero` : pouvoir à présenter (`null` : partie sans pouvoirs, l'étape est sautée). */
+  constructor(touch: boolean, hero: TutorialHero | null = null) {
     this.touch = touch;
+    this.hero = hero;
   }
 
   /** Avance d'après ce qui vient de se passer ; renvoie vrai si l'étape a changé. */
@@ -62,7 +74,10 @@ export class Tutorial {
         } else if (has('explosion')) this.go('kick', now);
         break;
       case 'kick':
-        if (has('kick') || now - this.stepAt > KICK_TIP_MS) this.go('fight', now);
+        if (has('kick') || now - this.stepAt > KICK_TIP_MS) this.go(this.hero ? 'power' : 'fight', now);
+        break;
+      case 'power':
+        if (has('power', true) || now - this.stepAt > POWER_TIP_MS) this.go('fight', now);
         break;
       case 'fight':
         if (now - this.stepAt > FIGHT_TIP_MS) this.go('done', now);
@@ -78,7 +93,13 @@ export class Tutorial {
 
   /** Numéro de l'étape (de 1 à 5), pour l'indicateur de progression. */
   get index(): number {
-    return ['move', 'bomb', 'flee', 'kick', 'fight', 'done'].indexOf(this.step) + 1;
+    const steps = this.hero ? ['move', 'bomb', 'flee', 'kick', 'power', 'fight', 'done'] : ['move', 'bomb', 'flee', 'kick', 'fight', 'done'];
+    return steps.indexOf(this.step) + 1;
+  }
+
+  /** Nombre d'étapes à franchir. */
+  get total(): number {
+    return this.hero ? 6 : 5;
   }
 
   get text(): string {
@@ -95,6 +116,11 @@ export class Tutorial {
         return this.caught
           ? 'Oups ! Restez hors de la croix des flammes. Astuce : marchez sur votre bombe pour la pousser.'
           : 'Bien joué ! Astuce : marchez sur votre bombe pour la pousser.';
+      case 'power': {
+        const hero = this.hero!;
+        const how = this.touch ? 'Touchez le bouton rond de couleur' : 'Appuyez sur F';
+        return `${how} pour votre pouvoir, ${hero.power} : ${hero.description.charAt(0).toLowerCase()}${hero.description.slice(1)}`;
+      }
       case 'fight':
         return 'Cassez les caisses pour trouver des bonus, et éliminez le robot !';
       case 'done':

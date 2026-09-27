@@ -394,6 +394,17 @@ Pouvoirs propres à chaque personnage, mode défi solo avec étoiles, parties en
 équipes, et **recherche de partie** : trouver des adversaires au hasard, sans
 avoir à inviter des amis.
 
+**Fait : 8 premiers personnages et leurs pouvoirs** (`src/game/powers.ts`) —
+Boomer (Surcharge), Blaster (Mise à feu), Frost (Gel), Toxic (Zone toxique),
+Boomette (Doppelbombe), Omega (Copie), Rocket (Dash), Rocco (Carapace).
+Choix du personnage au premier lancement, puis « Changer » sur l'accueil ou
+l'avatar dans le salon ; bouton de pouvoir rond avec sa recharge (touche F au
+clavier) ; étape « Pouvoir » dans le tutoriel ; effets, sons et vibrations ;
+les robots s'en servent. Les pouvoirs ne s'activent que si tous les
+téléphones du salon les connaissent (la 1.0 continue de jouer sans).
+Équilibrage de départ réglé sur des matchs entre robots : à affiner avec de
+vrais joueurs.
+
 Pouvoirs des personnages (planche `docs/personnages.jpg`, 20 personnages) :
 
 - **choix du personnage dès le début**, sur un écran qui présente chacun

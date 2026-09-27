@@ -35,6 +35,14 @@
             <span>Votre pseudo</span>
             <input id="name" type="text" maxlength="16" autocomplete="nickname" placeholder="Joueur" />
           </label>
+          <div class="hero-row">
+            <canvas class="avatar hero-avatar" id="hero-avatar" aria-hidden="true"></canvas>
+            <div class="hero-info">
+              <strong id="hero-name"></strong>
+              <span id="hero-power"></span>
+            </div>
+            <button class="secondary-btn hero-change" id="hero-change" type="button">Changer</button>
+          </div>
           <button class="primary-btn" id="create-btn" type="button">Créer une partie</button>
           <div class="separator"><span>ou rejoindre avec un code</span></div>
           <form class="join-row" id="join-form">
@@ -136,6 +144,7 @@
           <li><strong>Bouger</strong> : posez le pouce n'importe où sur la moitié gauche de l'écran et glissez.</li>
           <li><strong>Poser une bombe</strong> : bouton rouge, à droite. Elle explose en croix au bout de 2,5 s.</li>
           <li><strong>Pousser sa bombe</strong> : revenez marcher dessus, elle glisse jusqu'au premier obstacle.</li>
+          <li><strong>Pouvoir</strong> : chaque personnage a le sien (bouton rond de couleur, touche F au clavier), puis il se recharge. Pour changer de personnage : « Changer » sur l'accueil, ou touchez votre avatar dans le salon.</li>
           <li><strong>Gagner</strong> : soyez le dernier debout. Trois manches gagnées remportent le match.</li>
           <li><strong>Attention</strong> : à 2:00, des murs tombent et l'arène se resserre.</li>
         </ul>
@@ -185,6 +194,30 @@
         <p class="legend-intro">Vous serez éliminé de la manche en cours et retournerez à l'accueil.</p>
         <button class="primary-btn" id="quit-confirm" type="button">Quitter</button>
         <button class="link-btn" id="quit-cancel" type="button">Rester</button>
+      </div>
+    </dialog>
+
+    <!-- Choix du personnage, avec l'explication de son pouvoir -->
+    <dialog class="help characters" id="characters" aria-labelledby="characters-title">
+      <div class="help-card">
+        <h2 id="characters-title">Choisissez votre personnage</h2>
+        <p class="legend-intro">Chacun a son pouvoir : touchez « Pouvoir » en partie pour l'utiliser, puis il se recharge.</p>
+        <ul class="character-grid" id="character-grid"></ul>
+        <div class="character-detail" id="character-detail">
+          <canvas class="character-portrait" id="character-portrait" aria-hidden="true"></canvas>
+          <div class="character-text">
+            <p class="character-name"><strong id="character-name"></strong> <span class="character-category" id="character-category"></span></p>
+            <p class="character-power" id="character-power"></p>
+            <p class="character-description" id="character-description"></p>
+            <p class="character-cooldown" id="character-cooldown"></p>
+          </div>
+        </div>
+        <fieldset class="skin-choice">
+          <legend>Apparence</legend>
+          <div class="skin-options" id="skin-options"></div>
+        </fieldset>
+        <button class="primary-btn" id="characters-ok" type="button">Choisir</button>
+        <button class="link-btn" id="characters-close" type="button">Annuler</button>
       </div>
     </dialog>
 
@@ -332,8 +365,11 @@
       </div>
       <div class="bomb-area">
         <button class="detonate-btn" id="detonate-btn" type="button" aria-label="Faire exploser vos bombes" hidden>Boum</button>
+        <button class="power-btn" id="power-btn" type="button" aria-label="Utiliser son pouvoir" hidden>
+          <span class="power-label" id="power-label"></span>
+        </button>
         <button class="bomb-btn" id="bomb-btn" type="button" aria-label="Poser une bombe">Bombe</button>
-        <span class="keys-hint">Flèches ou ZQSD · Espace · E pour faire exploser</span>
+        <span class="keys-hint">Flèches ou ZQSD · Espace · F : pouvoir · E pour faire exploser</span>
       </div>
     </section>
 

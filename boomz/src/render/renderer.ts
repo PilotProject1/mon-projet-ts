@@ -13,7 +13,8 @@ import {
   type RoundState,
 } from '../game/types';
 import { drawBonusIcon } from './bonuses';
-import { drawCharacter, lookFor } from './characters';
+import { drawCharacter, HERO_COLORS, lookFor } from './characters';
+import { defaultCharacter, FREEZE_RADIUS, Hero } from '../game/powers';
 import { toScreenRound } from './view';
 
 interface Theme {
@@ -182,7 +183,7 @@ export class Renderer {
   private shake = 0;
   private lastFrame = 0;
   /** État précédent, pour repérer explosions et blocs détruits entre deux images. */
-  private previous: { roundNumber: number; rotated: boolean; tiles: Tile[]; bombs: Bomb[] } | null = null;
+  private previous: { roundNumber: number; rotated: boolean; tiles: Tile[]; bombs: Bomb[]; players: Player[] } | null = null;
   private readonly random = createRng(12345);
 
   constructor(canvas: HTMLCanvasElement) {
@@ -255,12 +256,15 @@ export class Renderer {
     // Les flammes passent sur les caisses qui brûlent et les bonus, sous les personnages.
     this.stretched();
     this.drawFlames(round);
+    this.drawToxic(round, tick);
 
     this.upright();
-    for (const bomb of round.bombs) this.drawBomb(bomb, tick);
+    for (const bomb of round.bombs) this.drawBomb(bomb, tick, bomb.owner === you);
     // Du fond vers l'avant : un personnage plus bas à l'écran passe devant.
     const players = [...round.players].sort((a, b) => a.y - b.y);
-    for (const player of players) this.drawPlayer(player, tick, player.id === you, match.skins?.[player.id] ?? 0);
+    for (const player of players) {
+      this.drawPlayer(player, tick, player.id === you, match.skins?.[player.id] ?? 0, round.tick);
+    }
     for (const player of players) this.drawEmote(player, now);
 
     this.drawParticles();
@@ -699,8 +703,10 @@ export class Renderer {
 
   // ---- Bombes ----
 
-  private drawBomb(bomb: Bomb, tick: number): void {
+  /** `mine` : bombe de ce téléphone (son propre leurre lui apparaît comme tel). */
+  private drawBomb(bomb: Bomb, tick: number, mine: boolean): void {
     const { ctx, cell, cellW, cellH } = this;
+    if (bomb.decoy && mine) ctx.globalAlpha = 0.5;
     // Bombe poussée : elle glisse entre deux cases.
     const [sx, sy] = bomb.slide ? DIRECTION_VECTORS[bomb.slide] : [0, 0];
     const cx = (bomb.cx + sx * bomb.slideProgress + 0.5) * cellW;
@@ -745,6 +751,7 @@ export class Renderer {
       ctx.beginPath();
       ctx.arc(cx + radius * 0.6, cy - radius * 1.7, cell * 0.07, 0, Math.PI * 2);
       ctx.fill();
+      ctx.globalAlpha = 1;
       return;
     }
     // Mèche et étincelle.
@@ -765,13 +772,109 @@ export class Renderer {
     ctx.beginPath();
     ctx.arc(sparkX, sparkY, spark, 0, Math.PI * 2);
     ctx.fill();
+    if (bomb.decoy && mine) {
+      // Pour Boomette seule : un cœur rose signale son leurre.
+      ctx.globalAlpha = 1;
+      ctx.fillStyle = '#ff8cc6';
+      ctx.font = `${Math.round(cell * 0.34)}px sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('♥', cx, cy + radius * 0.1);
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  // ---- Pouvoirs ----
+
+  /** Nuages toxiques de Toxic : nappes vertes qui bouillonnent. */
+  private drawToxic(round: RoundState, tick: number): void {
+    if (!round.toxic) return;
+    const { ctx, cell } = this;
+    for (let i = 0; i < round.toxic.length; i++) {
+      const left = round.toxic[i];
+      if (left <= 0) continue;
+      const x = (i % round.width) * cell;
+      const y = Math.floor(i / round.width) * cell;
+      const fade = Math.min(1, left / 30);
+      ctx.fillStyle = `rgba(110, 220, 60, ${0.32 * fade})`;
+      ctx.fillRect(x + cell * 0.04, y + cell * 0.04, cell * 0.92, cell * 0.92);
+      ctx.fillStyle = `rgba(200, 255, 120, ${0.55 * fade})`;
+      for (let b = 0; b < 3; b++) {
+        const phase = (tick * 0.05 + b * 2.1 + i) % 3;
+        const bx = x + cell * (0.25 + 0.25 * b);
+        const by = y + cell * (0.8 - phase * 0.22);
+        ctx.beginPath();
+        ctx.arc(bx, by, cell * (0.05 + 0.03 * Math.sin(phase)), 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+  }
+
+  /** Effets de pouvoir autour d'un personnage (sous et sur lui). */
+  private drawPowerAura(player: Player, cx: number, cy: number, r: number, roundTick: number, tick: number): void {
+    const { ctx, cell } = this;
+    const active = player.effect !== undefined && player.effect !== -1 && player.effectUntil > roundTick;
+    if (!active) return;
+    if (player.effect === Hero.Boomer || player.effect === Hero.Toxic) {
+      const color = player.effect === Hero.Boomer ? '255, 150, 40' : '120, 230, 60';
+      const pulse = 0.5 + 0.5 * Math.sin(tick * 0.3);
+      const glow = ctx.createRadialGradient(cx, cy, r * 0.4, cx, cy, r * 1.6);
+      glow.addColorStop(0, `rgba(${color}, ${0.35 + 0.2 * pulse})`);
+      glow.addColorStop(1, `rgba(${color}, 0)`);
+      ctx.fillStyle = glow;
+      ctx.fillRect(cx - r * 1.6, cy - r * 1.6, r * 3.2, r * 3.2);
+    } else if (player.effect === Hero.Rocket) {
+      // Traînée derrière Rocket pendant son Dash.
+      const [dx, dy] = DIRECTION_VECTORS[player.facing];
+      for (let k = 1; k <= 3; k++) {
+        ctx.fillStyle = `rgba(255, 170, 60, ${0.4 - k * 0.1})`;
+        ctx.beginPath();
+        ctx.arc(cx - dx * cell * 0.35 * k, cy - dy * cell * 0.35 * k, r * (0.8 - k * 0.15), 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+  }
+
+  private drawPowerOverlay(player: Player, cx: number, cy: number, r: number, roundTick: number): void {
+    const { ctx, cell } = this;
+    if (player.effect === Hero.Rocco && player.effectUntil > roundTick) {
+      // Carapace de pierre de Rocco.
+      ctx.strokeStyle = 'rgba(190, 195, 205, 0.95)';
+      ctx.fillStyle = 'rgba(120, 124, 132, 0.28)';
+      ctx.lineWidth = Math.max(2, cell * 0.08);
+      ctx.setLineDash([cell * 0.14, cell * 0.08]);
+      ctx.beginPath();
+      ctx.arc(cx, cy + r * 0.05, r * 1.35, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+    if (player.frozenUntil > roundTick) {
+      // Bloc de glace de Frost.
+      const w = r * 2.3;
+      const h = r * 2.5;
+      ctx.fillStyle = 'rgba(170, 225, 255, 0.45)';
+      ctx.strokeStyle = 'rgba(235, 250, 255, 0.95)';
+      ctx.lineWidth = Math.max(1.5, cell * 0.05);
+      ctx.beginPath();
+      // `roundRect` manque sur les iPhone plus anciens (avant iOS 16).
+      if (typeof ctx.roundRect === 'function') ctx.roundRect(cx - w / 2, cy - h * 0.6, w, h, r * 0.3);
+      else ctx.rect(cx - w / 2, cy - h * 0.6, w, h);
+      ctx.fill();
+      ctx.stroke();
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+      ctx.beginPath();
+      ctx.moveTo(cx - w * 0.3, cy - h * 0.45);
+      ctx.lineTo(cx - w * 0.1, cy - h * 0.25);
+      ctx.stroke();
+    }
   }
 
   // ---- Personnages ----
 
-  private drawPlayer(player: Player, tick: number, isYou: boolean, skin: number): void {
+  private drawPlayer(player: Player, tick: number, isYou: boolean, skin: number, roundTick: number): void {
     const { ctx, cell, cellW, cellH } = this;
-    const look = lookFor(player.id, skin);
+    const look = lookFor(player.character ?? defaultCharacter(player.id), skin);
     let alpha = 1;
     let scale = 1;
     if (!player.alive) {
@@ -799,9 +902,11 @@ export class Renderer {
       ctx.ellipse(cx, groundY + r * 0.8, r * 0.95, r * 0.36, 0, 0, Math.PI * 2);
       ctx.stroke();
     }
+    if (player.alive) this.drawPowerAura(player, cx, cy, r, roundTick, tick);
     // Invulnérable juste après avoir perdu le gilet : le personnage clignote.
     if (player.alive && tick < player.invulnerableUntil && Math.floor(tick / 5) % 2 === 0) ctx.globalAlpha = 0.35;
     drawCharacter(ctx, look, cx, cy, r, player.facing);
+    if (player.alive) this.drawPowerOverlay(player, cx, cy, r, roundTick);
     if (player.alive && player.vest) {
       // Gilet pare-flamme : bulle protectrice.
       ctx.fillStyle = 'rgba(120, 220, 255, 0.14)';
@@ -876,14 +981,35 @@ export class Renderer {
   private detectEvents(roundNumber: number, round: RoundState): void {
     const previous = this.previous;
     const rotated = this.rotatedView;
-    this.previous = { roundNumber, rotated, tiles: [...round.tiles], bombs: round.bombs };
+    this.previous = { roundNumber, rotated, tiles: [...round.tiles], bombs: round.bombs, players: round.players };
     if (!previous || previous.roundNumber !== roundNumber || previous.rotated !== rotated) {
       this.particles = [];
       return;
     }
     const { cellW, cellH } = this;
+    for (const player of round.players) {
+      const before = previous.players[player.id];
+      if (!before || !player.alive || player.powerReadyAt === undefined || player.powerReadyAt <= before.powerReadyAt) continue;
+      // Pouvoir utilisé : éclat aux couleurs du personnage (du pouvoir copié, pour Omega).
+      const power = player.effect !== -1 && player.effectUntil > round.tick ? player.effect : player.character;
+      const x = player.x * cellW;
+      const y = player.y * cellH;
+      this.emit(x, y, 16, [HERO_COLORS[power] ?? '#ffffff', '#ffffff'], 2.6, 0.55, 0);
+      if (player.character === Hero.Frost || power === Hero.Frost) {
+        // Onde de froid jusqu'à la portée du Gel.
+        for (let k = 0; k < 28; k++) {
+          const angle = (k / 28) * Math.PI * 2;
+          this.emit(x + Math.cos(angle) * FREEZE_RADIUS * cellW, y + Math.sin(angle) * FREEZE_RADIUS * cellH, 1, ['#dff3ff', '#8fd3ff'], 0.4, 0.6, 0);
+        }
+      }
+    }
     for (const bomb of previous.bombs) {
       if (round.bombs.some((other) => other.id === bomb.id)) continue;
+      if (bomb.decoy) {
+        // Le leurre de Boomette disparaît dans un petit nuage rose.
+        this.emit((bomb.cx + 0.5) * cellW, (bomb.cy + 0.5) * cellH, 12, ['#ffb3da', '#ff8cc6', '#ffffff'], 1.4, 0.7, -0.3);
+        continue;
+      }
       if (round.flames[bomb.cy * round.width + bomb.cx] <= 0) continue; // murée par le resserrement
       this.shake = 1;
       this.emit((bomb.cx + 0.5) * cellW, (bomb.cy + 0.5) * cellH, 18, ['#fff3a0', '#ffb52e', '#ff6a1f'], 3.2, 0.5, 0);

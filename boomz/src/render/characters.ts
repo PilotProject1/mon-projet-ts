@@ -14,8 +14,8 @@ export interface PlayerLook {
   trim: string;
 }
 
-// D'après la planche de personnages (docs/personnages.jpg), dans l'ordre des
-// places du salon. Les pouvoirs ne sont pas encore actifs.
+// D'après la planche de personnages (docs/personnages.jpg), dans l'ordre de
+// `CHARACTERS` (game/powers.ts), qui décrit leurs pouvoirs.
 export const PLAYER_LOOKS: PlayerLook[] = [
   { name: 'Boomer', cap: '#2447a8', capFront: '#f2efe6', ball: '#ffc928', suit: '#1f2f6b', trim: '#ffc928' },
   { name: 'Blaster', cap: '#d8342b', capFront: '#1d1d24', ball: '#ff9a1f', suit: '#1d1d24', trim: '#d8342b' },
@@ -23,7 +23,12 @@ export const PLAYER_LOOKS: PlayerLook[] = [
   { name: 'Toxic', cap: '#4fb33a', capFront: '#2c3a22', ball: '#d7f23a', suit: '#2c3a22', trim: '#4fb33a' },
   { name: 'Boomette', cap: '#e85aa8', capFront: '#ffd3ea', ball: '#ff8cc6', suit: '#b83a7e', trim: '#ffd3ea' },
   { name: 'Omega', cap: '#c9d1dc', capFront: '#1d2a44', ball: '#48c6ff', suit: '#5a6478', trim: '#48c6ff' },
+  { name: 'Rocket', cap: '#f2f4f8', capFront: '#1d3f8f', ball: '#ff8a1f', suit: '#2458c8', trim: '#ff8a1f' },
+  { name: 'Rocco', cap: '#7c7f86', capFront: '#3b3d44', ball: '#a9adb5', suit: '#4a4c52', trim: '#5fb7f0' },
 ];
+
+/** Couleur propre à chaque personnage : bouton de pouvoir et effets en partie. */
+export const HERO_COLORS: readonly string[] = ['#2447a8', '#c42a22', '#2f78c4', '#3a8a2b', '#b83a7e', '#3a78a8', '#d8640f', '#5f636c'];
 
 /**
  * Apparences (cosmétiques de base, phase 4) : variantes de couleurs d'un même
@@ -32,7 +37,7 @@ export const PLAYER_LOOKS: PlayerLook[] = [
  */
 export const SKIN_NAMES: readonly string[] = ['Classique', 'Nuit', 'Or'];
 
-/** Apparence d'un personnage (numéro de place) avec l'une de ses variantes. */
+/** Apparence d'un personnage (voir `CHARACTERS`) avec l'une de ses variantes. */
 export function lookFor(character: number, skin = 0): PlayerLook {
   const base = PLAYER_LOOKS[character % PLAYER_LOOKS.length];
   switch (skin) {
@@ -115,7 +120,7 @@ export function drawCharacter(
 }
 
 /** Portrait d'un personnage, pour le salon et le tableau des scores. */
-export function drawAvatar(canvas: HTMLCanvasElement, lookIndex: number, skin = 0): void {
+export function drawAvatar(canvas: HTMLCanvasElement, character: number, skin = 0): void {
   const size = canvas.clientWidth || 32;
   const ratio = window.devicePixelRatio || 1;
   canvas.width = Math.round(size * ratio);
@@ -123,5 +128,5 @@ export function drawAvatar(canvas: HTMLCanvasElement, lookIndex: number, skin = 
   const ctx = canvas.getContext('2d');
   if (!ctx) return;
   ctx.scale(ratio, ratio);
-  drawCharacter(ctx, lookFor(lookIndex, skin), size / 2, size * 0.56, size * 0.4, 'down');
+  drawCharacter(ctx, lookFor(character, skin), size / 2, size * 0.56, size * 0.4, 'down');
 }

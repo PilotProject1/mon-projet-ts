@@ -23,6 +23,19 @@ describe('tutoriel', () => {
     expect(tutorial.step).toBe('kick');
     tutorial.update(match, 0, [{ kind: 'kick' }], 5);
     expect(tutorial.step).toBe('fight');
+  });
+
+  it('présente le pouvoir du personnage avant le combat', () => {
+    const tutorial = new Tutorial(true, { power: 'Gel', description: 'Gèle les adversaires proches.' });
+    const match = playing();
+    tutorial.update(match, 0, [{ kind: 'bombPlaced', mine: true }], 1);
+    tutorial.update(match, 0, [{ kind: 'explosion', count: 1 }], 2);
+    tutorial.update(match, 0, [{ kind: 'kick' }], 3);
+    expect(tutorial.step).toBe('power');
+    expect(tutorial.text).toContain('Gel : gèle les adversaires proches.');
+    tutorial.update(match, 0, [{ kind: 'power', mine: true, power: 2 }], 4);
+    expect(tutorial.step).toBe('fight');
+    expect(tutorial.total).toBe(6);
     tutorial.update(match, 0, [], 20_000);
     expect(tutorial.step).toBe('done');
   });

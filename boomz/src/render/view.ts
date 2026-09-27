@@ -74,6 +74,8 @@ export function toScreenRound(round: RoundState, rotated: boolean): RoundState {
     bonuses: remap(round.bonuses),
     hiddenBonuses: [],
     flames: remap(round.flames),
+    // Nuages toxiques (absents avec un serveur plus ancien).
+    ...(round.toxic ? { toxic: remap(round.toxic), toxicOwner: remap(round.toxicOwner) } : {}),
     players,
     bombs,
   };

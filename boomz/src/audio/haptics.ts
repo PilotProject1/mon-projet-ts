@@ -42,6 +42,7 @@ export function hapticFor(events: SoundEvent[], flameDistance: number): Haptic |
   if (kinds.has('death:mine')) return { kind: 'notify', type: 'error' };
   if (kinds.has('matchWin')) return { kind: 'notify', type: 'success' };
   if (kinds.has('vestLost:mine')) return { kind: 'impact', style: 'heavy', intensity: 1 };
+  if (kinds.has('frozen:mine')) return { kind: 'notify', type: 'warning' };
   if (kinds.has('explosion') && flameDistance <= FELT_WITHIN) {
     // Plus la flamme passe près, plus le choc est fort.
     return flameDistance <= 1.5
@@ -50,6 +51,7 @@ export function hapticFor(events: SoundEvent[], flameDistance: number): Haptic |
   }
   if (kinds.has('roundWin')) return { kind: 'notify', type: 'success' };
   if (kinds.has('go')) return { kind: 'impact', style: 'medium', intensity: 0.8 };
+  if (kinds.has('power:mine')) return { kind: 'impact', style: 'medium', intensity: 0.7 };
   if (kinds.has('bombPlaced:mine')) return { kind: 'impact', style: 'light', intensity: 0.5 };
   return null;
 }

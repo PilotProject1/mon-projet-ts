@@ -19,7 +19,10 @@ export type SoundEvent =
   | { kind: 'roundWin' }
   | { kind: 'roundLose' }
   | { kind: 'matchWin' }
-  | { kind: 'matchLose' };
+  | { kind: 'matchLose' }
+  /** Pouvoir utilisé ; `power` : personnage dont c'est le pouvoir (celui copié, pour Omega). */
+  | { kind: 'power'; mine: boolean; power: number }
+  | { kind: 'frozen'; mine: boolean };
 
 /** Au-delà de ce saut entre deux états (en cases), c'est une téléportation. */
 const TELEPORT_JUMP = 1.5;
@@ -100,6 +103,11 @@ export function soundEvents(before: MatchState | null, after: MatchState, me: nu
     if (previous.vest && !player.vest && player.buffUntil[Bonus.Vest] === 0) events.push({ kind: 'vestLost', mine });
     // Chaque bonus a son propre son, joué pour ses propres ramassages seulement.
     if (mine) for (const bonus of bonusGained(previous, player)) events.push({ kind: 'bonus', bonus });
+    if (player.powerReadyAt !== undefined && player.powerReadyAt > previous.powerReadyAt) {
+      const power = player.effect !== -1 && player.effectUntil > b.tick ? player.effect : player.character;
+      events.push({ kind: 'power', mine, power });
+    }
+    if (player.frozenUntil > b.tick && !(previous.frozenUntil > a.tick)) events.push({ kind: 'frozen', mine });
   }
 
   if (a.tick < SUDDEN_DEATH_TICKS && b.tick >= SUDDEN_DEATH_TICKS) events.push({ kind: 'suddenDeath' });

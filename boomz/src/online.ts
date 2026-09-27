@@ -19,7 +19,8 @@ import { BotBrain, BOT_LEVEL_NAMES, BOT_LEVEL_SHORT, BOT_LEVELS, type BotLevel }
 import { nearbyAvailable, NearbyGuestLink, NearbyHostLink, NearbyScanner, type Link, type NearbyHost } from './net/nearby';
 import { EMOTES, MAX_PLAYERS, MIN_PLAYERS, RECONNECT_GRACE_SECONDS, type LobbyPlayer, type ServerMessage } from './net/protocol';
 import { BONUS_INFO, BONUS_ORDER, paintBonusCanvas } from './render/bonuses';
-import { drawAvatar, lookFor, PLAYER_LOOKS, SKIN_NAMES } from './render/characters';
+import { drawAvatar, HERO_COLORS, lookFor, SKIN_NAMES } from './render/characters';
+import { CHARACTERS, defaultCharacter, isCharacter, POWER_START_TICKS } from './game/powers';
 import { Renderer } from './render/renderer';
 import { screenToGrid } from './render/view';
 import { PUBLIC_ORIGIN } from './net/server';
@@ -326,6 +327,9 @@ function onMessage(message: ServerMessage): void {
       reconnectUntil = 0;
       voice.setIdentity(message.you, message.iceServers);
       voice.rejoin();
+      // Personnage choisi sur ce téléphone (annonce aussi que les pouvoirs sont connus).
+      connection?.send({ type: 'character', character: myCharacter() });
+      connection?.send({ type: 'skin', skin: mySkin() });
       connectionBanner.hidden = true;
       setText(homeError, '');
       setText(roomCodeText, message.room);
@@ -431,7 +435,7 @@ function renderLobby(): void {
   else if (!isHost) hint = me?.ready ? 'L’hôte va lancer la partie.' : 'Appuyez sur « Je suis prêt ».';
   setText(lobbyHint, hint);
   botRow.hidden = !isHost || players.length >= MAX_PLAYERS;
-  setText(skinHint, 'Touchez votre personnage pour changer d’apparence.');
+  setText(skinHint, 'Touchez votre personnage pour en changer.');
   setText(lobbyError, '');
   renderVoice();
 }
@@ -450,7 +454,8 @@ function lobbyRow(player: LobbyPlayer, index: number, host: boolean, self: boole
   name.textContent = `${player.name}${self ? ' (vous)' : ''}`;
   const character = document.createElement('span');
   character.className = 'player-tag character-tag';
-  character.textContent = player.skin ? `${PLAYER_LOOKS[index].name} ${SKIN_NAMES[player.skin]}` : PLAYER_LOOKS[index].name;
+  const hero = player.character ?? defaultCharacter(index);
+  character.textContent = `${CHARACTERS[hero].name} · ${CHARACTERS[hero].power}`;
   const status = document.createElement('span');
   status.className = 'player-tag';
   if (player.bot) {
@@ -469,15 +474,15 @@ function lobbyRow(player: LobbyPlayer, index: number, host: boolean, self: boole
     status.textContent = 'pas prêt';
   }
   if (self) {
-    // Son propre personnage : le toucher fait défiler ses apparences.
+    // Son propre personnage : le toucher ouvre le choix du personnage.
     const skinButton = document.createElement('button');
     skinButton.type = 'button';
     skinButton.className = 'avatar-btn';
-    skinButton.setAttribute('aria-label', `Changer d'apparence (actuelle : ${SKIN_NAMES[player.skin]})`);
+    skinButton.setAttribute('aria-label', `Changer de personnage (actuel : ${CHARACTERS[hero].name})`);
     skinButton.append(avatar);
     skinButton.addEventListener('click', () => {
-      connection?.send({ type: 'skin', skin: (player.skin + 1) % SKIN_COUNT });
       audio.playClick();
+      openCharacters(false);
     });
     item.append(skinButton, name, character, status);
   } else {
@@ -503,7 +508,7 @@ function lobbyRow(player: LobbyPlayer, index: number, host: boolean, self: boole
     remove.addEventListener('click', () => connection?.send({ type: 'removeBot', id: player.id }));
     item.append(remove);
   }
-  requestAnimationFrame(() => drawAvatar(avatar, index, player.skin));
+  requestAnimationFrame(() => drawAvatar(avatar, hero, player.skin));
   return item;
 }
 
@@ -678,7 +683,7 @@ function renderScores(match: MatchState): void {
       count.className = 'score-count';
       count.textContent = String(score);
       item.append(avatar, name, wins, count);
-      requestAnimationFrame(() => drawAvatar(avatar, player.id, match.skins?.[player.id] ?? 0));
+      requestAnimationFrame(() => drawAvatar(avatar, seatCharacter(match, player.id), match.skins?.[player.id] ?? 0));
       return item;
     }),
   );
@@ -687,7 +692,12 @@ function renderScores(match: MatchState): void {
 function seatName(seat: number | null): string {
   if (seat === null || !lobby) return '';
   const player = lobby.players.find((candidate) => lobby?.seats[candidate.id] === seat);
-  return player?.name ?? PLAYER_LOOKS[seat].name;
+  return player?.name ?? CHARACTERS[defaultCharacter(seat)].name;
+}
+
+/** Personnage d'un joueur de la partie (celui de sa place avec un serveur plus ancien). */
+function seatCharacter(match: MatchState, seat: number): number {
+  return match.characters?.[seat] ?? defaultCharacter(seat);
 }
 
 function formatClock(ticks: number): string {
@@ -714,6 +724,7 @@ function updateGameHud(match: MatchState): void {
 
   const mine = me === null ? undefined : match.round.players[me];
   renderPowers(mine, match.round.tick);
+  renderPowerButton(match, mine);
   detonateButton.hidden = !(mine?.alive && mine.detonator && match.phase === 'playing');
 
   const remaining = SUDDEN_DEATH_TICKS - match.round.tick;
@@ -785,7 +796,7 @@ function updateVictory(match: MatchState, me: number | null): void {
   victory.hidden = false;
   document.getElementById('coach')?.setAttribute('hidden', '');
   renderRematch();
-  victoryDance.play(lookFor(winner, match.skins?.[winner] ?? 0));
+  victoryDance.play(lookFor(seatCharacter(match, winner), match.skins?.[winner] ?? 0));
   // Les boutons arrivent après le spectacle.
   victoryActions.classList.remove('shown');
   if (victoryActionsTimer !== null) window.clearTimeout(victoryActionsTimer);
@@ -897,6 +908,39 @@ document.addEventListener('pointerdown', (event) => {
 });
 
 let detonateRequested = false;
+let powerRequested = false;
+const powerButton = required<HTMLButtonElement>('#power-btn');
+powerButton.addEventListener('pointerdown', (event) => {
+  event.preventDefault();
+  powerRequested = true;
+  powerButton.classList.add('pressed');
+});
+for (const type of ['pointerup', 'pointercancel', 'pointerleave'] as const) {
+  powerButton.addEventListener(type, () => powerButton.classList.remove('pressed'));
+}
+let renderedPowerKey = '';
+
+
+/** Bouton du pouvoir : nom du pouvoir quand il est prêt, secondes de recharge sinon. */
+function renderPowerButton(match: MatchState, player: Player | undefined): void {
+  const show = !!match.powers && !!player?.alive && match.phase !== 'matchOver';
+  powerButton.hidden = !show;
+  if (!show || !player) return;
+  const info = CHARACTERS[player.character] ?? CHARACTERS[0];
+  const tick = match.phase === 'playing' ? match.round.tick : 0;
+  const left = Math.max(0, player.powerReadyAt - tick);
+  const total = tick < player.powerReadyAt && player.powerReadyAt <= POWER_START_TICKS ? POWER_START_TICKS : info.cooldown;
+  const active = player.effect !== -1 && player.effectUntil > tick;
+  const key = `${player.character}:${Math.ceil(left / TICK_RATE)}:${active}:${Math.round((left / total) * 40)}`;
+  if (key === renderedPowerKey) return;
+  renderedPowerKey = key;
+  powerButton.style.setProperty('--hero', HERO_COLORS[player.character] ?? HERO_COLORS[0]);
+  powerButton.style.setProperty('--cd', String(Math.min(1, left / total)));
+  powerButton.classList.toggle('charging', left > 0);
+  powerButton.classList.toggle('active', active);
+  setText(required<HTMLElement>('#power-label'), left > 0 ? String(Math.ceil(left / TICK_RATE)) : info.power);
+  powerButton.setAttribute('aria-label', left > 0 ? `${info.power} : prêt dans ${Math.ceil(left / TICK_RATE)} s` : `Utiliser ${info.power}`);
+}
 /** Développement : robot aux commandes de ce téléphone. */
 let devAutopilot: BotBrain | null = null;
 detonateButton.addEventListener('pointerdown', (event) => {
@@ -954,6 +998,8 @@ function sendInputs(match: MatchState | null): void {
   const keyBomb = keyboard.consumeBomb();
   const detonate = keyboard.consumeDetonate() || detonateRequested;
   detonateRequested = false;
+  let power = keyboard.consumePower() || powerRequested;
+  powerRequested = false;
   const playing = screen === 'game' && match?.phase === 'playing';
   // Le joueur pousse selon ce qu'il voit : si l'arène est affichée pivotée,
   // la direction à l'écran est convertie en direction dans l'arène.
@@ -965,6 +1011,7 @@ function sendInputs(match: MatchState | null): void {
     const input = devAutopilot.decide(match.round, mySeat()!);
     direction = input.direction;
     autoBomb = input.bomb;
+    power ||= !!input.power;
   }
   if (direction !== lastSentDirection) {
     connection.send({ type: 'input', direction });
@@ -972,6 +1019,7 @@ function sendInputs(match: MatchState | null): void {
   }
   if (playing && (touchBomb || keyBomb || autoBomb)) connection.send({ type: 'bomb' });
   if (playing && detonate) connection.send({ type: 'detonate' });
+  if (playing && power) connection.send({ type: 'power' });
 }
 
 function frameLoop(now: number): void {
@@ -1281,7 +1329,7 @@ function renderCoach(): void {
   coach.classList.toggle('finished', finished);
   coachActions.hidden = !finished;
   coachQuit.hidden = finished;
-  setText(required<HTMLElement>('#coach-step'), finished ? '✓' : `${tutorial.index}/5`);
+  setText(required<HTMLElement>('#coach-step'), finished ? '✓' : `${tutorial.index}/${tutorial.total}`);
   setText(required<HTMLElement>('#coach-text'), finished ? 'Tutoriel terminé, vous savez jouer ! Continuez la partie ou revenez à l’accueil.' : tutorial.text);
 }
 
@@ -1303,7 +1351,8 @@ function playSolo(withTutorial: boolean): void {
   setText(homeError, '');
   const name = playerName();
   coach.hidden = true;
-  tutorial = withTutorial ? new Tutorial(window.matchMedia?.('(pointer: coarse)').matches ?? true) : null;
+  const hero = CHARACTERS[myCharacter()];
+  tutorial = withTutorial ? new Tutorial(window.matchMedia?.('(pointer: coarse)').matches ?? true, hero) : null;
   connect(() => {
     connection?.send({ type: 'create', name });
     connection?.send({ type: 'addBot', level: withTutorial ? 'debutant' : 'pro' });
@@ -1349,6 +1398,123 @@ backButton.addEventListener('click', () => {
   show('lobby');
 });
 
+// ---- Choix du personnage ----
+
+const CHARACTER_KEY = 'boomz.character';
+const SKIN_KEY = 'boomz.skin';
+const charactersDialog = required<HTMLDialogElement>('#characters');
+const characterGrid = required<HTMLUListElement>('#character-grid');
+const skinOptions = required<HTMLElement>('#skin-options');
+/** Sélection en cours dans la fenêtre, confirmée par « Choisir ». */
+let pickedCharacter = 0;
+let pickedSkin = 0;
+/** Premier lancement : le tutoriel est proposé une fois le personnage choisi. */
+let pickingFirst = false;
+
+function storedCharacter(): number | null {
+  const value = Number(readStorage(() => localStorage, CHARACTER_KEY));
+  return readStorage(() => localStorage, CHARACTER_KEY) !== null && isCharacter(value) ? value : null;
+}
+
+function myCharacter(): number {
+  return storedCharacter() ?? 0;
+}
+
+function mySkin(): number {
+  const value = Number(readStorage(() => localStorage, SKIN_KEY));
+  return Number.isInteger(value) && value >= 0 && value < SKIN_COUNT ? value : 0;
+}
+
+function renderHeroRow(): void {
+  const hero = CHARACTERS[myCharacter()];
+  setText(required<HTMLElement>('#hero-name'), hero.name);
+  setText(required<HTMLElement>('#hero-power'), `Pouvoir : ${hero.power}`);
+  requestAnimationFrame(() => drawAvatar(required<HTMLCanvasElement>('#hero-avatar'), myCharacter(), mySkin()));
+}
+
+function renderCharacterPicker(): void {
+  characterGrid.replaceChildren(
+    ...CHARACTERS.map((character, index) => {
+      const item = document.createElement('li');
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'character-choice';
+      button.setAttribute('aria-pressed', String(index === pickedCharacter));
+      button.setAttribute('aria-label', `${character.name}, pouvoir ${character.power}`);
+      const avatar = document.createElement('canvas');
+      avatar.className = 'avatar';
+      const label = document.createElement('span');
+      label.textContent = character.name;
+      button.append(avatar, label);
+      button.addEventListener('click', () => {
+        pickedCharacter = index;
+        audio.playClick();
+        renderCharacterPicker();
+      });
+      item.append(button);
+      requestAnimationFrame(() => drawAvatar(avatar, index, index === pickedCharacter ? pickedSkin : 0));
+      return item;
+    }),
+  );
+  const info = CHARACTERS[pickedCharacter];
+  setText(required<HTMLElement>('#character-name'), info.name);
+  setText(required<HTMLElement>('#character-category'), info.category);
+  setText(required<HTMLElement>('#character-power'), `Pouvoir : ${info.power}`);
+  setText(required<HTMLElement>('#character-description'), info.description);
+  setText(required<HTMLElement>('#character-cooldown'), `Recharge : ${Math.round(info.cooldown / TICK_RATE)} s`);
+  requestAnimationFrame(() => drawAvatar(required<HTMLCanvasElement>('#character-portrait'), pickedCharacter, pickedSkin));
+  skinOptions.replaceChildren(
+    ...SKIN_NAMES.map((skinName, skin) => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'skin-option';
+      button.setAttribute('aria-pressed', String(skin === pickedSkin));
+      const avatar = document.createElement('canvas');
+      avatar.className = 'avatar';
+      const label = document.createElement('span');
+      label.textContent = skinName;
+      button.append(avatar, label);
+      button.addEventListener('click', () => {
+        pickedSkin = skin;
+        renderCharacterPicker();
+      });
+      requestAnimationFrame(() => drawAvatar(avatar, pickedCharacter, skin));
+      return button;
+    }),
+  );
+  setText(required<HTMLElement>('#characters-ok'), `Jouer ${info.name}`);
+}
+
+/** `first` : premier lancement, sans possibilité d'annuler. */
+function openCharacters(first: boolean): void {
+  pickingFirst = first;
+  pickedCharacter = myCharacter();
+  pickedSkin = mySkin();
+  required<HTMLButtonElement>('#characters-close').hidden = first;
+  renderCharacterPicker();
+  charactersDialog.showModal();
+}
+
+required<HTMLButtonElement>('#characters-ok').addEventListener('click', () => {
+  writeStorage(() => localStorage, CHARACTER_KEY, String(pickedCharacter));
+  writeStorage(() => localStorage, SKIN_KEY, String(pickedSkin));
+  charactersDialog.close();
+  renderHeroRow();
+  if (session) {
+    connection?.send({ type: 'character', character: pickedCharacter });
+    connection?.send({ type: 'skin', skin: pickedSkin });
+  }
+  if (pickingFirst && !readStorage(() => localStorage, TUTORIAL_KEY)) welcomeDialog.showModal();
+  pickingFirst = false;
+});
+required<HTMLButtonElement>('#characters-close').addEventListener('click', () => charactersDialog.close());
+// Premier lancement : pas de fermeture avec la touche Échap sans avoir choisi.
+charactersDialog.addEventListener('cancel', (event) => {
+  if (pickingFirst) event.preventDefault();
+});
+required<HTMLButtonElement>('#hero-change').addEventListener('click', () => openCharacters(false));
+renderHeroRow();
+
 // ---- Démarrage ----
 
 nameInput.value = readStorage(() => localStorage, NAME_KEY) ?? '';
@@ -1361,6 +1527,9 @@ if (previous && (!invited || invited === previous.room)) {
   resume(previous);
 } else if (invited) {
   showInvitation(invited);
+} else if (storedCharacter() === null) {
+  // Premier lancement (ou première fois avec les personnages) : choix du personnage, puis tutoriel.
+  openCharacters(true);
 } else if (!readStorage(() => localStorage, TUTORIAL_KEY)) {
   welcomeDialog.showModal();
 }

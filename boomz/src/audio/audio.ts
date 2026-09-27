@@ -329,6 +329,19 @@ export class GameAudio {
       case 'bonus':
         this.playBonus(event.bonus);
         break;
+      case 'power': {
+        // Pouvoir : envolée brillante, plus discrète pour les autres joueurs.
+        const volume = event.mine ? 1 : 0.4;
+        this.tone(520, 0.28, { to: 1560, type: 'triangle', volume: 0.18 * volume });
+        this.tone(780, 0.22, { to: 2080, type: 'sine', volume: 0.1 * volume, delay: 0.05 });
+        this.noise(0.2, { filter: 'bandpass', from: 1500, to: 6000, q: 3, volume: 0.08 * volume });
+        break;
+      }
+      case 'frozen':
+        // Craquement de glace.
+        this.noise(0.18, { filter: 'highpass', from: 5000, to: 2500, volume: event.mine ? 0.3 : 0.1 });
+        this.tone(1900, 0.3, { to: 1200, type: 'sine', volume: event.mine ? 0.14 : 0.05 });
+        break;
       case 'vestLost':
         this.noise(0.25, { filter: 'highpass', from: 4000, to: 1500, volume: event.mine ? 0.3 : 0.1 });
         this.tone(880, 0.3, { to: 330, type: 'triangle', volume: event.mine ? 0.2 : 0.08 });

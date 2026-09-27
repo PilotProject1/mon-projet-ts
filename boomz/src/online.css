@@ -1788,3 +1788,306 @@ button.voice-tag {
   stroke-linecap: round;
   fill: none;
 }
+
+/* ---- Personnages : choix et pouvoir ---- */
+
+.hero-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  padding: 8px 10px;
+  border: 1px solid var(--panel-border);
+  border-radius: 14px;
+  background: rgba(20, 23, 38, 0.5);
+}
+
+.hero-avatar {
+  width: 44px;
+  height: 44px;
+}
+
+.hero-info {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+  line-height: 1.25;
+}
+
+.hero-info strong,
+.hero-info span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hero-info span {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.hero-change {
+  flex: none;
+  padding: 8px 12px;
+}
+
+.characters {
+  width: min(520px, calc(100vw - 24px));
+}
+
+.character-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.character-choice {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+  min-width: 0;
+  padding: 8px 4px 6px;
+  border: 2px solid transparent;
+  border-radius: 14px;
+  background: rgba(20, 23, 38, 0.6);
+  color: var(--text);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.character-choice .avatar {
+  width: 48px;
+  height: 48px;
+}
+
+.character-choice span {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.character-choice[aria-pressed='true'] {
+  border-color: var(--accent);
+  background: rgba(255, 207, 51, 0.12);
+}
+
+.character-detail {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  min-width: 0;
+  padding: 12px;
+  border-radius: 14px;
+  background: rgba(20, 23, 38, 0.6);
+}
+
+.character-portrait {
+  flex: none;
+  width: 72px;
+  height: 72px;
+  border-radius: 14px;
+  background: #313854;
+}
+
+.character-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.character-text p {
+  margin: 0 0 4px;
+}
+
+.character-name strong {
+  font-size: 18px;
+}
+
+.character-category {
+  display: inline-block;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--panel-border);
+  color: var(--muted);
+  font-size: 12px;
+  vertical-align: 2px;
+}
+
+.character-power {
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.character-cooldown {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.skin-choice {
+  margin: 0;
+  padding: 0;
+  border: none;
+}
+
+.skin-choice legend {
+  margin-bottom: 6px;
+  padding: 0;
+  font-weight: 700;
+}
+
+.skin-options {
+  display: flex;
+  gap: 8px;
+}
+
+.skin-option {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  padding: 4px 8px 4px 4px;
+  border: 2px solid transparent;
+  border-radius: 12px;
+  background: rgba(20, 23, 38, 0.6);
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.skin-option .avatar {
+  width: 30px;
+  height: 30px;
+}
+
+.skin-option span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.skin-option[aria-pressed='true'] {
+  border-color: var(--accent);
+}
+
+/* Téléphone couché : les 8 personnages sur une rangée, pour tout voir sans défiler. */
+@media (orientation: landscape) and (max-height: 500px) {
+  .characters {
+    width: min(760px, calc(100vw - 24px));
+  }
+
+  .characters .help-card {
+    gap: 8px;
+    padding: 14px 16px;
+  }
+
+  .characters .legend-intro {
+    display: none;
+  }
+
+  .character-grid {
+    grid-template-columns: repeat(8, minmax(0, 1fr));
+    gap: 6px;
+  }
+
+  .character-choice .avatar {
+    width: 38px;
+    height: 38px;
+  }
+
+  .character-detail {
+    padding: 8px 10px;
+  }
+
+  .character-portrait {
+    width: 56px;
+    height: 56px;
+  }
+}
+
+/* ---- Bouton du pouvoir ---- */
+
+.power-btn {
+  --hero: #2447a8;
+  --cd: 0;
+  position: relative;
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  padding: 0;
+  overflow: hidden;
+  border: 3px solid #fff;
+  border-radius: 50%;
+  background: var(--hero);
+  background: radial-gradient(circle at 35% 30%, color-mix(in srgb, var(--hero) 60%, #fff), var(--hero) 65%);
+  color: #fff;
+  font: inherit;
+  font-weight: 800;
+  font-size: 10px;
+  line-height: 1.05;
+  box-shadow: 0 4px 0 rgba(0, 0, 0, 0.45), 0 6px 12px rgba(0, 0, 0, 0.35);
+  touch-action: none;
+  cursor: pointer;
+}
+
+.power-btn[hidden] {
+  display: none;
+}
+
+/* Recharge : un voile sombre qui se retire comme une aiguille de montre. */
+.power-btn::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: conic-gradient(rgba(10, 12, 20, 0.72) calc(var(--cd) * 360deg), transparent 0);
+}
+
+.power-label {
+  position: relative;
+  max-width: 50px;
+  overflow-wrap: anywhere;
+  text-align: center;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+}
+
+.power-btn.charging {
+  border-color: rgba(255, 255, 255, 0.45);
+}
+
+.power-btn.charging .power-label {
+  font-size: 18px;
+}
+
+.power-btn.active {
+  animation: power-glow 0.6s ease-in-out infinite alternate;
+}
+
+.power-btn.pressed {
+  transform: translateY(3px);
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.45);
+}
+
+@keyframes power-glow {
+  to {
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--hero) 50%, #fff), 0 6px 16px rgba(0, 0, 0, 0.35);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .power-btn.active {
+    animation: none;
+    box-shadow: 0 0 0 4px #fff;
+  }
+}
