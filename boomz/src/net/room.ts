@@ -1,6 +1,7 @@
 import { SKIN_COUNT, TICK_RATE } from '../game/constants';
 import { createMatch, stepMatch, type ArenaChoice, type MatchState } from '../game/match';
 import { BotBrain, type BotLevel } from '../game/bot';
+import { CHARACTER_COUNT, defaultCharacter, isCharacter } from '../game/powers';
 import { createRng } from '../game/rng';
 import { eliminatePlayer } from '../game/round';
 import type { Direction, PlayerInput, RoundEvent } from '../game/types';
@@ -53,6 +54,14 @@ export interface Peer {
   voice: boolean;
   /** Robot ajouté par l'hôte (son niveau), ou `null` pour un joueur humain. */
   bot: BotLevel | null;
+  /** Personnage choisi, ou `null` : celui de sa place. */
+  character: number | null;
+  /**
+   * Le téléphone connaît les pouvoirs (il a choisi un personnage). Les
+   * pouvoirs ne sont actifs que si tous les joueurs humains les connaissent :
+   * une version plus ancienne de l'application joue sans.
+   */
+  powersAware: boolean;
   /** Horloge du salon au dernier émoji envoyé. */
   lastEmoteAt: number | null;
   /** Horloge du salon au moment de la coupure. */
@@ -61,7 +70,21 @@ export interface Peer {
 }
 
 export function createPeer(id: string, token: string, name: string, send: (message: ServerMessage) => void): Peer {
-  return { id, token, name, connected: true, ready: false, skin: 0, voice: false, bot: null, lastEmoteAt: null, disconnectedAt: null, send };
+  return {
+    id,
+    token,
+    name,
+    connected: true,
+    ready: false,
+    skin: 0,
+    voice: false,
+    bot: null,
+    character: null,
+    powersAware: false,
+    lastEmoteAt: null,
+    disconnectedAt: null,
+    send,
+  };
 }
 
 /**
@@ -80,6 +103,7 @@ export class Room {
   private directions: Array<Direction | null> = [];
   private pendingBombs: boolean[] = [];
   private pendingDetonations: boolean[] = [];
+  private pendingPowers: boolean[] = [];
   private arena: ArenaChoice = 'rotation';
   /** Cerveaux des robots de la partie en cours, par numéro de joueur. */
   private brains = new Map<number, BotBrain>();
@@ -175,6 +199,14 @@ export class Room {
     this.broadcastLobby();
   }
 
+  setCharacter(peerId: string, character: number): void {
+    const peer = this.peers.find((candidate) => candidate.id === peerId);
+    if (!peer || this.inMatch || !isCharacter(character)) return;
+    peer.character = character;
+    peer.powersAware = true;
+    this.broadcastLobby();
+  }
+
   /** Ajoute un robot, à la demande de l'hôte, pour compléter la partie. */
   addBot(peerId: string, level: BotLevel): string | null {
     if (peerId !== this.hostId) return 'Seul l’hôte peut ajouter un robot.';
@@ -185,6 +217,11 @@ export class Room {
     const bot = createPeer(`robot-${++this.botCount}`, '', name, () => {});
     bot.bot = level;
     bot.ready = true;
+    // Un personnage que personne n'a encore pris, si possible.
+    const cast = new Set(this.peers.map((peer, seat) => peer.character ?? defaultCharacter(seat)));
+    const free = Array.from({ length: CHARACTER_COUNT }, (_, i) => i).filter((i) => !cast.has(i));
+    const pool = free.length ? free : Array.from({ length: CHARACTER_COUNT }, (_, i) => i);
+    bot.character = pool[Math.floor(Math.random() * pool.length)];
     this.peers.push(bot);
     this.broadcastLobby();
     return null;
@@ -240,15 +277,18 @@ export class Room {
     this.directions = this.peers.map(() => null);
     this.pendingBombs = this.peers.map(() => false);
     this.pendingDetonations = this.peers.map(() => false);
+    this.pendingPowers = this.peers.map(() => false);
     // Chacun redit s'il est partant pour la suivante ; les robots le sont toujours.
     for (const peer of this.peers) peer.ready = peer.bot !== null;
     const seed = this.randomSeed();
-    this.match = createMatch(this.peers.length, seed, this.arena);
+    const characters = this.peers.map((peer, seat) => peer.character ?? defaultCharacter(seat));
+    const powers = this.peers.every((peer) => peer.bot !== null || peer.powersAware);
+    this.match = createMatch(this.peers.length, seed, this.arena, characters, powers);
     const botRandom = createRng(seed ^ 0x5bd1e995);
     this.brains = new Map(
       this.peers.flatMap((peer, seat) => (peer.bot ? [[seat, new BotBrain(peer.bot, botRandom)] as const] : [])),
     );
-    this.match.skins = this.peers.map((peer) => peer.skin);
+    this.match.skins = distinctSkins(characters, this.peers.map((peer) => peer.skin));
     this.stats?.recordMatchStart(this.peers.length);
     this.matchTicks = 0;
     this.broadcastLobby();
@@ -264,6 +304,11 @@ export class Room {
   requestBomb(peerId: string): void {
     const seat = this.seats.get(peerId);
     if (seat !== undefined && this.inMatch) this.pendingBombs[seat] = true;
+  }
+
+  requestPower(peerId: string): void {
+    const seat = this.seats.get(peerId);
+    if (seat !== undefined && this.inMatch) this.pendingPowers[seat] = true;
   }
 
   requestDetonation(peerId: string): void {
@@ -289,6 +334,7 @@ export class Room {
         const input = brain.decide(match.round, seat);
         this.directions[seat] = input.direction;
         if (input.bomb) this.pendingBombs[seat] = true;
+        if (input.power) this.pendingPowers[seat] = true;
       }
     }
 
@@ -296,10 +342,12 @@ export class Room {
       direction,
       bomb: this.pendingBombs[seat],
       detonate: this.pendingDetonations[seat],
+      power: this.pendingPowers[seat],
     }));
     // Une commande reçue pendant le compte à rebours est ignorée, pas mise en réserve.
     this.pendingBombs.fill(false);
     this.pendingDetonations.fill(false);
+    this.pendingPowers.fill(false);
     const wasPlaying = match.phase === 'playing';
     const events = stepMatch(match, inputs);
     this.stats?.recordEvents(events);
@@ -335,7 +383,7 @@ export class Room {
     this.broadcast({
       type: 'lobby',
       host: this.hostId ?? '',
-      players: this.peers.map(({ id, name, connected, ready, skin, voice, bot }) => ({
+      players: this.peers.map(({ id, name, connected, ready, skin, voice, bot, character }) => ({
         id,
         name,
         connected,
@@ -343,6 +391,7 @@ export class Room {
         skin,
         voice,
         ...(bot ? { bot } : {}),
+        ...(character !== null ? { character } : {}),
       })),
       seats: Object.fromEntries(this.seats),
       inMatch: this.inMatch,
@@ -353,4 +402,18 @@ export class Room {
   private broadcast(message: ServerMessage): void {
     for (const peer of this.peers) if (peer.connected) peer.send(message);
   }
+}
+
+/**
+ * Deux joueurs sur le même personnage ne doivent pas se ressembler : le second
+ * prend une autre apparence de ce personnage, s'il en reste.
+ */
+export function distinctSkins(characters: readonly number[], wanted: readonly number[]): number[] {
+  const used = new Set<string>();
+  return characters.map((character, seat) => {
+    let skin = wanted[seat] ?? 0;
+    for (let tries = 0; tries < SKIN_COUNT && used.has(`${character}:${skin}`); tries++) skin = (skin + 1) % SKIN_COUNT;
+    used.add(`${character}:${skin}`);
+    return skin;
+  });
 }

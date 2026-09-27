@@ -110,6 +110,12 @@ export class Session {
       case 'skin':
         room.setSkin(peer.id, Number(message.skin));
         return;
+      case 'character':
+        room.setCharacter(peer.id, Number(message.character));
+        return;
+      case 'power':
+        room.requestPower(peer.id);
+        return;
       case 'arena':
         if (message.arena === 'rotation' || (ARENA_IDS as readonly string[]).includes(message.arena)) {
           room.setArena(peer.id, message.arena);

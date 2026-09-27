@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { COUNTDOWN_TICKS, TICK_RATE } from '../game/constants';
 import type { MatchState } from '../game/match';
 import { RECONNECT_GRACE_SECONDS, type ServerMessage } from './protocol';
-import { createPeer, Room, type Peer } from './room';
+import { createPeer, distinctSkins, Room, type Peer } from './room';
 
 type FakePeer = Peer & { inbox: ServerMessage[] };
 
@@ -192,6 +192,54 @@ describe('salon', () => {
     for (let i = 0; i < TICK_RATE; i++) room.tick();
     room.sendEmote('bob', 3);
     expect(lastOf(bob, 'emote')).toEqual({ type: 'emote', seat: 1, emote: 3 });
+  });
+
+  describe('personnages et pouvoirs', () => {
+    it('donnent à chacun son personnage, et les pouvoirs si tous les téléphones les connaissent', () => {
+      const room = new Room('ABCDE', () => 1);
+      const alice = fakePeer('alice');
+      const bob = fakePeer('bob');
+      room.join(alice);
+      room.join(bob);
+      room.setCharacter('alice', 6);
+      room.setCharacter('bob', 99);
+      expect(lastOf(alice, 'lobby').players[0].character).toBe(6);
+      expect(lastOf(alice, 'lobby').players[1].character).toBeUndefined();
+      room.setReady('bob', true);
+      room.start('alice');
+      // Bob (ancienne version, sans choix de personnage) : pas de pouvoirs, personnage de sa place.
+      expect(snapshot(alice).characters).toEqual([6, 1]);
+      expect(snapshot(alice).powers).toBe(false);
+    });
+
+    it('activent les pouvoirs quand tout le monde a choisi, robots compris', () => {
+      const room = new Room('ABCDE', () => 1);
+      const alice = fakePeer('alice');
+      room.join(alice);
+      room.setCharacter('alice', 2);
+      room.addBot('alice', 'pro');
+      room.start('alice');
+      expect(snapshot(alice).powers).toBe(true);
+      expect(snapshot(alice).characters[1]).not.toBe(2);
+    });
+
+    it('relaient l’usage du pouvoir au joueur concerné', () => {
+      const room = new Room('ABCDE', () => 1);
+      const alice = fakePeer('alice');
+      room.join(alice);
+      room.setCharacter('alice', 7);
+      room.addBot('alice', 'debutant');
+      room.start('alice');
+      for (let i = 0; i < COUNTDOWN_TICKS + 5 * TICK_RATE; i++) room.tick();
+      room.requestPower('alice');
+      room.tick();
+      expect(snapshot(alice).round.players[0].effect).toBe(7);
+    });
+
+    it('séparent deux joueurs sur le même personnage par leur apparence', () => {
+      expect(distinctSkins([3, 3, 1, 3], [0, 0, 0, 0])).toEqual([0, 1, 0, 2]);
+      expect(distinctSkins([3, 3], [2, 1])).toEqual([2, 1]);
+    });
   });
 
   describe('robots', () => {

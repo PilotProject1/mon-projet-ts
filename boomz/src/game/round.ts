@@ -39,9 +39,27 @@ import {
   type RoundState,
 } from './types';
 
+import {
+  BLAST_FUSE_TICKS,
+  CHARACTERS,
+  DASH_SPEED,
+  DASH_TICKS,
+  defaultCharacter,
+  FREEZE_RADIUS,
+  FREEZE_TICKS,
+  Hero,
+  POWER_START_TICKS,
+  SHELL_SLOWDOWN,
+  SHELL_TICKS,
+  SURCHARGE_RANGE,
+  SURCHARGE_TICKS,
+  TOXIC_CLOUD_TICKS,
+  TOXIC_POWER_TICKS,
+} from './powers';
+
 const DIRECTIONS: Direction[] = ['up', 'down', 'left', 'right'];
 
-export function createPlayer(id: number, x: number, y: number): Player {
+export function createPlayer(id: number, x: number, y: number, character = defaultCharacter(id)): Player {
   return {
     id,
     x: x + 0.5,
@@ -62,10 +80,25 @@ export function createPlayer(id: number, x: number, y: number): Player {
     buffLevel: new Array<number>(9).fill(0),
     teleportLock: -1,
     diedAt: null,
+    character,
+    powerReadyAt: POWER_START_TICKS,
+    effect: -1,
+    effectUntil: 0,
+    frozenUntil: 0,
   };
 }
 
-export function createRound(playerCount: number, seed: number, arena: ArenaId = 'chantier'): RoundState {
+/**
+ * `characters` : personnage de chaque joueur (par défaut, celui de sa place) ;
+ * `powers` : pouvoirs des personnages actifs.
+ */
+export function createRound(
+  playerCount: number,
+  seed: number,
+  arena: ArenaId = 'chantier',
+  characters: readonly number[] = [],
+  powers = false,
+): RoundState {
   const width = GRID_WIDTH;
   const height = GRID_HEIGHT;
   const generated = generateArena(arena, width, height, playerCount, seed);
@@ -80,13 +113,21 @@ export function createRound(playerCount: number, seed: number, arena: ArenaId = 
     bonuses: new Array<Bonus>(width * height).fill(Bonus.None),
     hiddenBonuses: generated.hiddenBonuses,
     flames: new Array<number>(width * height).fill(0),
-    players: SPAWNS.slice(0, playerCount).map(([x, y], id) => createPlayer(id, x, y)),
+    players: SPAWNS.slice(0, playerCount).map(([x, y], id) => createPlayer(id, x, y, characters[id] ?? defaultCharacter(id))),
     bombs: [],
     tick: 0,
     nextBombId: 1,
     suddenDeathOrder: suddenDeathOrder(width, height),
     suddenDeathIndex: 0,
+    powers,
+    toxic: new Array<number>(width * height).fill(0),
+    toxicOwner: new Array<number>(width * height).fill(-1),
   };
+}
+
+/** Effet de pouvoir en cours chez ce joueur ? */
+export function hasEffect(state: RoundState, player: Player, power: number): boolean {
+  return player.effect === power && player.effectUntil > state.tick;
 }
 
 export function cellOf(player: Player): [number, number] {
@@ -107,6 +148,8 @@ function isWalkable(state: RoundState, cx: number, cy: number, player: Player): 
   if (tile !== Tile.Floor && !(tile === Tile.Block && player.wallPass)) return false;
   const bomb = bombAt(state, cx, cy);
   if (!bomb) return true;
+  // En plein Dash (Rocket), on passe par-dessus les bombes.
+  if (player.effect === Hero.Rocket && player.effectUntil > state.tick) return true;
   return bomb.passThrough.includes(player.id) || (player.bombPass && bomb.owner === player.id);
 }
 
@@ -200,7 +243,7 @@ function placeBomb(state: RoundState, player: Player, events: RoundEvent[]): voi
     cx,
     cy,
     fuse: player.detonator ? REMOTE_FUSE_TICKS : BOMB_FUSE_TICKS,
-    range: player.range,
+    range: hasEffect(state, player, Hero.Boomer) ? Math.min(MAX_RANGE, player.range + SURCHARGE_RANGE) : player.range,
     passThrough,
     remote: player.detonator,
     slide: null,
@@ -209,10 +252,113 @@ function placeBomb(state: RoundState, player: Player, events: RoundEvent[]): voi
   events.push({ type: 'bombPlaced', player: player.id });
 }
 
+/** Joueurs présents sur une case. */
+function playersOn(state: RoundState, cx: number, cy: number): Player[] {
+  return state.players.filter((other) => other.alive && cellOf(other)[0] === cx && cellOf(other)[1] === cy);
+}
+
+/**
+ * Pouvoir d'un personnage, utilisé par ce joueur (le sien, ou celui qu'Omega
+ * copie). Renvoie le pouvoir réellement utilisé, ou -1 s'il n'a rien pu
+ * faire : le pouvoir n'est alors pas consommé.
+ */
+function applyPower(state: RoundState, player: Player, power: number, events: RoundEvent[]): number {
+  switch (power) {
+    case Hero.Boomer:
+    case Hero.Toxic:
+    case Hero.Rocco:
+      player.effect = power;
+      player.effectUntil = state.tick + (power === Hero.Boomer ? SURCHARGE_TICKS : power === Hero.Toxic ? TOXIC_POWER_TICKS : SHELL_TICKS);
+      return power;
+    case Hero.Blaster: {
+      const own = state.bombs.filter((bomb) => bomb.owner === player.id && !bomb.decoy);
+      // Un tiers de seconde pour réagir : assez pour un réflexe, pas pour fuir loin.
+      for (const bomb of own) bomb.fuse = Math.min(bomb.fuse, BLAST_FUSE_TICKS);
+      return own.length > 0 ? power : -1;
+    }
+    case Hero.Frost: {
+      let hit = false;
+      for (const other of state.players) {
+        if (!other.alive || other.id === player.id) continue;
+        if (Math.hypot(other.x - player.x, other.y - player.y) > FREEZE_RADIUS) continue;
+        other.frozenUntil = state.tick + FREEZE_TICKS;
+        other.moving = false;
+        events.push({ type: 'frozen', player: other.id });
+        hit = true;
+      }
+      return hit ? power : -1;
+    }
+    case Hero.Boomette: {
+      const [cx, cy] = cellOf(player);
+      if (state.tiles[cy * state.width + cx] !== Tile.Floor || bombAt(state, cx, cy)) return -1;
+      state.bombs.push({
+        id: state.nextBombId++,
+        owner: player.id,
+        cx,
+        cy,
+        fuse: BOMB_FUSE_TICKS,
+        range: player.range,
+        passThrough: playersOn(state, cx, cy).map((other) => other.id),
+        remote: false,
+        slide: null,
+        slideProgress: 0,
+        decoy: true,
+      });
+      return power;
+    }
+    case Hero.Omega: {
+      // Le pouvoir de l'adversaire le plus proche (sauf un autre Omega).
+      let nearest: Player | null = null;
+      let best = Infinity;
+      for (const other of state.players) {
+        if (!other.alive || other.id === player.id || other.character === Hero.Omega) continue;
+        const distance = Math.hypot(other.x - player.x, other.y - player.y);
+        if (distance < best) {
+          best = distance;
+          nearest = other;
+        }
+      }
+      return nearest === null ? -1 : applyPower(state, player, nearest.character, events);
+    }
+    case Hero.Rocket:
+      player.effect = Hero.Rocket;
+      player.effectUntil = state.tick + DASH_TICKS;
+      return power;
+    default:
+      return -1;
+  }
+}
+
+/** Le joueur utilise son pouvoir, s'il est rechargé. */
+function usePower(state: RoundState, player: Player, events: RoundEvent[]): void {
+  if (!state.powers || state.tick < player.powerReadyAt) return;
+  const info = CHARACTERS[player.character];
+  if (!info) return;
+  const before = events.length;
+  const used = applyPower(state, player, player.character, events);
+  if (used === -1) return;
+  player.powerReadyAt = state.tick + info.cooldown;
+  // Pour Omega, l'événement indique le pouvoir copié.
+  events.splice(before, 0, { type: 'powerUsed', player: player.id, power: used });
+}
+
 function explode(state: RoundState, bomb: Bomb, events: RoundEvent[]): void {
   state.bombs = state.bombs.filter((other) => other !== bomb);
+  if (bomb.decoy) {
+    // Le leurre de Boomette : pouf, rien.
+    events.push({ type: 'decoyGone', cx: bomb.cx, cy: bomb.cy });
+    return;
+  }
   events.push({ type: 'explosion', cx: bomb.cx, cy: bomb.cy });
+  const owner = state.players[bomb.owner];
+  const toxic = owner ? hasEffect(state, owner, Hero.Toxic) : false;
+  const poison = (index: number) => {
+    if (!toxic) return;
+    state.toxic[index] = TOXIC_CLOUD_TICKS;
+    state.toxicOwner[index] = bomb.owner;
+  };
   state.flames[bomb.cy * state.width + bomb.cx] = FLAME_TICKS;
+  poison(bomb.cy * state.width + bomb.cx);
   for (const direction of DIRECTIONS) {
     const [dx, dy] = DIRECTION_VECTORS[direction];
     for (let distance = 1; distance <= bomb.range; distance++) {
@@ -228,6 +374,7 @@ function explode(state: RoundState, bomb: Bomb, events: RoundEvent[]): void {
         events.push({ type: 'blockDestroyed', cx: x, cy: y });
         break;
       }
+      poison(index);
       if (state.bonuses[index] !== Bonus.None) {
         // Un bonus au sol est détruit par la flamme, qui s'arrête dessus.
         state.bonuses[index] = Bonus.None;
@@ -254,6 +401,7 @@ function dropSuddenDeathWall(state: RoundState, events: RoundEvent[]): void {
     state.features[index] = Feature.None;
     state.bonuses[index] = Bonus.None;
     state.hiddenBonuses[index] = Bonus.None;
+    state.toxic[index] = 0;
     state.bombs = state.bombs.filter((bomb) => bomb.cx !== cx || bomb.cy !== cy);
     for (const player of state.players) {
       const [px, py] = cellOf(player);
@@ -396,7 +544,23 @@ export function stepRound(state: RoundState, inputs: ReadonlyArray<PlayerInput>)
 
   for (const player of state.players) {
     if (!player.alive) continue;
+    // Gelé : il ne fait rien jusqu'au dégel.
+    if (player.frozenUntil > state.tick) {
+      player.moving = false;
+      continue;
+    }
     const input = inputs[player.id] ?? NO_INPUT;
+    if (input.power) usePower(state, player, events);
+    // Dash de Rocket : il fonce tout droit, quelle que soit la commande.
+    if (hasEffect(state, player, Hero.Rocket)) {
+      player.moving = true;
+      movePlayer(state, player, player.facing, DASH_SPEED);
+      const [cx, cy] = cellOf(player);
+      const under = bombAt(state, cx, cy);
+      // Arrêté sur une bombe : il peut en sortir, comme après l'avoir posée.
+      if (under && !under.passThrough.includes(player.id)) under.passThrough.push(player.id);
+      continue;
+    }
     if (input.bomb) placeBomb(state, player, events);
     if (input.detonate && player.detonator) {
       for (const bomb of state.bombs) if (bomb.owner === player.id && bomb.remote) bomb.fuse = 0;
@@ -404,7 +568,8 @@ export function stepRound(state: RoundState, inputs: ReadonlyArray<PlayerInput>)
     player.moving = input.direction !== null;
     if (input.direction) {
       player.facing = input.direction;
-      const blocker = movePlayer(state, player, input.direction, player.speed);
+      const speed = hasEffect(state, player, Hero.Rocco) ? player.speed * SHELL_SLOWDOWN : player.speed;
+      const blocker = movePlayer(state, player, input.direction, speed);
       // On pousse toujours ses propres bombes ; le bonus Kick permet de pousser celles des autres.
       if (blocker && !blocker.slide && (blocker.owner === player.id || player.kick)) {
         blocker.slide = input.direction;
@@ -424,6 +589,8 @@ export function stepRound(state: RoundState, inputs: ReadonlyArray<PlayerInput>)
       return px === bomb.cx && py === bomb.cy;
     });
   }
+
+  for (let i = 0; i < state.toxic.length; i++) if (state.toxic[i] > 0) state.toxic[i]--;
 
   for (let i = 0; i < state.flames.length; i++) {
     if (state.flames[i] > 0 && --state.flames[i] === 0 && state.tiles[i] === Tile.Burning) {
@@ -454,7 +621,9 @@ export function stepRound(state: RoundState, inputs: ReadonlyArray<PlayerInput>)
     if (!player.alive) continue;
     const [px, py] = cellOf(player);
     const index = py * state.width + px;
-    if (state.flames[index] > 0 && state.tick >= player.invulnerableUntil) {
+    const poisoned = state.toxic[index] > 0 && state.toxicOwner[index] !== player.id;
+    const shielded = hasEffect(state, player, Hero.Rocco);
+    if ((state.flames[index] > 0 || poisoned) && !shielded && state.tick >= player.invulnerableUntil) {
       if (player.vest) {
         player.buffUntil[Bonus.Vest] = 0;
         player.vest = false;

@@ -1,5 +1,6 @@
 import { COUNTDOWN_TICKS, ROUND_OVER_TICKS, WINS_TO_TAKE_MATCH } from './constants';
 import { alivePlayers, createRound, stepRound } from './round';
+import { defaultCharacter } from './powers';
 import { createRng } from './rng';
 import { ARENA_IDS, type ArenaId, type PlayerInput, type RoundEvent, type RoundState } from './types';
 
@@ -23,6 +24,10 @@ export interface MatchState {
   arenas: ArenaId[];
   /** Apparence choisie par chaque joueur (cosmétique, sans effet sur le jeu). */
   skins: number[];
+  /** Personnage de chaque joueur (voir `CHARACTERS`). */
+  characters: number[];
+  /** Pouvoirs des personnages actifs (tous les téléphones de la partie les connaissent). */
+  powers: boolean;
   round: RoundState;
 }
 
@@ -42,8 +47,15 @@ export function arenaForRound(match: Pick<MatchState, 'arenas'>, roundNumber: nu
   return match.arenas[(roundNumber - 1) % match.arenas.length];
 }
 
-export function createMatch(playerCount: number, seed: number, arenaChoice: ArenaChoice = 'chantier'): MatchState {
+export function createMatch(
+  playerCount: number,
+  seed: number,
+  arenaChoice: ArenaChoice = 'chantier',
+  characters: readonly number[] = [],
+  powers = false,
+): MatchState {
   const arenas = arenaPlan(arenaChoice, seed);
+  const cast = Array.from({ length: playerCount }, (_, seat) => characters[seat] ?? defaultCharacter(seat));
   return {
     playerCount,
     seed,
@@ -55,7 +67,9 @@ export function createMatch(playerCount: number, seed: number, arenaChoice: Aren
     matchWinner: null,
     arenas,
     skins: new Array<number>(playerCount).fill(0),
-    round: createRound(playerCount, seed, arenas[0]),
+    characters: cast,
+    powers,
+    round: createRound(playerCount, seed, arenas[0], cast, powers),
   };
 }
 
@@ -88,7 +102,13 @@ export function stepMatch(match: MatchState, inputs: ReadonlyArray<PlayerInput>)
     case 'roundOver':
       if (match.phaseTick >= ROUND_OVER_TICKS) {
         match.roundNumber++;
-        match.round = createRound(match.playerCount, match.seed + match.roundNumber, arenaForRound(match, match.roundNumber));
+        match.round = createRound(
+          match.playerCount,
+          match.seed + match.roundNumber,
+          arenaForRound(match, match.roundNumber),
+          match.characters,
+          match.powers,
+        );
         setPhase(match, 'countdown');
       }
       return [];

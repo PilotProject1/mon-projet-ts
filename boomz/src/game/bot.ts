@@ -1,4 +1,5 @@
 import { BOMB_FUSE_TICKS, FLAME_TICKS, SUDDEN_DEATH_INTERVAL_TICKS, SUDDEN_DEATH_TICKS } from './constants';
+import { DASH_CELLS, FREEZE_RADIUS, Hero } from './powers';
 import { bombAt, cellOf } from './round';
 import { Bonus, DIRECTION_VECTORS, Tile, type Bomb, type Direction, type Player, type PlayerInput, type RoundState } from './types';
 
@@ -25,12 +26,14 @@ interface Profile {
   wander: number;
   /** Se méfie des adversaires : ne s'arrête que là où une bombe posée par eux laisserait une issue. */
   cautious: boolean;
+  /** Probabilité de saisir une occasion d'utiliser son pouvoir. */
+  powerUse: number;
 }
 
 const PROFILES: Record<BotLevel, Profile> = {
-  debutant: { thinkEvery: 16, blindness: 0.25, bombChance: 0.3, attack: 0, bonusReach: 4, margin: 20, wander: 0.3, cautious: false },
-  pro: { thinkEvery: 6, blindness: 0.03, bombChance: 0.8, attack: 5, bonusReach: 10, margin: 12, wander: 0.05, cautious: false },
-  expert: { thinkEvery: 3, blindness: 0, bombChance: 1, attack: 8, bonusReach: 99, margin: 10, wander: 0, cautious: true },
+  debutant: { thinkEvery: 16, blindness: 0.25, bombChance: 0.3, attack: 0, bonusReach: 4, margin: 20, wander: 0.3, cautious: false, powerUse: 0.15 },
+  pro: { thinkEvery: 6, blindness: 0.03, bombChance: 0.8, attack: 5, bonusReach: 10, margin: 12, wander: 0.05, cautious: false, powerUse: 0.6 },
+  expert: { thinkEvery: 3, blindness: 0, bombChance: 1, attack: 8, bonusReach: 99, margin: 10, wander: 0, cautious: true, powerUse: 1 },
 };
 
 const DIRECTIONS: Direction[] = ['up', 'down', 'left', 'right'];
@@ -75,12 +78,73 @@ export class BotBrain {
     this.lastX = me.x;
     this.lastY = me.y;
 
+    // Gelé par Frost : rien à faire jusqu'au dégel.
+    if (me.frozenUntil > state.tick) return { direction: null, bomb: false };
+
     let bomb = false;
+    let power = false;
     if (--this.cooldown <= 0 || this.stuckTicks > 20) {
       this.cooldown = this.profile.thinkEvery;
       bomb = this.think(state, me);
+      power = this.choosePower(state, me, bomb);
     }
-    return { direction: this.steer(state, me), bomb };
+    return { direction: this.steer(state, me), bomb, power };
+  }
+
+  // ---- Pouvoir du personnage ----
+
+  /** Faut-il utiliser son pouvoir maintenant ? `bombing` : une bombe part en même temps. */
+  private choosePower(state: RoundState, me: Player, bombing: boolean): boolean {
+    if (!state.powers || state.tick < me.powerReadyAt) return false;
+    if (this.random() >= this.profile.powerUse) return false;
+    return this.powerUseful(state, me, me.character, bombing);
+  }
+
+  private powerUseful(state: RoundState, me: Player, power: number, bombing: boolean): boolean {
+    const here = index(state, ...cellOf(me));
+    const enemies = state.players.filter((player) => player.alive && player.id !== me.id);
+    const nearest = Math.min(...enemies.map((enemy) => Math.hypot(enemy.x - me.x, enemy.y - me.y)));
+    switch (power) {
+      case Hero.Boomer:
+      case Hero.Toxic:
+        // Renforce la bombe qu'il pose.
+        return bombing;
+      case Hero.Blaster: {
+        // Ses bombes touchent un adversaire, et pas lui.
+        const own = state.bombs.filter((bomb) => bomb.owner === me.id && !bomb.decoy);
+        const hits = new Set(own.flatMap((bomb) => blastCells(state, bomb)));
+        return !hits.has(here) && enemies.some((enemy) => hits.has(index(state, ...cellOf(enemy))));
+      }
+      case Hero.Frost:
+        return nearest <= FREEZE_RADIUS - 0.3;
+      case Hero.Boomette:
+        // Un leurre pour faire fuir un adversaire proche.
+        return !bombing && nearest <= 3.5 && !bombAt(state, ...cellOf(me));
+      case Hero.Omega: {
+        const target = enemies.reduce<Player | null>(
+          (best, enemy) =>
+            enemy.character !== Hero.Omega && (!best || Math.hypot(enemy.x - me.x, enemy.y - me.y) < Math.hypot(best.x - me.x, best.y - me.y))
+              ? enemy
+              : best,
+          null,
+        );
+        return target !== null && this.powerUseful(state, me, target.character, bombing);
+      }
+      case Hero.Rocket: {
+        // Fuite éclair : le Dash mène hors de danger.
+        const danger = computeDanger(state, me.id);
+        if (danger.at[here] === NEVER && danger.burning[here] === 0) return false;
+        const landing = dashLanding(state, me);
+        return landing !== here && danger.at[landing] === NEVER && danger.burning[landing] === 0;
+      }
+      case Hero.Rocco: {
+        // L'explosion arrive trop vite pour s'en écarter : carapace.
+        const danger = computeDanger(state, me.id);
+        return danger.at[here] < 40 || danger.burning[here] > 0;
+      }
+      default:
+        return false;
+    }
   }
 
   // ---- Réflexion ----
@@ -335,6 +399,20 @@ function index(state: RoundState, x: number, y: number): number {
   return y * state.width + x;
 }
 
+/** Case où le Dash de Rocket le mènerait, dans la direction de son regard. */
+function dashLanding(state: RoundState, me: Player): number {
+  const [dx, dy] = DIRECTION_VECTORS[me.facing];
+  let [x, y] = cellOf(me);
+  for (let i = 0; i < DASH_CELLS; i++) {
+    const nx = x + dx;
+    const ny = y + dy;
+    if (nx < 0 || ny < 0 || nx >= state.width || ny >= state.height || state.tiles[index(state, nx, ny)] !== Tile.Floor) break;
+    x = nx;
+    y = ny;
+  }
+  return index(state, x, y);
+}
+
 function walkable(state: RoundState, x: number, y: number, me: Player): boolean {
   if (x < 0 || y < 0 || x >= state.width || y >= state.height) return false;
   const tile = state.tiles[index(state, x, y)];
@@ -377,6 +455,16 @@ function computeDanger(state: RoundState, me: number): Danger {
   const at = new Float64Array(state.tiles.length).fill(NEVER);
   const burning = new Float64Array(state.tiles.length);
   for (let cell = 0; cell < state.flames.length; cell++) burning[cell] = state.flames[cell];
+  // Nuages toxiques d'un autre joueur : mortels tant qu'ils durent.
+  if (state.toxic) {
+    for (let cell = 0; cell < state.toxic.length; cell++) {
+      if (state.toxic[cell] > 0 && state.toxicOwner[cell] !== me) burning[cell] = Math.max(burning[cell], state.toxic[cell]);
+    }
+  }
+  // Ses propres leurres n'explosent pas (ceux des autres, il ne peut pas le savoir).
+  if (state.bombs.some((bomb) => bomb.decoy && bomb.owner === me)) {
+    state = { ...state, bombs: state.bombs.filter((bomb) => !(bomb.decoy && bomb.owner === me)) };
+  }
 
   const times = state.bombs.map((bomb) => (bomb.remote && bomb.owner !== me ? Math.min(bomb.fuse, REMOTE_THREAT_TICKS) : bomb.fuse));
   const blasts = state.bombs.map((bomb) => blastCells(state, bomb));

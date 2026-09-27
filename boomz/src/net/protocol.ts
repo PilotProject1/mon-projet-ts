@@ -24,6 +24,8 @@ export interface LobbyPlayer {
   voice: boolean;
   /** Robot ajouté par l'hôte, avec son niveau ; absent pour un joueur humain. */
   bot?: BotLevel;
+  /** Personnage choisi (voir `CHARACTERS`) ; absent : celui de sa place. */
+  character?: number;
 }
 
 /**
@@ -50,6 +52,10 @@ export type ClientMessage =
   | { type: 'ready'; ready: boolean }
   /** Choix de son apparence (cosmétique). */
   | { type: 'skin'; skin: number }
+  /** Choix de son personnage (et donc de son pouvoir). */
+  | { type: 'character'; character: number }
+  /** Utilise le pouvoir de son personnage. */
+  | { type: 'power' }
   /** Choix de l'arène, réservé à l'hôte. */
   | { type: 'arena'; arena: ArenaChoice }
   | { type: 'start' }

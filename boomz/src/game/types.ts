@@ -69,6 +69,8 @@ export interface PlayerInput {
   bomb: boolean;
   /** Vrai sur le tick où le joueur déclenche ses bombes (bonus Détonateur). */
   detonate?: boolean;
+  /** Vrai sur le tick où le joueur utilise le pouvoir de son personnage. */
+  power?: boolean;
 }
 
 export const NO_INPUT: PlayerInput = { direction: null, bomb: false };
@@ -103,6 +105,15 @@ export interface Player {
   teleportLock: number;
   /** Tick de l'élimination, pour l'animation. */
   diedAt: number | null;
+  /** Personnage incarné (voir `CHARACTERS`), qui donne son pouvoir. */
+  character: number;
+  /** Tick à partir duquel le pouvoir est de nouveau utilisable. */
+  powerReadyAt: number;
+  /** Effet de pouvoir en cours (numéro du personnage dont c'est le pouvoir, -1 : aucun) et sa fin. */
+  effect: number;
+  effectUntil: number;
+  /** Gelé (pouvoir de Frost) jusqu'à ce tick : ni déplacement, ni bombe, ni pouvoir. */
+  frozenUntil: number;
 }
 
 export interface Bomb {
@@ -120,6 +131,8 @@ export interface Bomb {
   slide: Direction | null;
   /** Avancée vers la case suivante pendant un glissement, de 0 à 1. */
   slideProgress: number;
+  /** Leurre (pouvoir de Boomette) : disparaît à la fin de sa mèche sans exploser. */
+  decoy?: boolean;
 }
 
 export interface RoundState {
@@ -146,6 +159,11 @@ export interface RoundState {
   /** Cases à murer pendant le resserrement, dans l'ordre. */
   suddenDeathOrder: number[];
   suddenDeathIndex: number;
+  /** Pouvoirs des personnages actifs dans cette partie. */
+  powers: boolean;
+  /** Nuage toxique (pouvoir de Toxic) : ticks restants par case, et joueur qu'il épargne. */
+  toxic: number[];
+  toxicOwner: number[];
 }
 
 export type RoundEvent =
@@ -158,4 +176,8 @@ export type RoundEvent =
   | { type: 'vestLost'; player: number }
   | { type: 'teleported'; player: number }
   | { type: 'floorCollapsed'; cx: number; cy: number }
-  | { type: 'bombKicked'; player: number };
+  | { type: 'bombKicked'; player: number }
+  /** `power` : personnage dont le pouvoir a été utilisé (celui copié, pour Omega). */
+  | { type: 'powerUsed'; player: number; power: number }
+  | { type: 'frozen'; player: number }
+  | { type: 'decoyGone'; cx: number; cy: number };
