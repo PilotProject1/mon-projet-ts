@@ -108,7 +108,7 @@ captures sont dans [`captures/`](captures/), aux formats exigés.
 >
 > Aucun compte, aucun achat, aucune publicité. Contact : boomz-service@outlook.com
 
-- **Aperçu vidéo** : `captures/iphone-6.5/boomz-apercu.mp4` (29 s, 886 × 1920, 30 i/s ; Apple limite les aperçus à 30 s).
+- **Aperçu vidéo** : `captures/iphone-6.5/boomz-apercu.mov` (29 s, 886 × 1920, 30 i/s, H.264, son du jeu en AAC stéréo 48 kHz ; Apple limite les aperçus à 30 s et exige une vraie piste audio).
 - **Captures** : `captures/iphone-6.5/boomz-0*.png` (1284 × 2778, avec titres ; 1.0 avec robots, tutoriel, émojis) ; anciennes : `captures/iphone-6.9-*.png` (1290 × 2796 et 2796 × 1290,
   format iPhone 6,9 pouces, accepté pour toutes les tailles d'iPhone).
 
