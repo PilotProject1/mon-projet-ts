@@ -11,7 +11,7 @@ const config: CapacitorConfig = {
   appId: 'fr.boomz.jeu',
   appName: 'Boomz',
   webDir: 'dist',
-  backgroundColor: '#1b1f2e',
+  backgroundColor: '#120e0d',
   android: {
     // Pas de contenu mixte : le serveur de jeu est en HTTPS.
     allowMixedContent: false,

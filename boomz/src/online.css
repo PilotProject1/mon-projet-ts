@@ -1,10 +1,12 @@
 :root {
-  --bg: #1b1f2e;
-  --panel: #252a3d;
-  --panel-border: #363d57;
-  --text: #f3f4f8;
-  --muted: #a3a9c2;
-  --accent: #ffcf33;
+  /* Ambiance « braise », reprise du titre : noir chaud, lave orange, jaune feu. */
+  --bg: #120e0d;
+  --panel: #1f1816;
+  --panel-border: #3d2b22;
+  --text: #fbf2e9;
+  --muted: #b8a597;
+  --accent: #ffc23a;
+  --fire: #ff6a1a;
   --bomb: #ef5a2e;
   --danger: #ff6b5a;
   --hud-h: 38px;
@@ -150,15 +152,15 @@ input {
 }
 
 .primary-btn {
-  background: var(--accent);
-  color: #2a1d00;
+  background: linear-gradient(180deg, #ffd44d 0%, #ffab2e 55%, #ff7a1a 100%);
+  color: #2a1000;
   font-size: 17px;
-  box-shadow: 0 4px 0 #b88a00;
+  box-shadow: 0 4px 0 #a33a0c, 0 6px 18px rgba(255, 106, 26, 0.25);
 }
 
 .primary-btn:active {
   transform: translateY(3px);
-  box-shadow: 0 1px 0 #b88a00;
+  box-shadow: 0 1px 0 #a33a0c;
 }
 
 .primary-btn:disabled {
@@ -169,8 +171,9 @@ input {
 
 .secondary-btn {
   flex: none;
-  background: #3a4263;
+  background: #3a2923;
   color: var(--text);
+  box-shadow: inset 0 0 0 1px rgba(255, 140, 60, 0.18);
 }
 
 .secondary-btn.wide {
@@ -611,7 +614,7 @@ canvas {
   width: 36px;
   height: 36px;
   border-radius: 10px;
-  background: #313854;
+  background: #2c211d;
 }
 
 .scores .avatar {
@@ -892,7 +895,9 @@ select {
   position: fixed;
   inset: 0;
   z-index: -1;
-  background: radial-gradient(ellipse at 50% 35%, rgba(27, 31, 46, 0.55), rgba(15, 18, 30, 0.92) 70%);
+  background:
+    radial-gradient(ellipse at 50% 22%, rgba(255, 106, 26, 0.16), transparent 55%),
+    radial-gradient(ellipse at 50% 35%, rgba(18, 14, 13, 0.6), rgba(12, 9, 8, 0.94) 70%);
   backdrop-filter: blur(2px);
 }
 
@@ -913,7 +918,7 @@ select {
   padding: 0;
   border: 1px solid var(--panel-border);
   border-radius: 50%;
-  background: rgba(37, 42, 61, 0.9);
+  background: rgba(31, 24, 22, 0.9);
   color: var(--text);
   cursor: pointer;
 }
@@ -1000,21 +1005,28 @@ select {
 }
 
 .logo {
-  margin: 0;
-  font-size: clamp(52px, 16vw, 88px);
-  font-weight: 900;
-  line-height: 1;
-  letter-spacing: 2px;
-  text-transform: uppercase;
-  color: var(--accent);
-  background: linear-gradient(180deg, #fff27a 0%, #ffcf33 45%, #ff8a1f 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-  -webkit-text-stroke: 3px #3a1d05;
-  paint-order: stroke fill;
-  filter: drop-shadow(0 5px 0 #7a3a0c);
-  transform: rotate(-3deg);
+  width: min(92vw, 400px);
+  /* L'image a des bords noirs en haut et en bas : on les laisse déborder. */
+  margin: -14px 0 -18px;
+  line-height: 0;
+}
+
+/* Sur téléphone, le titre en flammes remplace la mascotte (place comptée). */
+@media (max-height: 699px), (orientation: portrait) and (max-width: 600px) {
+  .home .mascot {
+    display: none;
+  }
+}
+
+/* Titre en image : son fond noir se fond dans l'arrière-plan (mode « écran »),
+   et ses bords s'estompent pour ne laisser aucun rectangle visible. */
+.logo-img {
+  display: block;
+  width: 100%;
+  height: auto;
+  mix-blend-mode: screen;
+  -webkit-mask-image: radial-gradient(ellipse 72% 70% at 50% 50%, #000 62%, transparent 100%);
+  mask-image: radial-gradient(ellipse 72% 70% at 50% 50%, #000 62%, transparent 100%);
 }
 
 .home .tagline {
@@ -1026,8 +1038,9 @@ select {
 }
 
 .home-card {
-  background: rgba(37, 42, 61, 0.94);
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
+  background: rgba(31, 24, 22, 0.94);
+  border-color: rgba(255, 120, 40, 0.28);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5), 0 0 40px rgba(255, 90, 20, 0.08);
 }
 
 .invite-banner {
@@ -1057,9 +1070,9 @@ select {
 }
 
 .home-card.invited #join-btn {
-  background: var(--accent);
-  color: #2a1d00;
-  box-shadow: 0 4px 0 #b88a00;
+  background: linear-gradient(180deg, #ffd44d 0%, #ffab2e 55%, #ff7a1a 100%);
+  color: #2a1000;
+  box-shadow: 0 4px 0 #a33a0c;
 }
 
 /* Paysage (téléphone couché, ordinateur) : logo à gauche, formulaire à droite. */
@@ -1078,11 +1091,15 @@ select {
 
   /* Le logo doit tenir dans sa colonne, même sur un petit téléphone couché. */
   .logo {
-    font-size: clamp(44px, 8.5vw, 88px);
+    width: min(100%, 400px);
   }
 }
 
 @media (orientation: landscape) and (max-height: 500px) {
+  .logo {
+    width: min(100%, 300px);
+  }
+
   .mascot {
     width: 84px;
     height: 84px;
@@ -1464,7 +1481,7 @@ button.voice-tag {
   padding: 8px 14px;
   border-radius: 16px;
   background: #fff;
-  color: #1b1f2e;
+  color: #1a120c;
   font-weight: 800;
   line-height: 1.25;
   text-align: center;
@@ -1681,7 +1698,7 @@ button.voice-tag {
   height: 30px;
   border-radius: 50%;
   background: var(--accent);
-  color: #1b1f2e;
+  color: #1a120c;
   font-size: 13px;
   font-weight: 800;
 }
@@ -1799,7 +1816,7 @@ button.voice-tag {
   padding: 8px 10px;
   border: 1px solid var(--panel-border);
   border-radius: 14px;
-  background: rgba(20, 23, 38, 0.5);
+  background: rgba(12, 9, 8, 0.5);
 }
 
 .hero-avatar {
@@ -1855,7 +1872,7 @@ button.voice-tag {
   padding: 8px 4px 6px;
   border: 2px solid transparent;
   border-radius: 14px;
-  background: rgba(20, 23, 38, 0.6);
+  background: rgba(12, 9, 8, 0.6);
   color: var(--text);
   font: inherit;
   font-size: 12px;
@@ -1887,7 +1904,7 @@ button.voice-tag {
   min-width: 0;
   padding: 12px;
   border-radius: 14px;
-  background: rgba(20, 23, 38, 0.6);
+  background: rgba(12, 9, 8, 0.6);
 }
 
 .character-portrait {
@@ -1895,7 +1912,7 @@ button.voice-tag {
   width: 72px;
   height: 72px;
   border-radius: 14px;
-  background: #313854;
+  background: #2c211d;
 }
 
 .character-text {
@@ -1957,7 +1974,7 @@ button.voice-tag {
   padding: 4px 8px 4px 4px;
   border: 2px solid transparent;
   border-radius: 12px;
-  background: rgba(20, 23, 38, 0.6);
+  background: rgba(12, 9, 8, 0.6);
   color: var(--text);
   font: inherit;
   font-size: 13px;
