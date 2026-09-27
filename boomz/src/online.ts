@@ -1265,20 +1265,37 @@ required<HTMLButtonElement>('#leave-btn').addEventListener('click', () => {
 const coach = required<HTMLElement>('#coach');
 const welcomeDialog = required<HTMLDialogElement>('#welcome');
 
+const coachActions = required<HTMLElement>('#coach-actions');
+const coachQuit = required<HTMLButtonElement>('#coach-quit');
+
 function renderCoach(): void {
-  if (!tutorial || tutorial.step === 'done') {
-    if (tutorial) endTutorial();
+  if (!tutorial) return;
+  const finished = tutorial.step === 'done';
+  if (finished) writeStorage(() => localStorage, TUTORIAL_KEY, '1');
+  // Fin du match pendant le tutoriel : l'écran de victoire prend le relais.
+  if (finished && snapshots.latest()?.phase === 'matchOver') {
+    endTutorial();
     return;
   }
   coach.hidden = false;
-  setText(required<HTMLElement>('#coach-step'), `${tutorial.index}/5`);
-  setText(required<HTMLElement>('#coach-text'), tutorial.text);
+  coach.classList.toggle('finished', finished);
+  coachActions.hidden = !finished;
+  coachQuit.hidden = finished;
+  setText(required<HTMLElement>('#coach-step'), finished ? '✓' : `${tutorial.index}/5`);
+  setText(required<HTMLElement>('#coach-text'), finished ? 'Tutoriel terminé, vous savez jouer ! Continuez la partie ou revenez à l’accueil.' : tutorial.text);
 }
 
 function endTutorial(): void {
   tutorial = null;
   coach.hidden = true;
   writeStorage(() => localStorage, TUTORIAL_KEY, '1');
+}
+
+/** Quitte la partie en cours et revient à l'accueil. */
+function leaveGame(): void {
+  endTutorial();
+  connection?.send({ type: 'leave' });
+  giveUp('');
 }
 
 /** Salon sur ce téléphone ; `tutorial` : un robot Débutant et la partie lancée aussitôt. */
@@ -1298,7 +1315,22 @@ function playSolo(withTutorial: boolean): void {
 }
 
 required<HTMLButtonElement>('#solo-btn').addEventListener('click', () => playSolo(false));
-required<HTMLButtonElement>('#coach-skip').addEventListener('click', endTutorial);
+coachQuit.addEventListener('click', leaveGame);
+required<HTMLButtonElement>('#coach-end').addEventListener('click', leaveGame);
+required<HTMLButtonElement>('#coach-continue').addEventListener('click', endTutorial);
+
+// Quitter une partie : tout de suite contre des robots, après confirmation avec d'autres joueurs.
+const quitDialog = required<HTMLDialogElement>('#quit-dialog');
+required<HTMLButtonElement>('#quit-btn').addEventListener('click', (event) => {
+  (event.currentTarget as HTMLElement).blur();
+  if (solo) leaveGame();
+  else quitDialog.showModal();
+});
+required<HTMLButtonElement>('#quit-confirm').addEventListener('click', () => {
+  quitDialog.close();
+  leaveGame();
+});
+required<HTMLButtonElement>('#quit-cancel').addEventListener('click', () => quitDialog.close());
 required<HTMLButtonElement>('#welcome-start').addEventListener('click', () => {
   welcomeDialog.close();
   playSolo(true);

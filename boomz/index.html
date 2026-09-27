@@ -178,6 +178,16 @@
       </form>
     </dialog>
 
+    <!-- Quitter une partie en cours (en ligne ou en local, avec d'autres joueurs) -->
+    <dialog class="help" id="quit-dialog" aria-labelledby="quit-title">
+      <div class="help-card">
+        <h2 id="quit-title">Quitter la partie ?</h2>
+        <p class="legend-intro">Vous serez éliminé de la manche en cours et retournerez à l'accueil.</p>
+        <button class="primary-btn" id="quit-confirm" type="button">Quitter</button>
+        <button class="link-btn" id="quit-cancel" type="button">Rester</button>
+      </div>
+    </dialog>
+
     <!-- Premier lancement : proposition du tutoriel -->
     <dialog class="help welcome" id="welcome" aria-labelledby="welcome-title">
       <div class="help-card">
@@ -259,6 +269,9 @@
       <header class="hud">
         <ul class="scores" id="scores"></ul>
         <span class="hud-timer" id="timer"></span>
+        <button class="icon-btn small quit-btn" id="quit-btn" type="button" aria-label="Quitter la partie">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" /></svg>
+        </button>
         <button class="icon-btn small emote-btn" id="emote-btn" type="button" aria-label="Envoyer un émoji" aria-expanded="false" aria-controls="emote-picker">😀</button>
         <button class="icon-btn small" id="game-mic-btn" type="button" aria-pressed="true" aria-label="Mon micro" hidden>
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a3 3 0 0 1 3 3v6a3 3 0 0 1-6 0V6a3 3 0 0 1 3-3z" /><path class="waves" d="M6 11a6 6 0 0 0 12 0M12 17v4" /><path class="cross" d="M4 4l16 16" /></svg>
@@ -273,7 +286,11 @@
           <div class="coach" id="coach" role="status" hidden>
             <span class="coach-step" id="coach-step"></span>
             <p class="coach-text" id="coach-text"></p>
-            <button class="coach-skip" id="coach-skip" type="button">Passer</button>
+            <button class="coach-skip" id="coach-quit" type="button">Quitter</button>
+            <div class="coach-actions" id="coach-actions" hidden>
+              <button class="primary-btn" id="coach-continue" type="button">Continuer la partie</button>
+              <button class="secondary-btn" id="coach-end" type="button">Terminer</button>
+            </div>
           </div>
           <div class="countdown" id="countdown" hidden>
             <span class="countdown-number" id="countdown-number"></span>

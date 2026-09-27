@@ -666,6 +666,13 @@ a.link-btn {
 }
 
 @media (orientation: portrait) {
+  /* À deux, les noms ne sont masqués que sur les téléphones les plus étroits. */
+  @container (max-width: 430px) {
+    .scores[data-count='2'] .score-name {
+      display: none;
+    }
+  }
+
   @container (max-width: 560px) {
     .scores[data-count='3'] .score-name,
     .scores[data-count='4'] .score-name,
@@ -1751,4 +1758,33 @@ button.voice-tag {
   .player-list .character-tag {
     display: none;
   }
+}
+
+/* Tutoriel terminé : le texte, puis les deux choix en dessous. */
+.coach.finished {
+  grid-template-columns: auto minmax(0, 1fr);
+  pointer-events: auto;
+}
+
+.coach-actions {
+  display: flex;
+  grid-column: 1 / -1;
+  gap: 8px;
+}
+
+.coach-actions[hidden] {
+  display: none;
+}
+
+.coach-actions button {
+  flex: 1;
+  min-width: 0;
+  padding-inline: 8px;
+}
+
+.quit-btn svg {
+  stroke: currentColor;
+  stroke-width: 2.4;
+  stroke-linecap: round;
+  fill: none;
 }
