@@ -324,6 +324,8 @@ function giveUp(message: string): void {
 
 function resetRoomState(): void {
   voice.leave(false);
+  paused = false;
+  document.querySelector<HTMLDialogElement>('#pause-dialog')?.close();
   tutorial = null;
   document.getElementById('coach')?.setAttribute('hidden', '');
   session = null;
@@ -738,6 +740,7 @@ function formatClock(ticks: number): string {
 
 function updateGameHud(match: MatchState): void {
   renderScores(match);
+  pauseButton.hidden = !solo || match.phase === 'matchOver';
   const me = mySeat();
 
   const showCountdown = match.phase === 'countdown' || (match.phase === 'playing' && match.phaseTick < 40);
@@ -1419,6 +1422,53 @@ required<HTMLButtonElement>('#solo-btn').addEventListener('click', () => playSol
 coachQuit.addEventListener('click', leaveGame);
 required<HTMLButtonElement>('#coach-end').addEventListener('click', leaveGame);
 required<HTMLButtonElement>('#coach-continue').addEventListener('click', endTutorial);
+
+// ---- Pause : seulement seul contre des robots (la partie tourne sur ce téléphone) ----
+
+const pauseButton = required<HTMLButtonElement>('#pause-btn');
+const pauseDialog = required<HTMLDialogElement>('#pause-dialog');
+let paused = false;
+
+function canPause(): boolean {
+  const match = snapshots.latest();
+  return solo && screen === 'game' && !!match && match.phase !== 'matchOver';
+}
+
+function setPaused(on: boolean): void {
+  if (on === paused || (on && !canPause())) return;
+  // Le lien refuse la pause quand d'autres téléphones jouent (en ligne, en local).
+  if (connection?.setPaused?.(on) !== true) return;
+  paused = on;
+  if (on) {
+    closeEmotes();
+    if (!pauseDialog.open) pauseDialog.showModal();
+  } else if (pauseDialog.open) {
+    pauseDialog.close();
+  }
+}
+
+pauseButton.addEventListener('click', (event) => {
+  (event.currentTarget as HTMLElement).blur();
+  setPaused(true);
+});
+required<HTMLButtonElement>('#pause-resume').addEventListener('click', () => setPaused(false));
+required<HTMLButtonElement>('#pause-quit').addEventListener('click', () => {
+  paused = false;
+  pauseDialog.close();
+  leaveGame();
+});
+// Échap ferme la fenêtre : on reprend la partie.
+pauseDialog.addEventListener('cancel', (event) => {
+  event.preventDefault();
+  setPaused(false);
+});
+// Appli quittée (appel, écran verrouillé) : la partie contre les robots attend.
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden && canPause()) setPaused(true);
+});
+window.addEventListener('keydown', (event) => {
+  if ((event.code === 'KeyP' || event.code === 'Escape') && !paused && canPause() && !isField(event.target)) setPaused(true);
+});
 
 // Quitter une partie : tout de suite contre des robots, après confirmation avec d'autres joueurs.
 const quitDialog = required<HTMLDialogElement>('#quit-dialog');

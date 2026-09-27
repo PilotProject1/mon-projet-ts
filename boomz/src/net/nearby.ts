@@ -75,6 +75,11 @@ function stopLater(since: number, delayMs: number): void {
 export interface Link {
   send(message: ClientMessage): void;
   close(): void;
+  /**
+   * Met la partie en pause (ou la reprend). Seule une partie jouée seul sur ce
+   * téléphone s'y prête : ailleurs (en ligne, entre téléphones), sans effet.
+   */
+  setPaused?(paused: boolean): boolean;
 }
 
 /**
@@ -113,6 +118,8 @@ export class NearbyHostLink implements Link {
   private readonly generation: number;
   private readonly advertise: boolean;
   private closed = false;
+  private paused = false;
+  private resumed = false;
 
   constructor(name: string, onMessage: (message: ServerMessage) => void, advertise = true) {
     this.advertise = advertise;
@@ -136,6 +143,12 @@ export class NearbyHostLink implements Link {
     let accumulator = 0;
     this.timer = window.setInterval(() => {
       const now = performance.now();
+      if (this.paused) return;
+      // Au retour de pause, le temps écoulé ne compte pas.
+      if (this.resumed) {
+        this.resumed = false;
+        last = now;
+      }
       accumulator += Math.min(now - last, 250);
       last = now;
       while (accumulator >= tickMs) {
@@ -172,6 +185,14 @@ export class NearbyHostLink implements Link {
     queueMicrotask(() => {
       if (!this.closed) this.self.handle(message);
     });
+  }
+
+  /** Pause d'une partie seul contre des robots ; refusée quand d'autres téléphones jouent. */
+  setPaused(paused: boolean): boolean {
+    if (this.advertise) return false;
+    if (this.paused && !paused) this.resumed = true;
+    this.paused = paused;
+    return true;
   }
 
   close(): void {

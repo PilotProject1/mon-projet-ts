@@ -1808,6 +1808,7 @@ button.voice-tag {
   padding-inline: 8px;
 }
 
+.pause-btn svg,
 .quit-btn svg {
   stroke: currentColor;
   stroke-width: 2.4;
@@ -2372,4 +2373,14 @@ button.voice-tag {
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+}
+
+/* ---- Pause (parties seul sur ce téléphone) ---- */
+
+.pause {
+  width: min(360px, calc(100vw - 24px));
+}
+
+.pause .help-card {
+  text-align: center;
 }

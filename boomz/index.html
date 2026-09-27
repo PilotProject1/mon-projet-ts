@@ -192,6 +192,16 @@
       </div>
     </dialog>
 
+    <!-- Pause : seulement pour une partie jouée seul sur ce téléphone (robots, défis, tutoriel) -->
+    <dialog class="help pause" id="pause-dialog" aria-labelledby="pause-title">
+      <div class="help-card">
+        <h2 id="pause-title">Pause</h2>
+        <p class="legend-intro">La partie attend votre retour.</p>
+        <button class="primary-btn" id="pause-resume" type="button">Reprendre</button>
+        <button class="secondary-btn" id="pause-quit" type="button">Quitter la partie</button>
+      </div>
+    </dialog>
+
     <!-- Choix du personnage, avec l'explication de son pouvoir -->
     <dialog class="help characters" id="characters" aria-labelledby="characters-title">
       <div class="help-card">
@@ -336,6 +346,9 @@
       <header class="hud">
         <ul class="scores" id="scores"></ul>
         <span class="hud-timer" id="timer"></span>
+        <button class="icon-btn small pause-btn" id="pause-btn" type="button" aria-label="Pause" hidden>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6v12M15 6v12" /></svg>
+        </button>
         <button class="icon-btn small quit-btn" id="quit-btn" type="button" aria-label="Quitter la partie">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" /></svg>
         </button>
