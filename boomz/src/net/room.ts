@@ -24,6 +24,14 @@ export interface RoomStats {
 }
 
 const GRACE_TICKS = RECONNECT_GRACE_SECONDS * TICK_RATE;
+/**
+ * Un téléphone à jour annonce son personnage dès son arrivée : passé ce délai
+ * sans l'avoir fait, c'est une version plus ancienne de l'application.
+ */
+const OUTDATED_AFTER_TICKS = 3 * TICK_RATE;
+/** Affiché aux anciennes versions (dans la zone des messages du salon, qu'elles connaissent toutes). */
+export const UPDATE_NOTICE =
+  'Une nouvelle version de Boomz est disponible : mettez l’application à jour (TestFlight ou App Store) pour jouer avec les autres joueurs à armes égales, personnages et pouvoirs compris.';
 /** Au plus un émoji par joueur toutes les 0,8 s, pour éviter le spam. */
 const EMOTE_COOLDOWN_TICKS = Math.round(0.8 * TICK_RATE);
 /** Noms donnés aux robots, dans l'ordre. */
@@ -62,6 +70,8 @@ export interface Peer {
    * une version plus ancienne de l'application joue sans.
    */
   powersAware: boolean;
+  /** Horloge du salon à l'arrivée (ou au retour) du téléphone. */
+  joinedAt: number;
   /** Horloge du salon au dernier émoji envoyé. */
   lastEmoteAt: number | null;
   /** Horloge du salon au moment de la coupure. */
@@ -81,6 +91,7 @@ export function createPeer(id: string, token: string, name: string, send: (messa
     bot: null,
     character: null,
     powersAware: false,
+    joinedAt: 0,
     lastEmoteAt: null,
     disconnectedAt: null,
     send,
@@ -114,6 +125,8 @@ export class Room {
   private readonly stats: RoomStats | null;
   /** Serveurs STUN/TURN transmis aux téléphones pour le chat vocal. */
   private readonly iceServers: IceServer[];
+  /** Anciennes versions déjà prévenues qu'une mise à jour existe. */
+  private readonly warnedOutdated = new Set<string>();
 
   constructor(
     code: string,
@@ -145,6 +158,7 @@ export class Room {
     if (this.peers.length >= MAX_PLAYERS) return `Ce salon est complet (${MAX_PLAYERS} joueurs maximum).`;
     this.peers.push(peer);
     this.hostId ??= peer.id;
+    peer.joinedAt = this.clock;
     peer.send(this.welcome(peer));
     this.broadcastLobby();
     if (this.match) peer.send(snapshotMessage(this.match));
@@ -157,6 +171,7 @@ export class Room {
     if (!peer) return null;
     peer.connected = true;
     peer.disconnectedAt = null;
+    peer.joinedAt = this.clock;
     peer.send = send;
     peer.send(this.welcome(peer));
     this.broadcastLobby();
@@ -319,6 +334,8 @@ export class Room {
   tick(): void {
     this.clock++;
     this.expireDisconnected();
+    // Une ancienne version vient d'être repérée : la prévenir (avec la liste du salon).
+    if (this.peers.some((peer) => this.isOutdated(peer) && !this.warnedOutdated.has(peer.id))) this.broadcastLobby();
 
     const match = this.match;
     if (!match || match.phase === 'matchOver') return;
@@ -379,6 +396,15 @@ export class Room {
     }
   }
 
+  /**
+   * Téléphone avec une version plus ancienne que celle d'un autre joueur du
+   * salon (il n'annonce pas de personnage) : il joue sans vocal ni pouvoirs.
+   */
+  private isOutdated(peer: Peer): boolean {
+    if (peer.bot || peer.powersAware || !peer.connected || this.clock - peer.joinedAt < OUTDATED_AFTER_TICKS) return false;
+    return this.peers.some((other) => !other.bot && other.powersAware);
+  }
+
   private broadcastLobby(): void {
     this.broadcast({
       type: 'lobby',
@@ -397,6 +423,12 @@ export class Room {
       inMatch: this.inMatch,
       arena: this.arena,
     });
+    // Après la liste : une ancienne version efface ses messages en l'affichant.
+    for (const peer of this.peers) {
+      if (!this.isOutdated(peer)) continue;
+      this.warnedOutdated.add(peer.id);
+      peer.send({ type: 'error', message: UPDATE_NOTICE });
+    }
   }
 
   private broadcast(message: ServerMessage): void {

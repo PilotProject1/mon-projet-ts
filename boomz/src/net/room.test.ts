@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { COUNTDOWN_TICKS, TICK_RATE } from '../game/constants';
 import type { MatchState } from '../game/match';
 import { RECONNECT_GRACE_SECONDS, type ServerMessage } from './protocol';
-import { createPeer, distinctSkins, Room, type Peer } from './room';
+import { createPeer, distinctSkins, Room, UPDATE_NOTICE, type Peer } from './room';
 
 type FakePeer = Peer & { inbox: ServerMessage[] };
 
@@ -234,6 +234,31 @@ describe('salon', () => {
       room.requestPower('alice');
       room.tick();
       expect(snapshot(alice).round.players[0].effect).toBe(7);
+    });
+
+    it('préviennent une ancienne version qu’une mise à jour existe, si d’autres l’ont', () => {
+      const room = new Room('ABCDE', () => 1);
+      const alice = fakePeer('alice');
+      const bob = fakePeer('bob');
+      const carol = fakePeer('carol');
+      room.join(alice);
+      room.join(bob);
+      room.setCharacter('alice', 1);
+      room.join(carol);
+      room.setCharacter('carol', 2);
+      for (let i = 0; i < 4 * TICK_RATE; i++) room.tick();
+      const notices = (peer: FakePeer) => peer.inbox.filter((message) => message.type === 'error' && message.message === UPDATE_NOTICE);
+      expect(notices(bob)).toHaveLength(1);
+      expect(notices(alice)).toHaveLength(0);
+      expect(notices(carol)).toHaveLength(0);
+      // Entre anciennes versions seulement : rien à signaler.
+      const old = new Room('FGHJK', () => 1);
+      const dan = fakePeer('dan');
+      const eve = fakePeer('eve');
+      old.join(dan);
+      old.join(eve);
+      for (let i = 0; i < 4 * TICK_RATE; i++) old.tick();
+      expect(notices(dan)).toHaveLength(0);
     });
 
     it('séparent deux joueurs sur le même personnage par leur apparence', () => {

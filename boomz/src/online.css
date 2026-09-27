@@ -2091,3 +2091,15 @@ button.voice-tag {
     box-shadow: 0 0 0 4px #fff;
   }
 }
+
+.version-hint {
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: rgba(255, 207, 51, 0.12);
+  color: var(--accent);
+  font-size: 13px;
+}
+
+.version-hint[hidden] {
+  display: none;
+}

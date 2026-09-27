@@ -436,6 +436,16 @@ function renderLobby(): void {
   setText(lobbyHint, hint);
   botRow.hidden = !isHost || players.length >= MAX_PLAYERS;
   setText(skinHint, 'Touchez votre personnage pour en changer.');
+  // Joueurs avec une version plus ancienne (sans personnage choisi) : pas de pouvoirs ni de vocal pour eux.
+  const outdated = players.filter((player) => !player.bot && player.id !== you && player.character === undefined && player.connected);
+  const versionHint = required<HTMLElement>('#version-hint');
+  versionHint.hidden = outdated.length === 0;
+  setText(
+    versionHint,
+    outdated.length === 0
+      ? ''
+      : `${outdated.map((player) => player.name).join(', ')} ${outdated.length > 1 ? 'ont' : 'a'} une ancienne version de Boomz : les pouvoirs sont désactivés pour cette partie. Une mise à jour ${outdated.length > 1 ? 'leur' : 'lui'} est proposée.`,
+  );
   setText(lobbyError, '');
   renderVoice();
 }
