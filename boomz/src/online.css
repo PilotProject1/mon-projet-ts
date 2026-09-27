@@ -1007,8 +1007,7 @@ select {
 
 .logo {
   width: min(92vw, 400px);
-  /* L'image a des bords noirs en haut et en bas : on les laisse déborder. */
-  margin: -14px 0 -18px;
+  margin: 0;
   line-height: 0;
 }
 
@@ -1019,15 +1018,11 @@ select {
   }
 }
 
-/* Titre en image : son fond noir se fond dans l'arrière-plan (mode « écran »),
-   et ses bords s'estompent pour ne laisser aucun rectangle visible. */
+/* Titre détouré (fond transparent, docs/title-boomz-source.png pour l'original). */
 .logo-img {
   display: block;
   width: 100%;
   height: auto;
-  mix-blend-mode: screen;
-  -webkit-mask-image: radial-gradient(ellipse 72% 70% at 50% 50%, #000 62%, transparent 100%);
-  mask-image: radial-gradient(ellipse 72% 70% at 50% 50%, #000 62%, transparent 100%);
 }
 
 .home .tagline {
