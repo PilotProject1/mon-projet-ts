@@ -181,12 +181,23 @@ export class TaglineChase {
 
     for (const bomb of this.bombs) {
       const blink = Math.floor((this.clock - bomb.lit) * 8) % 2 === 0;
-      ctx.fillStyle = '#16171e';
-      ctx.strokeStyle = '#0c0d12';
+      // Rouge vif : une bombe noire disparaîtrait sur le fond sombre de l'accueil.
+      ctx.fillStyle = '#e4262b';
+      ctx.strokeStyle = '#6e0d10';
       ctx.lineWidth = 1.5;
       ctx.beginPath();
       ctx.arc(bomb.x, ground - 6, 6, 0, Math.PI * 2);
       ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.55)';
+      ctx.beginPath();
+      ctx.arc(bomb.x - 2, ground - 8, 1.8, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = '#3a2a22';
+      ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      ctx.moveTo(bomb.x + 3, ground - 10.5);
+      ctx.lineTo(bomb.x + 4, ground - 12.5);
       ctx.stroke();
       ctx.fillStyle = blink ? '#fff3a0' : '#ff8a1f';
       ctx.beginPath();
