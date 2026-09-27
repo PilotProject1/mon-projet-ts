@@ -123,7 +123,7 @@ captures sont dans [`captures/`](captures/), aux formats exigés.
 | Fiche de l'app dans App Store Connect (Apps › + › Nouvelle app, identifiant `fr.boomz.jeu`) | toi | à créer avant le premier envoi sur TestFlight |
 | Identifiant de l'application | toi | `fr.boomz.jeu` par défaut ; **définitif** une fois publiée |
 | ~~Champs « À REMPLIR » de /confidentialite~~ | toi | **fait** |
-| Recherche d'antériorité sur le nom « Boomz » (INPI, EUIPO) et avis sur la ressemblance de la mascotte avec un personnage existant | toi | à faire avant une publication publique |
+| ~~Recherche d'antériorité sur le nom « Boomz » (INPI)~~ | toi | **faite** (septembre 2026) : BOOMZ UE n° 018913011 (haut-parleurs, classe 9) et BOOMZ FR (boissons, alimentation) sans rapport ; BoomZ FR n° 4475895 (classe 41 « divertissement », titulaire à Cayenne, sans activité de jeu trouvée) : risque jugé faible, ne pas déposer « Boomz » en classe 41 sans conseil. Reste : TMview (autres pays) et USPTO si besoin |
 | ~~Serveur sans mise en veille (offre payante Render)~~ | toi | **fait** |
 | Clé de signature Android de publication | ensemble | à créer et garder précieusement ; je peux ensuite la brancher dans GitHub Actions (secrets) pour produire le fichier .aab du Play Store |
 | Empreinte de cette clé → `ANDROID_CERT_SHA256` chez Render | toi | pour que les liens d'invitation ouvrent l'application |
