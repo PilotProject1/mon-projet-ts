@@ -1007,7 +1007,9 @@ select {
 
 .logo {
   width: min(92vw, 400px);
-  margin: 0;
+  /* Le bas de l'image n'est fait que de débris en fondu : le titre descend
+     s'y poser, au plus près de la phrase, sans rien décaler en dessous. */
+  margin: 40px 0 -40px;
   line-height: 0;
 }
 
@@ -1095,6 +1097,8 @@ select {
 @media (orientation: landscape) and (max-height: 500px) {
   .logo {
     width: min(100%, 300px);
+    /* Peu de hauteur : la phrase remonte sous les débris du titre. */
+    margin: 0 0 -34px;
   }
 
   .mascot {
