@@ -3,19 +3,19 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#1b1f2e" />
+    <meta name="theme-color" content="#120e0d" />
     <meta name="description" content="Boomz : posez des bombes, faites sauter les caisses, piégez vos amis ! Jeu multijoueur sur iPhone." />
     <link rel="icon" type="image/png" href="/favicon.png?v=2" />
-    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png?v=3" />
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png?v=4" />
     <title>Boomz</title>
     <style>
       :root {
         color-scheme: dark;
-        --bg: #1b1f2e;
-        --panel: #252a3d;
-        --text: #f3f4f8;
-        --muted: #a3a9c2;
-        --accent: #ffcf33;
+        --bg: #120e0d;
+        --panel: #1f1816;
+        --text: #fbf2e9;
+        --muted: #b8a597;
+        --accent: #ffc23a;
       }
       * {
         box-sizing: border-box;
@@ -28,7 +28,7 @@
         align-items: center;
         justify-content: center;
         padding: 24px 16px;
-        background: radial-gradient(circle at 50% 20%, #2c3350 0%, var(--bg) 70%);
+        background: radial-gradient(circle at 50% 20%, #3a1a0c 0%, var(--bg) 70%);
         color: var(--text);
         font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
         line-height: 1.5;
@@ -44,22 +44,18 @@
         filter: drop-shadow(0 10px 24px rgba(0, 0, 0, 0.55));
       }
       h1 {
-        margin: 8px 0 4px;
-        font-size: 56px;
-        font-weight: 900;
-        letter-spacing: 2px;
-        text-transform: uppercase;
-        color: var(--accent);
-        background: linear-gradient(180deg, #fff27a 0%, #ffcf33 45%, #ff8a1f 100%);
-        -webkit-background-clip: text;
-        background-clip: text;
-        -webkit-text-fill-color: transparent;
-        -webkit-text-stroke: 2px #3a1d05;
-        paint-order: stroke fill;
-        transform: rotate(-3deg);
+        width: min(88vw, 360px);
+        margin: 4px 0 0;
+        line-height: 0;
+      }
+      h1 img {
+        display: block;
+        width: 100%;
+        height: auto;
       }
       .tagline {
         margin: 0 0 24px;
+        color: #ffb45a;
         font-weight: 700;
       }
       .card {
@@ -107,8 +103,8 @@
   </head>
   <body>
     <main>
-      <img class="icon" src="/icons/icon-512.png?v=3" alt="" width="512" height="512" />
-      <h1>Boomz</h1>
+      <img class="icon" src="/icons/icon-512.png?v=4" alt="" width="512" height="512" />
+      <h1><img src="/title-boomz.png?v=3" alt="Boomz" width="490" height="301" /></h1>
       <p class="tagline">Posez des bombes, faites sauter les caisses, piégez vos amis !</p>
       <div class="card">
         <div id="invite" hidden>
