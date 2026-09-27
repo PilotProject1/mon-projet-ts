@@ -16,6 +16,18 @@ import { Connection, SnapshotBuffer } from './net/connection';
 import { VoiceChat } from './voice/voice';
 import { pickTaunt, VictoryDance } from './render/victory';
 import { Tutorial } from './tutorial';
+import {
+  CHALLENGES,
+  isUnlocked,
+  parseProgress,
+  recordStars,
+  STAR_FAST,
+  STAR_FLAWLESS,
+  STAR_WIN,
+  starsEarned,
+  totalStars,
+  type Challenge,
+} from './game/challenges';
 import { BotBrain, BOT_LEVEL_NAMES, BOT_LEVEL_SHORT, BOT_LEVELS, type BotLevel } from './game/bot';
 import { nearbyAvailable, NearbyGuestLink, NearbyHostLink, NearbyScanner, type Link, type NearbyHost } from './net/nearby';
 import { EMOTES, MAX_PLAYERS, MIN_PLAYERS, RECONNECT_GRACE_SECONDS, type LobbyPlayer, type ServerMessage } from './net/protocol';
@@ -150,6 +162,8 @@ let offline = false;
 let solo = false;
 /** Tutoriel en cours (première partie contre un robot). */
 let tutorial: Tutorial | null = null;
+/** Défi en cours (numéro dans `CHALLENGES`), ou `null`. */
+let challenge: number | null = null;
 let session: StoredSession | null = null;
 let you: string | null = null;
 let lobby: Extract<ServerMessage, { type: 'lobby' }> | null = null;
@@ -806,6 +820,7 @@ function updateVictory(match: MatchState, me: number | null): void {
   const winnerIsBot = !!lobby?.players.find((player) => player.id === winnerId)?.bot;
   const mine = winner === me;
   setText(required<HTMLElement>('#victory-eyebrow'), mine ? 'Victoire !' : 'Fin du match');
+  renderChallengeResult(match, me);
   setText(required<HTMLElement>('#victory-title'), mine ? `Bravo ${seatName(winner)} !` : `${seatName(winner)} remporte le match`);
   setText(required<HTMLElement>('#victory-taunt'), pickTaunt(winnerIsBot));
   setText(required<HTMLElement>('#victory-score'), [...match.scores].sort((a, b) => b - a).join(' – '));
@@ -844,7 +859,7 @@ function renderRematch(): void {
     rematchButton.textContent = 'Revanche !';
   } else if (isHost) {
     rematchButton.disabled = waiting.length > 0;
-    rematchButton.textContent = 'Revanche !';
+    rematchButton.textContent = challenge !== null ? 'Réessayer' : 'Revanche !';
     if (waiting.length > 0) status = `En attente de ${waiting.map((player) => player.name).join(', ')}…`;
   } else {
     rematchButton.disabled = false;
@@ -868,7 +883,9 @@ rematchButton.addEventListener('click', () => {
 required<HTMLButtonElement>('#victory-back').addEventListener('click', () => {
   victory.hidden = true;
   victoryDance.stop();
-  backButton.click();
+  // Défi : pas de salon, retour à la liste des défis.
+  if (challenge !== null) leaveGame();
+  else backButton.click();
 });
 required<HTMLButtonElement>('#victory-feedback').addEventListener('click', () => feedbackEndButton.click());
 
@@ -1362,9 +1379,21 @@ function endTutorial(): void {
 
 /** Quitte la partie en cours et revient à l'accueil. */
 function leaveGame(): void {
+  const wasChallenge = challenge;
   endTutorial();
+  challenge = null;
   connection?.send({ type: 'leave' });
   giveUp('');
+  if (wasChallenge !== null) openChallenges(wasChallenge);
+}
+
+/**
+ * Personnage et apparence, annoncés avant de lancer une partie aussitôt créée :
+ * l'accueil du salon (qui les annonce d'habitude) arrive après le lancement.
+ */
+function announceHero(): void {
+  connection?.send({ type: 'character', character: myCharacter() });
+  connection?.send({ type: 'skin', skin: mySkin() });
 }
 
 /** Salon sur ce téléphone ; `tutorial` : un robot Débutant et la partie lancée aussitôt. */
@@ -1373,9 +1402,11 @@ function playSolo(withTutorial: boolean): void {
   const name = playerName();
   coach.hidden = true;
   const hero = CHARACTERS[myCharacter()];
+  challenge = null;
   tutorial = withTutorial ? new Tutorial(window.matchMedia?.('(pointer: coarse)').matches ?? true, hero) : null;
   connect(() => {
     connection?.send({ type: 'create', name });
+    announceHero();
     connection?.send({ type: 'addBot', level: withTutorial ? 'debutant' : 'pro' });
     if (withTutorial) {
       connection?.send({ type: 'start' });
@@ -1418,6 +1449,205 @@ backButton.addEventListener('click', () => {
   viewingResults = false;
   show('lobby');
 });
+
+// ---- Défis solo ----
+
+const CHALLENGES_KEY = 'boomz.challenges';
+const challengesDialog = required<HTMLDialogElement>('#challenges');
+const challengeGrid = required<HTMLOListElement>('#challenge-grid');
+const challengePlay = required<HTMLButtonElement>('#challenge-play');
+const victoryStars = required<HTMLUListElement>('#victory-stars');
+const victoryNext = required<HTMLButtonElement>('#victory-next');
+let selectedChallenge = 0;
+
+function challengeProgress(): number[] {
+  return parseProgress(readStorage(() => localStorage, CHALLENGES_KEY));
+}
+
+function formatPar(seconds: number): string {
+  const minutes = Math.floor(seconds / 60);
+  const rest = seconds % 60;
+  if (minutes === 0) return `${rest} s`;
+  return rest ? `${minutes} min ${String(rest).padStart(2, '0')}` : `${minutes} min`;
+}
+
+/** Les trois objectifs d'un défi, avec l'étoile que chacun rapporte. */
+function challengeGoals(info: Challenge, short = false): Array<[number, string]> {
+  return short
+    ? [
+        [STAR_WIN, 'Victoire'],
+        [STAR_FLAWLESS, 'Sans perdre une manche'],
+        [STAR_FAST, `En moins de ${formatPar(info.parSeconds)}`],
+      ]
+    : [
+        [STAR_WIN, 'Gagner le match'],
+        [STAR_FLAWLESS, 'Gagner sans perdre une manche'],
+        [STAR_FAST, `Gagner en moins de ${formatPar(info.parSeconds)} de jeu`],
+      ];
+}
+
+function starSpan(won: boolean): HTMLSpanElement {
+  const star = document.createElement('span');
+  star.className = won ? 'star won' : 'star';
+  star.textContent = '★';
+  star.setAttribute('aria-hidden', 'true');
+  return star;
+}
+
+function renderChallengesTotal(): void {
+  const stars = totalStars(challengeProgress());
+  setText(required<HTMLElement>('#challenges-total'), stars ? `★ ${stars}/${CHALLENGES.length * 3}` : '');
+}
+
+function renderChallenges(): void {
+  const progress = challengeProgress();
+  setText(required<HTMLElement>('#challenges-score'), `★ ${totalStars(progress)} / ${CHALLENGES.length * 3}`);
+  challengeGrid.replaceChildren(
+    ...CHALLENGES.map((info, index) => {
+      const item = document.createElement('li');
+      const button = document.createElement('button');
+      const open = isUnlocked(progress, index);
+      button.type = 'button';
+      button.className = open ? 'challenge-tile' : 'challenge-tile locked';
+      button.setAttribute('aria-pressed', String(index === selectedChallenge));
+      const stars = progress[index];
+      const count = [STAR_WIN, STAR_FLAWLESS, STAR_FAST].filter((star) => stars & star).length;
+      button.setAttribute('aria-label', `Défi ${index + 1}, ${info.title}${open ? `, ${count} étoile${count > 1 ? 's' : ''} sur 3` : ', verrouillé'}`);
+      const number = document.createElement('span');
+      number.className = 'challenge-number';
+      number.textContent = open ? String(index + 1) : '🔒';
+      const row = document.createElement('span');
+      row.className = 'star-row';
+      row.append(...[STAR_WIN, STAR_FLAWLESS, STAR_FAST].map((star) => starSpan((stars & star) !== 0)));
+      button.append(number, row);
+      button.addEventListener('click', () => {
+        selectedChallenge = index;
+        audio.playClick();
+        renderChallenges();
+      });
+      item.append(button);
+      return item;
+    }),
+  );
+  const info = CHALLENGES[selectedChallenge];
+  const open = isUnlocked(progress, selectedChallenge);
+  setText(required<HTMLElement>('#challenge-name'), `${selectedChallenge + 1}. ${info.title}`);
+  setText(required<HTMLElement>('#challenge-arena'), ARENA_NAMES[info.arena]);
+  required<HTMLUListElement>('#challenge-opponents').replaceChildren(
+    ...info.bots.map((bot) => {
+      const item = document.createElement('li');
+      item.className = 'challenge-opponent';
+      const avatar = document.createElement('canvas');
+      avatar.className = 'avatar';
+      avatar.setAttribute('aria-hidden', 'true');
+      const label = document.createElement('span');
+      label.textContent = `${CHARACTERS[bot.character].name} · ${BOT_LEVEL_SHORT[bot.level]}`;
+      item.append(avatar, label);
+      requestAnimationFrame(() => drawAvatar(avatar, bot.character, 0));
+      return item;
+    }),
+  );
+  const goals = required<HTMLUListElement>('#challenge-goals');
+  if (open) {
+    goals.replaceChildren(
+      ...challengeGoals(info).map(([star, text]) => {
+        const item = document.createElement('li');
+        const label = document.createElement('span');
+        label.textContent = text;
+        item.append(starSpan((progress[selectedChallenge] & star) !== 0), label);
+        return item;
+      }),
+    );
+  } else {
+    const item = document.createElement('li');
+    item.className = 'challenge-locked';
+    item.textContent = `Gagnez le défi ${selectedChallenge} pour débloquer celui-ci.`;
+    goals.replaceChildren(item);
+  }
+  challengePlay.disabled = !open;
+  setText(challengePlay, open ? `Jouer le défi ${selectedChallenge + 1}` : 'Verrouillé');
+}
+
+/** `focus` : défi à mettre en avant ; sinon le dernier débloqué. */
+function openChallenges(focus?: number): void {
+  const progress = challengeProgress();
+  const lastOpen = CHALLENGES.reduce((last, _, index) => (isUnlocked(progress, index) ? index : last), 0);
+  selectedChallenge = focus !== undefined && isUnlocked(progress, focus) ? focus : lastOpen;
+  renderChallenges();
+  renderChallengesTotal();
+  if (!challengesDialog.open) challengesDialog.showModal();
+}
+
+/** Lance un défi sur ce téléphone : salon local, robots imposés, partie lancée aussitôt. */
+function playChallenge(index: number): void {
+  const info = CHALLENGES[index];
+  setText(homeError, '');
+  coach.hidden = true;
+  tutorial = null;
+  const name = playerName();
+  connect(() => {
+    challenge = index;
+    connection?.send({ type: 'create', name });
+    announceHero();
+    connection?.send({ type: 'arena', arena: info.arena });
+    for (const bot of info.bots) connection?.send({ type: 'addBot', level: bot.level, character: bot.character });
+    connection?.send({ type: 'start' });
+  }, soloLink);
+}
+
+/** Écran de fin d'un défi : étoiles obtenues (et enregistrées), défi suivant. */
+function renderChallengeResult(match: MatchState, me: number | null): void {
+  const info = challenge === null ? null : CHALLENGES[challenge];
+  victoryStars.hidden = info === null;
+  victoryNext.hidden = true;
+  rematchButton.className = 'primary-btn';
+  setText(required<HTMLButtonElement>('#victory-back'), info ? 'Retour aux défis' : 'Retour au salon');
+  if (!info || challenge === null || me === null) return;
+  const earned = starsEarned(match, me, info);
+  const before = challengeProgress();
+  const after = recordStars(before, challenge, earned);
+  writeStorage(() => localStorage, CHALLENGES_KEY, JSON.stringify(after));
+  renderChallengesTotal();
+  setText(required<HTMLElement>('#victory-eyebrow'), earned ? `Défi ${challenge + 1} réussi !` : `Défi ${challenge + 1} raté`);
+  victoryStars.replaceChildren(
+    ...challengeGoals(info, true).map(([star, text]) => {
+      const item = document.createElement('li');
+      const label = document.createElement('span');
+      label.className = 'goal-text';
+      label.textContent = text;
+      item.append(starSpan((earned & star) !== 0), label);
+      if ((earned & star) !== 0 && (before[challenge!] & star) === 0) {
+        const fresh = document.createElement('span');
+        fresh.className = 'star-new';
+        fresh.textContent = 'Nouveau';
+        item.append(fresh);
+      }
+      return item;
+    }),
+  );
+  victoryNext.hidden = !(challenge + 1 < CHALLENGES.length && isUnlocked(after, challenge + 1));
+  // Défi suivant disponible : il devient l'action principale.
+  rematchButton.className = victoryNext.hidden ? 'primary-btn' : 'secondary-btn';
+}
+
+victoryNext.addEventListener('click', () => {
+  if (challenge === null) return;
+  const next = challenge + 1;
+  victory.hidden = true;
+  victoryDance.stop();
+  endTutorial();
+  challenge = null;
+  connection?.send({ type: 'leave' });
+  giveUp('');
+  playChallenge(next);
+});
+required<HTMLButtonElement>('#challenges-btn').addEventListener('click', () => openChallenges());
+required<HTMLButtonElement>('#challenges-close').addEventListener('click', () => challengesDialog.close());
+challengePlay.addEventListener('click', () => {
+  challengesDialog.close();
+  playChallenge(selectedChallenge);
+});
+renderChallengesTotal();
 
 // ---- Choix du personnage ----
 

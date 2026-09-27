@@ -222,8 +222,8 @@ export class Room {
     this.broadcastLobby();
   }
 
-  /** Ajoute un robot, à la demande de l'hôte, pour compléter la partie. */
-  addBot(peerId: string, level: BotLevel): string | null {
+  /** Ajoute un robot, à la demande de l'hôte, pour compléter la partie (`character` : imposé, sinon au hasard). */
+  addBot(peerId: string, level: BotLevel, character?: number): string | null {
     if (peerId !== this.hostId) return 'Seul l’hôte peut ajouter un robot.';
     if (this.inMatch) return 'La partie a déjà commencé.';
     if (this.peers.length >= MAX_PLAYERS) return `Ce salon est complet (${MAX_PLAYERS} joueurs maximum).`;
@@ -236,7 +236,7 @@ export class Room {
     const cast = new Set(this.peers.map((peer, seat) => peer.character ?? defaultCharacter(seat)));
     const free = Array.from({ length: CHARACTER_COUNT }, (_, i) => i).filter((i) => !cast.has(i));
     const pool = free.length ? free : Array.from({ length: CHARACTER_COUNT }, (_, i) => i);
-    bot.character = pool[Math.floor(Math.random() * pool.length)];
+    bot.character = isCharacter(character) ? character : pool[Math.floor(Math.random() * pool.length)];
     this.peers.push(bot);
     this.broadcastLobby();
     return null;

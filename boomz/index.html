@@ -43,6 +43,7 @@
             <button class="secondary-btn" id="join-btn" type="submit">Rejoindre</button>
           </form>
           <button class="secondary-btn wide nearby-btn" id="nearby-btn" type="button" hidden>Jouer en local</button>
+          <button class="secondary-btn wide challenges-btn" id="challenges-btn" type="button">Défis <span class="challenges-total" id="challenges-total"></span></button>
           <button class="secondary-btn wide" id="solo-btn" type="button">Jouer contre des robots</button>
           <p class="hint" id="home-status" role="status"></p>
           <p class="error" id="home-error" role="alert"></p>
@@ -215,6 +216,24 @@
       </div>
     </dialog>
 
+    <!-- Défis solo : des matchs imposés contre des robots, jusqu'à trois étoiles chacun -->
+    <dialog class="help challenges" id="challenges" aria-labelledby="challenges-title">
+      <div class="help-card">
+        <div class="challenges-head">
+          <h2 id="challenges-title">Défis</h2>
+          <span class="challenges-score" id="challenges-score"></span>
+        </div>
+        <ol class="challenge-grid" id="challenge-grid"></ol>
+        <div class="challenge-detail" id="challenge-detail">
+          <p class="challenge-name"><strong id="challenge-name"></strong> <span class="challenge-arena" id="challenge-arena"></span></p>
+          <ul class="challenge-opponents" id="challenge-opponents"></ul>
+          <ul class="challenge-goals" id="challenge-goals"></ul>
+        </div>
+        <button class="primary-btn" id="challenge-play" type="button">Jouer</button>
+        <button class="link-btn" id="challenges-close" type="button">Fermer</button>
+      </div>
+    </dialog>
+
     <!-- Réglages du son, depuis l'accueil (le titre occupe le haut de l'écran) -->
     <dialog class="help settings" id="settings" aria-labelledby="settings-title">
       <div class="help-card">
@@ -366,7 +385,9 @@
             <canvas class="victory-stage" id="victory-stage" aria-hidden="true"></canvas>
           </div>
           <p class="victory-score" id="victory-score"></p>
+          <ul class="victory-stars" id="victory-stars" hidden></ul>
           <div class="victory-actions" id="victory-actions">
+            <button class="primary-btn" id="victory-next" type="button" hidden>Défi suivant</button>
             <button class="primary-btn" id="victory-rematch" type="button">Revanche !</button>
             <p class="victory-rematch-status" id="victory-rematch-status" aria-live="polite"></p>
             <button class="secondary-btn" id="victory-back" type="button">Retour au salon</button>

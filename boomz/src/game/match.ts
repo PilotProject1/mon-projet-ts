@@ -28,6 +28,8 @@ export interface MatchState {
   characters: number[];
   /** Pouvoirs des personnages actifs (tous les téléphones de la partie les connaissent). */
   powers: boolean;
+  /** Temps de jeu cumulé du match, hors comptes à rebours et pauses entre manches (ticks). */
+  playTicks: number;
   round: RoundState;
 }
 
@@ -69,6 +71,7 @@ export function createMatch(
     skins: new Array<number>(playerCount).fill(0),
     characters: cast,
     powers,
+    playTicks: 0,
     round: createRound(playerCount, seed, arenas[0], cast, powers),
   };
 }
@@ -85,6 +88,7 @@ export function stepMatch(match: MatchState, inputs: ReadonlyArray<PlayerInput>)
       if (match.phaseTick >= COUNTDOWN_TICKS) setPhase(match, 'playing');
       return [];
     case 'playing': {
+      match.playTicks++;
       const events = stepRound(match.round, inputs);
       const alive = alivePlayers(match.round);
       if (alive.length <= 1) {

@@ -405,6 +405,15 @@ téléphones du salon les connaissent (la 1.0 continue de jouer sans).
 Équilibrage de départ réglé sur des matchs entre robots : à affiner avec de
 vrais joueurs.
 
+**Fait : défis solo avec étoiles** (`src/game/challenges.ts`) — 12 matchs
+imposés contre des robots (arène, adversaires, personnages et niveaux fixés),
+de « Premiers pas » au « Grand final » contre 5 robots. Chaque défi rapporte
+jusqu'à 3 étoiles, indépendantes : gagner, gagner sans perdre une manche,
+gagner en moins d'un temps de jeu donné (`playTicks`, hors comptes à rebours).
+Un défi se débloque en gagnant le précédent ; les étoiles restent sur le
+téléphone (`boomz.challenges`). Joué sur le téléphone, sans connexion. Écran
+de fin : étoiles obtenues, « Défi suivant », « Réessayer ».
+
 Pouvoirs des personnages (planche `docs/personnages.jpg`, 20 personnages) :
 
 - **choix du personnage dès le début**, sur un écran qui présente chacun

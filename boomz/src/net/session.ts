@@ -139,7 +139,7 @@ export class Session {
         return;
       case 'addBot': {
         if (!BOT_LEVELS.includes(message.level)) return;
-        const error = room.addBot(peer.id, message.level);
+        const error = room.addBot(peer.id, message.level, message.character);
         if (error) send({ type: 'error', message: error });
         return;
       }

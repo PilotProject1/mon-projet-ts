@@ -1410,7 +1410,7 @@ button.voice-tag {
   inset: 0;
   z-index: 30;
   display: grid;
-  place-items: center;
+  overflow-y: auto;
   padding: max(16px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom));
   /* Projecteur doré sur le gagnant ; l'arène disparaît presque derrière. */
   background:
@@ -1429,6 +1429,8 @@ button.voice-tag {
 
 .victory-card {
   position: relative;
+  /* Centrée tant qu'elle tient ; sinon elle défile depuis son haut, sans rien couper. */
+  margin: auto;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -1575,6 +1577,7 @@ button.voice-tag {
       'stage title'
       'stage taunt'
       'stage score'
+      'stage stars'
       'stage actions';
     align-items: center;
     justify-items: center;
@@ -1619,6 +1622,11 @@ button.voice-tag {
 
   .victory-actions {
     grid-area: actions;
+  }
+
+  .victory-stars {
+    grid-area: stars;
+    margin-bottom: 8px;
   }
 }
 
@@ -2146,4 +2154,223 @@ button.voice-tag {
   position: absolute;
   z-index: 1;
   pointer-events: none;
+}
+
+/* ---- Défis solo ---- */
+
+.challenges-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.challenges-total {
+  color: var(--accent);
+  font-size: 14px;
+}
+
+.challenges-total:empty {
+  display: none;
+}
+
+.challenges {
+  width: min(520px, calc(100vw - 24px));
+}
+
+.challenges-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
+}
+
+.challenges-score {
+  flex: none;
+  color: var(--accent);
+  font-weight: 800;
+}
+
+.challenge-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.challenge-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  width: 100%;
+  min-width: 0;
+  padding: 8px 4px 6px;
+  border: 2px solid transparent;
+  border-radius: 14px;
+  background: rgba(12, 9, 8, 0.6);
+  color: var(--text);
+  font: inherit;
+  cursor: pointer;
+}
+
+.challenge-number {
+  font-size: 22px;
+  font-weight: 900;
+  line-height: 1.1;
+}
+
+.challenge-tile[aria-pressed='true'] {
+  border-color: var(--accent);
+  background: rgba(255, 207, 51, 0.12);
+}
+
+.challenge-tile.locked {
+  color: var(--muted);
+  opacity: 0.55;
+}
+
+.star-row {
+  display: flex;
+  gap: 1px;
+  font-size: 13px;
+  line-height: 1;
+  letter-spacing: 0;
+}
+
+.star {
+  color: #4d3a31;
+}
+
+.star.won {
+  color: var(--accent);
+  text-shadow: 0 0 6px rgba(255, 170, 40, 0.6);
+}
+
+.challenge-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  padding: 12px;
+  border-radius: 14px;
+  background: rgba(12, 9, 8, 0.6);
+}
+
+.challenge-name {
+  margin: 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.challenge-name strong {
+  font-size: 18px;
+}
+
+.challenge-arena {
+  display: inline-block;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--panel-border);
+  color: var(--muted);
+  font-size: 12px;
+  vertical-align: 2px;
+}
+
+.challenge-opponents {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.challenge-opponent {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  padding: 3px 10px 3px 3px;
+  border-radius: 999px;
+  background: #2c211d;
+  font-size: 12px;
+}
+
+.challenge-opponent .avatar {
+  flex: none;
+  width: 28px;
+  height: 28px;
+}
+
+.challenge-opponent span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.challenge-goals {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.challenge-goals li,
+.victory-stars li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.challenge-goals .star,
+.victory-stars .star {
+  flex: none;
+  font-size: 18px;
+}
+
+.challenge-locked {
+  margin: 0;
+  color: var(--muted);
+}
+
+.victory-stars {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: -6px 0 14px;
+  padding: 0;
+  list-style: none;
+  font-size: 14px;
+  text-align: left;
+}
+
+.victory-stars[hidden] {
+  display: none;
+}
+
+.victory-stars .goal-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.star-new {
+  flex: none;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #2a1606;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }

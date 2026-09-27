@@ -282,6 +282,19 @@ describe('salon', () => {
       expect(room.start('alice')).toBeNull();
     });
 
+    it('prennent le personnage imposé par un défi', () => {
+      const room = new Room('ABCDE', () => 11);
+      const alice = fakePeer('alice');
+      room.join(alice);
+      room.addBot('alice', 'pro', 2);
+      room.addBot('alice', 'pro', 2);
+      room.addBot('alice', 'pro', 99);
+      const bots = lastOf(alice, 'lobby').players.filter((player) => player.bot);
+      expect(bots.slice(0, 2).map((bot) => bot.character)).toEqual([2, 2]);
+      expect(bots[2].character).toBeGreaterThanOrEqual(0);
+      expect(bots[2].character).toBeLessThan(8);
+    });
+
     it('jouent réellement : ils se déplacent et posent des bombes', () => {
       const room = new Room('ABCDE', () => 11);
       const alice = fakePeer('alice');

@@ -66,8 +66,8 @@ export type ClientMessage =
   | { type: 'detonate' }
   /** Mesure de la latence : le serveur renvoie aussitôt `sent`. */
   | { type: 'ping'; sent: number }
-  /** Ajoute un robot au salon (réservé à l'hôte). */
-  | { type: 'addBot'; level: BotLevel }
+  /** Ajoute un robot au salon (réservé à l'hôte), avec un personnage imposé (défis). */
+  | { type: 'addBot'; level: BotLevel; character?: number }
   /** Retire un robot du salon (réservé à l'hôte). */
   | { type: 'removeBot'; id: string }
   /** Rejoint ou quitte le chat vocal du salon. */
