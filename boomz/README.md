@@ -391,7 +391,18 @@ fait presque jamais sauter lui-même (`src/game/bot.test.ts`).
 ## Mise à jour 1.1 (prévue)
 
 Pouvoirs propres à chaque personnage, mode défi solo avec étoiles, parties en
-équipes.
+équipes, et **recherche de partie** : trouver des adversaires au hasard, sans
+avoir à inviter des amis.
+
+Points à prévoir pour la recherche de partie :
+
+- file d'attente sur le serveur, qui regroupe les joueurs (2 à 6) et complète
+  avec des robots après un délai d'attente ;
+- entre inconnus, chat vocal coupé par défaut (ou réservé aux amis), émojis
+  seulement ; signalement et blocage d'autant plus importants ;
+- pseudos : filtre des mots grossiers ;
+- mettre à jour la confidentialité, la classification par âge et la note pour
+  Apple.
 
 ## Chat vocal (parties en ligne)
 
