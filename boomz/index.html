@@ -154,6 +154,30 @@
       </div>
     </dialog>
 
+    <!-- Signaler un joueur (propos insultants, harcèlement…) : e-mail à l'éditeur -->
+    <dialog class="help report" id="report" aria-labelledby="report-title">
+      <form class="help-card" id="report-form" method="dialog">
+        <h2 id="report-title">Signaler un joueur</h2>
+        <p class="legend-intro">Votre signalement nous parvient par e-mail et sera examiné. Vous pouvez aussi ne plus entendre ce joueur.</p>
+        <fieldset class="choice">
+          <legend>Motif</legend>
+          <label><input type="radio" name="motif" value="Propos insultants ou haineux" checked /> Propos insultants ou haineux</label>
+          <label><input type="radio" name="motif" value="Harcèlement ou menaces" /> Harcèlement ou menaces</label>
+          <label><input type="radio" name="motif" value="Contenu sexuel" /> Contenu sexuel</label>
+          <label><input type="radio" name="motif" value="Pseudo inapproprié" /> Pseudo inapproprié</label>
+          <label><input type="radio" name="motif" value="Autre" /> Autre</label>
+        </fieldset>
+        <label class="field">
+          <span>Précisions (facultatif)</span>
+          <textarea name="details" rows="2" maxlength="400"></textarea>
+        </label>
+        <label class="check-row"><input type="checkbox" name="mute" checked /> Ne plus entendre ce joueur</label>
+        <p class="hint">Votre messagerie va s'ouvrir avec l'e-mail prêt à partir. Si rien ne s'ouvre, écrivez à boomz-service@outlook.com.</p>
+        <button class="primary-btn" id="report-send" type="button">Envoyer le signalement</button>
+        <button class="link-btn" id="report-close" type="button">Annuler</button>
+      </form>
+    </dialog>
+
     <!-- Premier lancement : proposition du tutoriel -->
     <dialog class="help welcome" id="welcome" aria-labelledby="welcome-title">
       <div class="help-card">

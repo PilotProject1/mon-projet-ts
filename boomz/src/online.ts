@@ -449,7 +449,7 @@ function lobbyRow(player: LobbyPlayer, index: number, host: boolean, self: boole
   name.className = 'player-name';
   name.textContent = `${player.name}${self ? ' (vous)' : ''}`;
   const character = document.createElement('span');
-  character.className = 'player-tag';
+  character.className = 'player-tag character-tag';
   character.textContent = player.skin ? `${PLAYER_LOOKS[index].name} ${SKIN_NAMES[player.skin]}` : PLAYER_LOOKS[index].name;
   const status = document.createElement('span');
   status.className = 'player-tag';
@@ -484,6 +484,16 @@ function lobbyRow(player: LobbyPlayer, index: number, host: boolean, self: boole
     item.append(avatar, name, character, status);
   }
   if (player.voice) item.append(voiceTag(player.id, self));
+  if (!self && !player.bot) {
+    const flag = document.createElement('button');
+    flag.type = 'button';
+    flag.className = 'row-action report-btn';
+    flag.textContent = '⚑';
+    flag.setAttribute('aria-label', `Signaler ${player.name}`);
+    flag.title = 'Signaler';
+    flag.addEventListener('click', () => openReport(player));
+    item.append(flag);
+  }
   if (player.bot && lobby?.host === you) {
     const remove = document.createElement('button');
     remove.type = 'button';
@@ -496,6 +506,47 @@ function lobbyRow(player: LobbyPlayer, index: number, host: boolean, self: boole
   requestAnimationFrame(() => drawAvatar(avatar, index, player.skin));
   return item;
 }
+
+// ---- Signaler un joueur ----
+
+const reportDialog = required<HTMLDialogElement>('#report');
+const reportForm = required<HTMLFormElement>('#report-form');
+const REPORT_ADDRESS = 'boomz-service@outlook.com';
+let reported: LobbyPlayer | null = null;
+
+function openReport(player: LobbyPlayer): void {
+  reported = player;
+  reportForm.reset();
+  setText(required<HTMLElement>('#report-title'), `Signaler ${player.name}`);
+  reportDialog.showModal();
+}
+
+/** E-mail de signalement : pseudo du joueur, salon et motif, rien d'autre. */
+function reportMail(name: string, room: string, reason: string, details: string, date: Date): string {
+  const body = [
+    `Joueur signalé : ${name}`,
+    `Salon : ${room}`,
+    `Date : ${date.toLocaleString('fr-FR')}`,
+    `Motif : ${reason}`,
+    details ? `Précisions : ${details}` : '',
+  ]
+    .filter(Boolean)
+    .join('\n');
+  return `mailto:${REPORT_ADDRESS}?subject=${encodeURIComponent(`Signalement d'un joueur (${name})`)}&body=${encodeURIComponent(body)}`;
+}
+
+required<HTMLButtonElement>('#report-send').addEventListener('click', () => {
+  if (!reported) return;
+  const data = new FormData(reportForm);
+  if (data.get('mute') && !voice.mutedPlayers.has(reported.id)) voice.togglePlayer(reported.id);
+  const link = document.createElement('a');
+  link.href = reportMail(reported.name, session?.room ?? '', String(data.get('motif') ?? ''), String(data.get('details') ?? '').trim(), new Date());
+  link.click();
+  reportDialog.close();
+  renderLobby();
+  setText(lobbyHint, 'Merci, votre signalement va être examiné.');
+});
+required<HTMLButtonElement>('#report-close').addEventListener('click', () => reportDialog.close());
 
 // ---- Robots (ajoutés par l'hôte pour compléter la partie) ----
 

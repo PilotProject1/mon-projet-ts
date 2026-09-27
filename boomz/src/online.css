@@ -1360,7 +1360,8 @@ button.voice-tag {
   color: var(--accent);
 }
 
-.bot-remove {
+.bot-remove,
+.row-action {
   flex: none;
   width: 28px;
   height: 28px;
@@ -1723,4 +1724,31 @@ button.voice-tag {
 #lobby.solo .room-code,
 #lobby.solo .eyebrow {
   display: none;
+}
+
+/* ---- Signaler un joueur ---- */
+
+.report-btn {
+  font-size: 14px;
+}
+
+.check-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 32px;
+}
+
+.check-row input {
+  width: 20px;
+  height: 20px;
+  margin: 0;
+  accent-color: var(--accent);
+}
+
+/* Téléphone : le nom du personnage (déjà visible sur l'avatar) laisse la place au pseudo. */
+@media (max-width: 480px) {
+  .player-list .character-tag {
+    display: none;
+  }
 }

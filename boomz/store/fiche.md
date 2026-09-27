@@ -104,6 +104,7 @@ captures sont dans [`captures/`](captures/), aux formats exigés.
 > Commandes : glissez le doigt sur la moitié gauche de l'écran pour bouger, bouton « Bombe » à droite.
 >
 > Parties en ligne entre amis : « Créer une partie » sur un appareil, puis rejoindre avec le code à 5 lettres sur un second appareil (l'hôte peut aussi compléter avec des robots). Le chat vocal, facultatif, n'est proposé que dans ces parties en ligne ; la voix passe directement d'un appareil à l'autre (WebRTC) et n'est ni enregistrée ni reçue par nos serveurs.
+> Chaque joueur peut rendre muet un autre joueur (bouton 🔊 à côté de son nom) et le signaler (bouton ⚑) : un e-mail de signalement (pseudo, salon, motif) s'ouvre, adressé à boomz-service@outlook.com, où les signalements sont examinés.
 > « Jouer en local » relie des iPhone proches par Multipeer Connectivity (Bluetooth / Wi-Fi direct), d'où la demande d'accès au réseau local.
 >
 > Aucun compte, aucun achat, aucune publicité. Contact : boomz-service@outlook.com

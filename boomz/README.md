@@ -381,6 +381,10 @@ fait presque jamais sauter lui-même (`src/game/bot.test.ts`).
   l'hôte relance dès que tout le monde l'est (les robots le sont toujours).
 - **Émojis rapides** (bouton 😀 en partie) : bulle au-dessus du personnage,
   visible par tous ; au plus un toutes les 0,8 s par joueur.
+- **Signaler un joueur** (bouton ⚑ dans le salon, sur chaque autre joueur
+  humain) : motif et précisions, puis un e-mail prérempli vers
+  boomz-service@outlook.com ; le joueur peut être rendu muet en même temps.
+  Exigé par Apple pour les apps où les joueurs communiquent (chat vocal).
 - **Vibrations** (iPhone, module natif `HapticsPlugin.swift`) : explosion
   proche, élimination, gilet perdu, victoire. Coupées avec les bruitages.
 
