@@ -1018,7 +1018,7 @@ select {
   }
 }
 
-/* Titre détouré (fond transparent, docs/title-boomz-source.png pour l'original). */
+/* Titre détouré : lettres et flammes pleines, pierres projetées en fondu (original : docs/title-boomz-source.png). */
 .logo-img {
   display: block;
   width: 100%;
