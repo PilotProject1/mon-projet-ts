@@ -28,24 +28,29 @@ export const ALL_STARS = STAR_WIN | STAR_FLAWLESS | STAR_FAST;
 
 const bot = (level: BotLevel, character: number): ChallengeBot => ({ level, character });
 
-/** Les défis, dans l'ordre : chacun se débloque en gagnant le précédent. */
+/**
+ * Les défis, dans l'ordre : chacun se débloque en gagnant le précédent.
+ * Difficulté et temps réglés sur des matchs joués par un robot Expert (il
+ * gagne presque toujours les premiers, rarement les derniers) : à affiner
+ * avec de vrais joueurs.
+ */
 export const CHALLENGES: readonly Challenge[] = [
-  { title: 'Premiers pas', arena: 'chantier', bots: [bot('debutant', Hero.Boomer)], parSeconds: 100 },
-  { title: 'Téléportation', arena: 'laboratoire', bots: [bot('debutant', Hero.Rocket)], parSeconds: 100 },
-  { title: 'Dalles fragiles', arena: 'temple', bots: [bot('debutant', Hero.Frost), bot('debutant', Hero.Toxic)], parSeconds: 130 },
-  { title: 'Tapis roulants', arena: 'station', bots: [bot('pro', Hero.Boomette)], parSeconds: 110 },
-  { title: 'Duel de pros', arena: 'chantier', bots: [bot('pro', Hero.Blaster)], parSeconds: 110 },
-  { title: 'Coup de froid', arena: 'laboratoire', bots: [bot('pro', Hero.Frost), bot('pro', Hero.Frost)], parSeconds: 140 },
-  { title: 'Air toxique', arena: 'temple', bots: [bot('pro', Hero.Toxic), bot('pro', Hero.Omega)], parSeconds: 140 },
-  { title: 'Un contre trois', arena: 'station', bots: [bot('debutant', Hero.Rocket), bot('pro', Hero.Rocco), bot('pro', Hero.Blaster)], parSeconds: 170 },
-  { title: 'L’expert', arena: 'chantier', bots: [bot('expert', Hero.Boomer)], parSeconds: 120 },
-  { title: 'Carapaces', arena: 'temple', bots: [bot('expert', Hero.Rocco), bot('pro', Hero.Rocco)], parSeconds: 150 },
-  { title: 'Chasse gardée', arena: 'laboratoire', bots: [bot('expert', Hero.Rocket), bot('expert', Hero.Omega)], parSeconds: 160 },
+  { title: 'Premiers pas', arena: 'chantier', bots: [bot('debutant', Hero.Boomer)], parSeconds: 150 },
+  { title: 'Téléportation', arena: 'laboratoire', bots: [bot('debutant', Hero.Rocket)], parSeconds: 120 },
+  { title: 'Dalles fragiles', arena: 'temple', bots: [bot('debutant', Hero.Frost), bot('debutant', Hero.Toxic)], parSeconds: 240 },
+  { title: 'Tapis roulants', arena: 'station', bots: [bot('pro', Hero.Boomette)], parSeconds: 180 },
+  { title: 'Duel de pros', arena: 'chantier', bots: [bot('pro', Hero.Blaster)], parSeconds: 180 },
+  { title: 'Coup de froid', arena: 'laboratoire', bots: [bot('pro', Hero.Frost), bot('debutant', Hero.Frost)], parSeconds: 240 },
+  { title: 'Air toxique', arena: 'temple', bots: [bot('pro', Hero.Toxic), bot('pro', Hero.Omega)], parSeconds: 210 },
+  { title: 'Un contre trois', arena: 'station', bots: [bot('debutant', Hero.Rocket), bot('debutant', Hero.Rocco), bot('pro', Hero.Blaster)], parSeconds: 300 },
+  { title: 'L’expert', arena: 'chantier', bots: [bot('expert', Hero.Boomer)], parSeconds: 240 },
+  { title: 'Carapaces', arena: 'temple', bots: [bot('expert', Hero.Rocco), bot('pro', Hero.Rocco)], parSeconds: 300 },
+  { title: 'Chasse gardée', arena: 'laboratoire', bots: [bot('expert', Hero.Rocket), bot('expert', Hero.Omega)], parSeconds: 330 },
   {
     title: 'Le grand final',
     arena: 'station',
-    bots: [bot('expert', Hero.Blaster), bot('expert', Hero.Frost), bot('expert', Hero.Toxic), bot('pro', Hero.Boomette), bot('pro', Hero.Rocket)],
-    parSeconds: 220,
+    bots: [bot('expert', Hero.Blaster), bot('pro', Hero.Frost), bot('pro', Hero.Toxic), bot('debutant', Hero.Boomette), bot('debutant', Hero.Rocket)],
+    parSeconds: 420,
   },
 ];
 
