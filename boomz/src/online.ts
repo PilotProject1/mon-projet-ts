@@ -4,6 +4,7 @@ import { soundEvents } from './audio/events';
 import { hapticFor, Haptics, nearestNewFlame } from './audio/haptics';
 import { composeFeedback, describeDevice, median, type FeedbackAnswers } from './feedback';
 import { MenuDemo } from './menu/demo';
+import { TaglineChase } from './menu/chase';
 import { COUNTDOWN_TICKS, SUDDEN_DEATH_TICKS, TICK_RATE, WINS_TO_TAKE_MATCH } from './game/constants';
 import { ARENA_NAMES } from './game/arena';
 import { SKIN_COUNT, UNTIL_USED } from './game/constants';
@@ -80,6 +81,7 @@ const renderer = new Renderer(canvas);
 const audio = new GameAudio();
 const haptics = new Haptics(() => audio.settings.sound);
 const demo = new MenuDemo(required<HTMLCanvasElement>('#home-bg'));
+const chase = new TaglineChase(required<HTMLCanvasElement>('#chase'), required<HTMLElement>('#tagline'));
 const homeCard = required<HTMLElement>('#home-card');
 const homeStatus = required<HTMLElement>('#home-status');
 const helpDialog = required<HTMLDialogElement>('#help');
@@ -174,8 +176,13 @@ function show(next: Screen): void {
 /** Musique et fond animé selon l'écran affiché. */
 function applyScreenAmbience(): void {
   audio.playMusic(screen === 'game' ? 'game' : 'menu');
-  if (screen === 'home') demo.start();
-  else demo.stop();
+  if (screen === 'home') {
+    demo.start();
+    chase.start();
+  } else {
+    demo.stop();
+    chase.stop();
+  }
   void updateWakeLock();
 }
 

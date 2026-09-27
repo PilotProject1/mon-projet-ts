@@ -977,6 +977,7 @@ select {
 }
 
 .home-hero {
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -2138,4 +2139,11 @@ button.voice-tag {
   background: rgba(12, 9, 8, 0.6);
   font-size: 16px;
   font-weight: 700;
+}
+
+/* Course-poursuite de personnages sur la phrase d'accroche (décor). */
+.chase {
+  position: absolute;
+  z-index: 1;
+  pointer-events: none;
 }
