@@ -1032,9 +1032,10 @@ select {
 .home .tagline {
   max-width: 340px;
   margin: 10px 0 0;
-  color: var(--text);
-  font-weight: 600;
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
+  /* Orangé feu, comme les flammes du titre. */
+  color: #ffb45a;
+  font-weight: 700;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8), 0 0 14px rgba(255, 106, 26, 0.35);
 }
 
 .home-card {
@@ -2119,4 +2120,22 @@ button.voice-tag {
 
 .version-hint[hidden] {
   display: none;
+}
+
+/* ---- Réglages (son et musique) ---- */
+
+.settings {
+  width: min(340px, calc(100vw - 24px));
+}
+
+.setting-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 12px;
+  border-radius: 12px;
+  background: rgba(12, 9, 8, 0.6);
+  font-size: 16px;
+  font-weight: 700;
 }

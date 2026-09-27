@@ -1181,6 +1181,10 @@ function fillBonusLegend(list: HTMLUListElement): Array<() => void> {
 const lobbyLegend = fillBonusLegend(required<HTMLUListElement>('#bonus-list'));
 required<HTMLDetailsElement>('.legend').addEventListener('toggle', () => lobbyLegend.forEach((paint) => paint()));
 const helpLegend = fillBonusLegend(required<HTMLUListElement>('#help-bonus-list'));
+const settingsDialog = required<HTMLDialogElement>('#settings');
+required<HTMLButtonElement>('#settings-btn').addEventListener('click', () => settingsDialog.showModal());
+required<HTMLButtonElement>('#settings-close').addEventListener('click', () => settingsDialog.close());
+
 required<HTMLButtonElement>('#help-btn').addEventListener('click', () => {
   helpDialog.showModal();
   helpLegend.forEach((paint) => paint());

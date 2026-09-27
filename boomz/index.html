@@ -15,14 +15,6 @@
       <!-- En fond : une petite partie jouée par des personnages automatiques. -->
       <canvas class="home-bg" id="home-bg" aria-hidden="true"></canvas>
       <div class="home-shade" aria-hidden="true"></div>
-      <div class="audio-toggles">
-        <button class="icon-btn" id="sound-btn" type="button" aria-pressed="true" aria-label="Bruitages">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h4l5-4v14l-5-4H4z" /><path class="waves" d="M16 8.5a5 5 0 0 1 0 7M18.5 6a8.5 8.5 0 0 1 0 12" /><path class="cross" d="M16 9l6 6M22 9l-6 6" /></svg>
-        </button>
-        <button class="icon-btn" id="music-btn" type="button" aria-pressed="true" aria-label="Musique">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 17V5l11-2v12" /><circle cx="6.5" cy="17" r="2.5" /><circle cx="17.5" cy="15" r="2.5" /><path class="cross" d="M3 3l18 18" /></svg>
-        </button>
-      </div>
       <div class="home-layout">
         <div class="home-hero">
           <img class="mascot" src="/icons/icon-512.png?v=2" alt="" width="512" height="512" />
@@ -55,6 +47,7 @@
           <p class="error" id="home-error" role="alert"></p>
           <div class="home-links">
             <button class="link-btn" id="help-btn" type="button">Comment jouer ?</button>
+            <button class="link-btn" id="settings-btn" type="button">Réglages</button>
             <button class="link-btn" id="feedback-btn" type="button">Donner mon avis</button>
             <a class="link-btn privacy-link" href="/confidentialite" target="_blank" rel="noopener">Confidentialité</a>
           </div>
@@ -218,6 +211,26 @@
         </fieldset>
         <button class="primary-btn" id="characters-ok" type="button">Choisir</button>
         <button class="link-btn" id="characters-close" type="button">Annuler</button>
+      </div>
+    </dialog>
+
+    <!-- Réglages du son, depuis l'accueil (le titre occupe le haut de l'écran) -->
+    <dialog class="help settings" id="settings" aria-labelledby="settings-title">
+      <div class="help-card">
+        <h2 id="settings-title">Réglages</h2>
+        <div class="setting-row">
+          <span>Bruitages</span>
+          <button class="icon-btn" id="sound-btn" type="button" aria-pressed="true" aria-label="Bruitages">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h4l5-4v14l-5-4H4z" /><path class="waves" d="M16 8.5a5 5 0 0 1 0 7M18.5 6a8.5 8.5 0 0 1 0 12" /><path class="cross" d="M16 9l6 6M22 9l-6 6" /></svg>
+          </button>
+        </div>
+        <div class="setting-row">
+          <span>Musique</span>
+          <button class="icon-btn" id="music-btn" type="button" aria-pressed="true" aria-label="Musique">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 17V5l11-2v12" /><circle cx="6.5" cy="17" r="2.5" /><circle cx="17.5" cy="15" r="2.5" /><path class="cross" d="M3 3l18 18" /></svg>
+          </button>
+        </div>
+        <button class="primary-btn" id="settings-close" type="button">OK</button>
       </div>
     </dialog>
 
