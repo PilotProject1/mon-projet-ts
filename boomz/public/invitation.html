@@ -79,6 +79,10 @@
         margin: 0;
         color: var(--muted);
       }
+      /* Sans cette règle, le style du bouton l'emporte sur l'attribut « hidden ». */
+      [hidden] {
+        display: none !important;
+      }
       .store {
         display: block;
         margin-top: 16px;
