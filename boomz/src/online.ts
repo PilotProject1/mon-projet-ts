@@ -1976,6 +1976,8 @@ if (Capacitor.isNativePlatform()) {
   };
   void App.getLaunchUrl().then((launch) => openLink(launch?.url));
   void App.addListener('appUrlOpen', (event) => openLink(event.url));
+  // Retour dans l'application (après un message, un appel) : le son repart d'un moteur neuf si besoin.
+  void App.addListener('appStateChange', ({ isActive }) => audio.background(!isActive));
 }
 
 // Dans l'application, la page de confidentialité est celle du site (ouverte dans le navigateur).

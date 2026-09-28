@@ -97,6 +97,9 @@ function loadSettings(): AudioSettings {
   return { sound: true, music: true };
 }
 
+/** Absence au-delà de laquelle on recrée le moteur audio au retour (voir `rebuild`). */
+const REBUILD_AFTER_MS = 500;
+
 export class GameAudio {
   private ctx: BaseAudioContext | null = null;
   private sfx: GainNode | null = null;
@@ -110,6 +113,8 @@ export class GameAudio {
   private nextStepTime = 0;
   private scheduler: number | null = null;
   private lastPlayed = new Map<string, number>();
+  /** Moment où l'application est passée en arrière-plan (`null` : au premier plan). */
+  private hiddenAt: number | null = null;
 
   constructor() {
     // Contexte créé dès le lancement : dans l'application, la musique démarre
@@ -121,12 +126,46 @@ export class GameAudio {
     const wake = () => this.wake();
     window.addEventListener('pointerdown', wake);
     window.addEventListener('keydown', wake);
-    document.addEventListener('visibilitychange', () => {
-      // Téléphone verrouillé ou onglet caché : on coupe tout, pour la batterie.
-      if (!(this.ctx instanceof AudioContext)) return;
-      if (document.hidden) void this.ctx.suspend();
-      else this.wake();
-    });
+    document.addEventListener('visibilitychange', () => this.background(document.hidden));
+  }
+
+  /**
+   * L'application passe en arrière-plan (`true`) ou revient (`false`). Appelé
+   * par la page et par l'application iPhone : sans effet si rien ne change.
+   */
+  background(hidden: boolean): void {
+    if (!(this.ctx instanceof AudioContext)) return;
+    if (hidden) {
+      // Téléphone verrouillé, autre application : on coupe tout, pour la batterie.
+      if (this.hiddenAt === null) this.hiddenAt = performance.now();
+      void this.ctx.suspend();
+      return;
+    }
+    if (this.hiddenAt === null) return;
+    const away = performance.now() - this.hiddenAt;
+    this.hiddenAt = null;
+    if (away > REBUILD_AFTER_MS) this.rebuild();
+    else this.wake();
+  }
+
+  /**
+   * Repart d'un moteur audio neuf. Sur iPhone, après un passage par une autre
+   * application (message, appel), l'ancien peut rester muet tout en se disant
+   * « en marche » : le relancer ne suffit pas, il faut le remplacer.
+   */
+  rebuild(): void {
+    const old = this.ctx;
+    if (!(old instanceof AudioContext)) return;
+    this.ctx = null;
+    void old.close().catch(() => {});
+    const ctx = this.ensureContext();
+    if (!ctx) return;
+    void ctx.resume().then(
+      () => {
+        if (this.track) this.startScheduler();
+      },
+      () => {},
+    );
   }
 
   /**
@@ -150,6 +189,8 @@ export class GameAudio {
     if (!Context) return null;
     const ctx = new Context();
     ctx.addEventListener('statechange', () => {
+      // Moteur remplacé (voir `rebuild`) : on l'oublie.
+      if (ctx !== this.ctx) return;
       // Interruption terminée (fin du micro, d'un appel) : on reprend la musique.
       if (ctx.state !== 'running' && !document.hidden) window.setTimeout(() => this.wake(), 300);
     });
