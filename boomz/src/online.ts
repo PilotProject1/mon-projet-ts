@@ -975,7 +975,11 @@ function renderPowerButton(match: MatchState, player: Player | undefined): void 
   powerButton.style.setProperty('--cd', String(Math.min(1, left / total)));
   powerButton.classList.toggle('charging', left > 0);
   powerButton.classList.toggle('active', active);
-  setText(required<HTMLElement>('#power-label'), left > 0 ? String(Math.ceil(left / TICK_RATE)) : info.power);
+  const label = required<HTMLElement>('#power-label');
+  // Mot trop long pour le bouton (Doppelbombe) : coupure possible au milieu, avec un trait d'union.
+  const name = info.power.replace(/\S{10,}/g, (word) => `${word.slice(0, Math.ceil(word.length / 2))}\u00ad${word.slice(Math.ceil(word.length / 2))}`);
+  setText(label, left > 0 ? String(Math.ceil(left / TICK_RATE)) : name);
+  label.classList.toggle('long', left <= 0 && info.power.split(' ').some((word) => word.length >= 8));
   powerButton.setAttribute('aria-label', left > 0 ? `${info.power} : prêt dans ${Math.ceil(left / TICK_RATE)} s` : `Utiliser ${info.power}`);
 }
 /** Développement : robot aux commandes de ce téléphone. */

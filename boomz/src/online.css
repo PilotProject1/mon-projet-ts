@@ -2084,13 +2084,20 @@ button.voice-tag {
 .power-label {
   position: relative;
   max-width: 50px;
-  overflow-wrap: anywhere;
+  /* Un nom de pouvoir ne se coupe jamais au milieu d'un mot : les longs sont écrits plus petit. */
+  overflow-wrap: normal;
+  word-break: keep-all;
+  hyphens: manual;
   text-align: center;
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
 }
 
 .power-btn.charging {
   border-color: rgba(255, 255, 255, 0.45);
+}
+
+.power-label.long {
+  font-size: 8.5px;
 }
 
 .power-btn.charging .power-label {
