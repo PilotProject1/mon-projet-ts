@@ -28,6 +28,8 @@ export interface LobbyPlayer {
   character?: number;
   /** Équipe (0 ou 1), pour les parties en équipes. */
   team?: number;
+  /** Accessoire porté (voir `ACCESSORIES`) ; absent : aucun. */
+  accessory?: number;
 }
 
 /** Chacun pour soi, ou deux équipes. */
@@ -58,6 +60,8 @@ export type ClientMessage =
   | { type: 'ready'; ready: boolean }
   /** Choix de son apparence (cosmétique). */
   | { type: 'skin'; skin: number }
+  /** Choix de son accessoire (cosmétique). */
+  | { type: 'accessory'; accessory: number }
   /** Choix de son personnage (et donc de son pouvoir). */
   | { type: 'character'; character: number }
   /** Utilise le pouvoir de son personnage. */

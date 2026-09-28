@@ -26,6 +26,8 @@ export interface MatchState {
   skins: number[];
   /** Personnage de chaque joueur (voir `CHARACTERS`). */
   characters: number[];
+  /** Accessoire de chaque joueur (cosmétique ; absent chez un serveur plus ancien). */
+  accessories?: number[];
   /** Pouvoirs des personnages actifs (tous les téléphones de la partie les connaissent). */
   powers: boolean;
   /** Temps de jeu cumulé du match, hors comptes à rebours et pauses entre manches (ticks). */
@@ -84,6 +86,7 @@ export function createMatch(
     arenas,
     skins: new Array<number>(playerCount).fill(0),
     characters: cast,
+    accessories: new Array<number>(playerCount).fill(0),
     powers,
     playTicks: 0,
     teams: teams ? teams.slice(0, playerCount) : null,

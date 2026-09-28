@@ -2007,8 +2007,67 @@ button.voice-tag {
   border-color: var(--accent);
 }
 
+/* Accessoires : grille de 4, les verrouillés indiquent les étoiles des défis à gagner. */
+.accessory-options {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.accessory-option {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+  padding: 4px 2px;
+  border: 2px solid transparent;
+  border-radius: 12px;
+  background: rgba(12, 9, 8, 0.6);
+  color: var(--text);
+  font: inherit;
+  font-size: 11px;
+  line-height: 1.15;
+  cursor: pointer;
+}
+
+.accessory-option .avatar {
+  width: 34px;
+  height: 34px;
+}
+
+.accessory-option span {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.accessory-option[aria-pressed='true'] {
+  border-color: var(--accent);
+}
+
+.accessory-option:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+
+.accessory-option .lock {
+  color: var(--accent);
+  font-weight: 800;
+}
+
+.accessory-stars {
+  color: var(--accent);
+  font-weight: 700;
+}
+
 /* Téléphone couché : les 8 personnages sur une rangée, pour tout voir sans défiler. */
 @media (orientation: landscape) and (max-height: 500px) {
+  .accessory-options {
+    grid-template-columns: repeat(8, minmax(0, 1fr));
+  }
+
   .characters {
     width: min(760px, calc(100vw - 24px));
   }

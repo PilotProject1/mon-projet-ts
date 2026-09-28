@@ -263,7 +263,15 @@ export class Renderer {
     // Du fond vers l'avant : un personnage plus bas à l'écran passe devant.
     const players = [...round.players].sort((a, b) => a.y - b.y);
     for (const player of players) {
-      this.drawPlayer(player, tick, player.id === you, match.skins?.[player.id] ?? 0, round.tick, match.teams?.[player.id] ?? null);
+      this.drawPlayer(
+        player,
+        tick,
+        player.id === you,
+        match.skins?.[player.id] ?? 0,
+        round.tick,
+        match.teams?.[player.id] ?? null,
+        match.accessories?.[player.id] ?? 0,
+      );
     }
     for (const player of players) this.drawEmote(player, now);
 
@@ -872,9 +880,17 @@ export class Renderer {
 
   // ---- Personnages ----
 
-  private drawPlayer(player: Player, tick: number, isYou: boolean, skin: number, roundTick: number, team: number | null): void {
+  private drawPlayer(
+    player: Player,
+    tick: number,
+    isYou: boolean,
+    skin: number,
+    roundTick: number,
+    team: number | null,
+    accessory: number,
+  ): void {
     const { ctx, cell, cellW, cellH } = this;
-    const look = lookFor(player.character ?? defaultCharacter(player.id), skin);
+    const look = lookFor(player.character ?? defaultCharacter(player.id), skin, accessory);
     let alpha = 1;
     let scale = 1;
     if (!player.alive) {

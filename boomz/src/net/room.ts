@@ -1,6 +1,7 @@
 import { SKIN_COUNT, TICK_RATE } from '../game/constants';
 import { createMatch, stepMatch, type ArenaChoice, type MatchState } from '../game/match';
 import { BotBrain, type BotLevel } from '../game/bot';
+import { ACCESSORIES, isAccessory } from '../game/accessories';
 import { CHARACTER_COUNT, defaultCharacter, isCharacter } from '../game/powers';
 import { createRng } from '../game/rng';
 import { eliminatePlayer } from '../game/round';
@@ -74,6 +75,8 @@ export interface Peer {
   powersAware: boolean;
   /** Équipe (0 ou 1), utilisée en partie par équipes. */
   team: number;
+  /** Accessoire porté (cosmétique). */
+  accessory: number;
   /** Le téléphone connaît les parties en équipes (versions récentes). */
   teamsAware: boolean;
   /** Horloge du salon à l'arrivée (ou au retour) du téléphone. */
@@ -98,6 +101,7 @@ export function createPeer(id: string, token: string, name: string, send: (messa
     character: null,
     powersAware: false,
     team: 0,
+    accessory: 0,
     teamsAware: false,
     joinedAt: 0,
     lastEmoteAt: null,
@@ -224,6 +228,13 @@ export class Room {
     this.broadcastLobby();
   }
 
+  setAccessory(peerId: string, accessory: number): void {
+    const peer = this.peers.find((candidate) => candidate.id === peerId);
+    if (!peer || this.inMatch || !isAccessory(accessory)) return;
+    peer.accessory = accessory;
+    this.broadcastLobby();
+  }
+
   setCharacter(peerId: string, character: number): void {
     const peer = this.peers.find((candidate) => candidate.id === peerId);
     if (!peer || this.inMatch || !isCharacter(character)) return;
@@ -248,6 +259,8 @@ export class Room {
     const pool = free.length ? free : Array.from({ length: CHARACTER_COUNT }, (_, i) => i);
     bot.character = isCharacter(character) ? character : pool[Math.floor(Math.random() * pool.length)];
     bot.team = this.smallerTeam();
+    // Un robot sur deux porte un accessoire, pour varier les silhouettes.
+    bot.accessory = Math.random() < 0.5 ? 1 + Math.floor(Math.random() * (ACCESSORIES.length - 1)) : 0;
     bot.teamsAware = true;
     this.peers.push(bot);
     this.broadcastLobby();
@@ -351,6 +364,7 @@ export class Room {
       this.peers.flatMap((peer, seat) => (peer.bot ? [[seat, new BotBrain(peer.bot, botRandom)] as const] : [])),
     );
     this.match.skins = distinctSkins(characters, this.peers.map((peer) => peer.skin));
+    this.match.accessories = this.peers.map((peer) => peer.accessory);
     this.stats?.recordMatchStart(this.peers.length);
     this.matchTicks = 0;
     this.broadcastLobby();
@@ -456,7 +470,7 @@ export class Room {
     this.broadcast({
       type: 'lobby',
       host: this.hostId ?? '',
-      players: this.peers.map(({ id, name, connected, ready, skin, voice, bot, character, team }) => ({
+      players: this.peers.map(({ id, name, connected, ready, skin, voice, bot, character, team, accessory }) => ({
         id,
         name,
         connected,
@@ -464,6 +478,7 @@ export class Room {
         skin,
         voice,
         team,
+        ...(accessory ? { accessory } : {}),
         ...(bot ? { bot } : {}),
         ...(character !== null ? { character } : {}),
       })),

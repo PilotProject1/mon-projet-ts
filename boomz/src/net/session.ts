@@ -110,6 +110,9 @@ export class Session {
       case 'skin':
         room.setSkin(peer.id, Number(message.skin));
         return;
+      case 'accessory':
+        room.setAccessory(peer.id, Number(message.accessory));
+        return;
       case 'character':
         room.setCharacter(peer.id, Number(message.character));
         return;

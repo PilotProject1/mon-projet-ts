@@ -34,6 +34,7 @@ import { EMOTES, MAX_PLAYERS, MIN_PLAYERS, RECONNECT_GRACE_SECONDS, TEAM_COUNT, 
 import { BONUS_INFO, BONUS_ORDER, paintBonusCanvas } from './render/bonuses';
 import { drawAvatar, HERO_COLORS, lookFor, SKIN_NAMES, TEAM_COLORS, TEAM_NAMES } from './render/characters';
 import { CHARACTERS, defaultCharacter, isCharacter, POWER_START_TICKS } from './game/powers';
+import { ACCESSORIES, accessoryUnlocked } from './game/accessories';
 import { Renderer } from './render/renderer';
 import { screenToGrid } from './render/view';
 import { PUBLIC_ORIGIN } from './net/server';
@@ -353,6 +354,7 @@ function onMessage(message: ServerMessage): void {
       // Personnage choisi sur ce téléphone (annonce aussi que les pouvoirs sont connus).
       connection?.send({ type: 'character', character: myCharacter() });
       connection?.send({ type: 'features', teams: true });
+      connection?.send({ type: 'accessory', accessory: myAccessory() });
       connection?.send({ type: 'skin', skin: mySkin() });
       connectionBanner.hidden = true;
       setText(homeError, '');
@@ -585,7 +587,7 @@ function lobbyRow(player: LobbyPlayer, index: number, host: boolean, self: boole
     remove.addEventListener('click', () => connection?.send({ type: 'removeBot', id: player.id }));
     item.append(remove);
   }
-  requestAnimationFrame(() => drawAvatar(avatar, hero, player.skin));
+  requestAnimationFrame(() => drawAvatar(avatar, hero, player.skin, player.accessory ?? 0));
   return item;
 }
 
@@ -764,7 +766,9 @@ function renderScores(match: MatchState): void {
       count.className = 'score-count';
       count.textContent = String(score);
       item.append(avatar, name, wins, count);
-      requestAnimationFrame(() => drawAvatar(avatar, seatCharacter(match, player.id), match.skins?.[player.id] ?? 0));
+      requestAnimationFrame(() =>
+        drawAvatar(avatar, seatCharacter(match, player.id), match.skins?.[player.id] ?? 0, match.accessories?.[player.id] ?? 0),
+      );
       return item;
     }),
   );
@@ -897,7 +901,7 @@ function updateVictory(match: MatchState, me: number | null): void {
   victory.hidden = false;
   document.getElementById('coach')?.setAttribute('hidden', '');
   renderRematch();
-  victoryDance.play(lookFor(seatCharacter(match, winner), match.skins?.[winner] ?? 0));
+  victoryDance.play(lookFor(seatCharacter(match, winner), match.skins?.[winner] ?? 0, match.accessories?.[winner] ?? 0));
   // Les boutons arrivent après le spectacle.
   victoryActions.classList.remove('shown');
   if (victoryActionsTimer !== null) window.clearTimeout(victoryActionsTimer);
@@ -1466,6 +1470,7 @@ function leaveGame(): void {
  */
 function announceHero(): void {
   connection?.send({ type: 'features', teams: true });
+  connection?.send({ type: 'accessory', accessory: myAccessory() });
   connection?.send({ type: 'character', character: myCharacter() });
   connection?.send({ type: 'skin', skin: mySkin() });
 }
@@ -1780,6 +1785,47 @@ const skinOptions = required<HTMLElement>('#skin-options');
 /** Sélection en cours dans la fenêtre, confirmée par « Choisir ». */
 let pickedCharacter = 0;
 let pickedSkin = 0;
+let pickedAccessory = 0;
+const ACCESSORY_KEY = 'boomz.accessory';
+
+/** Accessoire enregistré, s'il est (toujours) débloqué par les étoiles des défis. */
+function myAccessory(): number {
+  const stored = Number(readStorage(() => localStorage, ACCESSORY_KEY));
+  return accessoryUnlocked(stored, totalStars(challengeProgress())) ? stored : 0;
+}
+
+function renderAccessoryPicker(): void {
+  const stars = totalStars(challengeProgress());
+  setText(required<HTMLElement>('#accessory-stars'), `★ ${stars}`);
+  required<HTMLElement>('#accessory-options').replaceChildren(
+    ...ACCESSORIES.map((info, index) => {
+      const open = accessoryUnlocked(index, stars);
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'accessory-option';
+      button.disabled = !open;
+      button.setAttribute('aria-pressed', String(index === pickedAccessory));
+      button.setAttribute('aria-label', open ? info.name : `${info.name} : à débloquer avec ${info.stars} étoiles des défis`);
+      const avatar = document.createElement('canvas');
+      avatar.className = 'avatar';
+      const label = document.createElement('span');
+      if (open) label.textContent = info.name;
+      else {
+        label.className = 'lock';
+        label.textContent = `🔒 ★ ${info.stars}`;
+      }
+      button.append(avatar, label);
+      button.addEventListener('click', () => {
+        pickedAccessory = index;
+        audio.playClick();
+        renderCharacterPicker();
+      });
+      requestAnimationFrame(() => drawAvatar(avatar, pickedCharacter, pickedSkin, index));
+      return button;
+    }),
+  );
+}
+
 /** Premier lancement : le tutoriel est proposé une fois le personnage choisi. */
 let pickingFirst = false;
 
@@ -1801,7 +1847,7 @@ function renderHeroRow(): void {
   const hero = CHARACTERS[myCharacter()];
   setText(required<HTMLElement>('#hero-name'), hero.name);
   setText(required<HTMLElement>('#hero-power'), `Pouvoir : ${hero.power}`);
-  requestAnimationFrame(() => drawAvatar(required<HTMLCanvasElement>('#hero-avatar'), myCharacter(), mySkin()));
+  requestAnimationFrame(() => drawAvatar(required<HTMLCanvasElement>('#hero-avatar'), myCharacter(), mySkin(), myAccessory()));
 }
 
 function renderCharacterPicker(): void {
@@ -1834,7 +1880,8 @@ function renderCharacterPicker(): void {
   setText(required<HTMLElement>('#character-power'), `Pouvoir : ${info.power}`);
   setText(required<HTMLElement>('#character-description'), info.description);
   setText(required<HTMLElement>('#character-cooldown'), `Recharge : ${Math.round(info.cooldown / TICK_RATE)} s`);
-  requestAnimationFrame(() => drawAvatar(required<HTMLCanvasElement>('#character-portrait'), pickedCharacter, pickedSkin));
+  requestAnimationFrame(() => drawAvatar(required<HTMLCanvasElement>('#character-portrait'), pickedCharacter, pickedSkin, pickedAccessory));
+  renderAccessoryPicker();
   skinOptions.replaceChildren(
     ...SKIN_NAMES.map((skinName, skin) => {
       const button = document.createElement('button');
@@ -1862,6 +1909,7 @@ function openCharacters(first: boolean): void {
   pickingFirst = first;
   pickedCharacter = myCharacter();
   pickedSkin = mySkin();
+  pickedAccessory = myAccessory();
   required<HTMLButtonElement>('#characters-close').hidden = first;
   renderCharacterPicker();
   charactersDialog.showModal();
@@ -1870,11 +1918,13 @@ function openCharacters(first: boolean): void {
 required<HTMLButtonElement>('#characters-ok').addEventListener('click', () => {
   writeStorage(() => localStorage, CHARACTER_KEY, String(pickedCharacter));
   writeStorage(() => localStorage, SKIN_KEY, String(pickedSkin));
+  writeStorage(() => localStorage, ACCESSORY_KEY, String(pickedAccessory));
   charactersDialog.close();
   renderHeroRow();
   if (session) {
     connection?.send({ type: 'character', character: pickedCharacter });
     connection?.send({ type: 'skin', skin: pickedSkin });
+    connection?.send({ type: 'accessory', accessory: pickedAccessory });
   }
   if (pickingFirst && !readStorage(() => localStorage, TUTORIAL_KEY)) welcomeDialog.showModal();
   pickingFirst = false;

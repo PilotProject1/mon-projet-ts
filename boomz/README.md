@@ -426,6 +426,14 @@ les robots n'attaquent que l'autre équipe. La manche revient à la dernière
 message. En jeu : disque de couleur sous chaque personnage, pastilles de score
 cerclées, « L'équipe Rouge gagne la manche », « Rouge 3 – 1 Bleue ».
 
+**Fait : accessoires** (`src/game/accessories.ts`) — 7 accessoires cosmétiques
+pour distinguer les personnages : lunettes noires et nœud papillon dès le
+départ, puis moustache (3 étoiles), cache-œil (6), écharpe (10), casque audio
+(15) et couronne (24), débloqués par les étoiles des défis. Choix dans la
+fenêtre du personnage (« Accessoire », verrouillés avec le nombre d'étoiles à
+gagner) ; vus partout (partie de face, de profil et de dos, salon, scores,
+danse de victoire) ; un robot sur deux en porte un. Sans effet sur le jeu.
+
 Pouvoirs des personnages (planche `docs/personnages.jpg`, 20 personnages) :
 
 - **choix du personnage dès le début**, sur un écran qui présente chacun

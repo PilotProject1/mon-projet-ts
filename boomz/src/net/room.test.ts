@@ -385,4 +385,18 @@ describe('salon', () => {
       expect(snapshot(alice).teams).toBeNull();
     });
   });
+
+  it('transmet l’accessoire de chacun à la partie', () => {
+    const room = new Room('ABCDE', () => 1);
+    const alice = fakePeer('alice');
+    const bob = fakePeer('bob');
+    room.join(alice);
+    room.join(bob);
+    room.setAccessory('alice', 3);
+    room.setAccessory('bob', 42);
+    expect(lastOf(alice, 'lobby').players.map((player) => player.accessory ?? 0)).toEqual([3, 0]);
+    room.setReady('bob', true);
+    room.start('alice');
+    expect(snapshot(alice).accessories).toEqual([3, 0]);
+  });
 });
