@@ -45,7 +45,7 @@ export function lookFor(character: number, skin = 0): PlayerLook {
       // Nuit : tenue sombre, liserés aux couleurs du personnage.
       return { name: base.name, cap: '#1f2233', capFront: base.cap, ball: base.ball, suit: '#141622', trim: base.cap };
     case 2:
-      // Or : casquette dorée, pompon nacré.
+      // Or : casquette dorée, badge nacré.
       return { name: base.name, cap: '#d9a521', capFront: base.capFront, ball: '#fff1a8', suit: base.suit, trim: '#d9a521' };
     default:
       return base;
@@ -56,7 +56,7 @@ const OUTLINE = '#15161f';
 const SKIN = '#ffd9b3';
 
 /**
- * Dessine un personnage en style chibi (grosse tête, casquette, pompon),
+ * Dessine un personnage en style chibi (grosse tête, casquette à badge),
  * centré en (cx, cy), `r` étant le rayon de la silhouette.
  */
 export function drawCharacter(
@@ -86,8 +86,7 @@ export function drawCharacter(
   const headR = r * 0.72;
   const [fx, fy] = DIRECTION_VECTORS[facing];
 
-  // Pompon au sommet, puis tête.
-  shape(look.ball, () => ctx.arc(cx, headY - headR * 1.08, headR * 0.28, 0, Math.PI * 2));
+  // Tête (sans pompon ni antenne au sommet : silhouette propre à Boomz).
   shape(facing === 'up' ? look.cap : SKIN, () => ctx.arc(cx, headY, headR, 0, Math.PI * 2));
   if (facing === 'up') return;
 
