@@ -337,4 +337,52 @@ describe('salon', () => {
       expect(room.isEmpty).toBe(true);
     });
   });
+
+  describe('en équipes', () => {
+    it('répartit les arrivants, laisse chacun changer d’équipe et l’hôte régler le mode', () => {
+      const room = new Room('ABCDE', () => 1);
+      const alice = fakePeer('alice');
+      const bob = fakePeer('bob');
+      room.join(alice);
+      room.join(bob);
+      room.addBot('alice', 'pro');
+      let lobby = lastOf(alice, 'lobby');
+      expect(lobby.mode).toBe('ffa');
+      expect(lobby.players.map((player) => player.team)).toEqual([0, 1, 0]);
+      room.setMode('bob', 'teams');
+      expect(lastOf(alice, 'lobby').mode).toBe('ffa');
+      room.setMode('alice', 'teams');
+      room.setTeam('bob', 0);
+      // Bob ne peut pas déplacer le robot ; l'hôte, si.
+      room.setTeam('bob', 1, 'robot-1');
+      room.setTeam('alice', 1, 'robot-1');
+      lobby = lastOf(alice, 'lobby');
+      expect(lobby.mode).toBe('teams');
+      expect(lobby.players.map((player) => player.team)).toEqual([0, 0, 1]);
+    });
+
+    it('ne se lance qu’avec deux équipes et des téléphones à jour', () => {
+      const room = new Room('ABCDE', () => 1);
+      const alice = fakePeer('alice');
+      const bob = fakePeer('bob');
+      room.join(alice);
+      room.join(bob);
+      room.setReady('bob', true);
+      room.setMode('alice', 'teams');
+      room.setFeatures('alice', true);
+      expect(room.start('alice')).toMatch(/bob doit mettre à jour/);
+      room.setFeatures('bob', true);
+      room.setTeam('bob', 0);
+      expect(room.start('alice')).toMatch(/chaque équipe/);
+      room.setTeam('bob', 1);
+      expect(room.start('alice')).toBeNull();
+      expect(snapshot(alice).teams).toEqual([0, 1]);
+      expect(snapshot(alice).round.teams).toEqual([0, 1]);
+    });
+
+    it('chacun pour soi : pas d’équipes dans la partie', () => {
+      const { alice } = startedRoom();
+      expect(snapshot(alice).teams).toBeNull();
+    });
+  });
 });

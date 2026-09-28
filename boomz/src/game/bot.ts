@@ -1,6 +1,6 @@
 import { BOMB_FUSE_TICKS, FLAME_TICKS, SUDDEN_DEATH_INTERVAL_TICKS, SUDDEN_DEATH_TICKS } from './constants';
 import { DASH_CELLS, FREEZE_RADIUS, Hero } from './powers';
-import { bombAt, cellOf } from './round';
+import { bombAt, cellOf, isOpponent } from './round';
 import { Bonus, DIRECTION_VECTORS, Tile, type Bomb, type Direction, type Player, type PlayerInput, type RoundState } from './types';
 
 export type BotLevel = 'debutant' | 'pro' | 'expert';
@@ -102,7 +102,7 @@ export class BotBrain {
 
   private powerUseful(state: RoundState, me: Player, power: number, bombing: boolean): boolean {
     const here = index(state, ...cellOf(me));
-    const enemies = state.players.filter((player) => player.alive && player.id !== me.id);
+    const enemies = state.players.filter((player) => player.alive && isOpponent(state, me.id, player.id));
     const nearest = Math.min(...enemies.map((enemy) => Math.hypot(enemy.x - me.x, enemy.y - me.y)));
     switch (power) {
       case Hero.Boomer:
@@ -289,7 +289,7 @@ export class BotBrain {
    * encore, depuis cette case, se mettre à l'abri ? Évite de se faire enfermer.
    */
   private survivesAmbush(state: RoundState, player: Player, cell: number, stepTicks: number): boolean {
-    const enemies = state.players.filter((other) => other.alive && other.id !== player.id);
+    const enemies = state.players.filter((other) => other.alive && isOpponent(state, player.id, other.id));
     const ambush: Bomb[] = enemies.map((enemy, i) => {
       const [cx, cy] = cellOf(enemy);
       return { id: -2 - i, owner: enemy.id, cx, cy, fuse: BOMB_FUSE_TICKS, range: enemy.range, passThrough: [enemy.id], remote: false, slide: null, slideProgress: 0 };
@@ -304,7 +304,7 @@ export class BotBrain {
 
   /** Case sûre la plus proche d'un adversaire (pour ne pas rester à attendre). */
   private towardEnemy(state: RoundState, me: Player, distance: Map<number, number>, danger: Danger): number {
-    const enemies = state.players.filter((player) => player.alive && player.id !== me.id).map((enemy) => cellOf(enemy));
+    const enemies = state.players.filter((player) => player.alive && isOpponent(state, me.id, player.id)).map((enemy) => cellOf(enemy));
     if (!enemies.length) return -1;
     let best = -1;
     let bestScore = NEVER;
@@ -515,7 +515,7 @@ function blastValue(state: RoundState, cell: number, me: Player): { blocks: numb
   const cells = new Set(blastCells(state, bomb));
   for (const hit of cells) if (state.tiles[hit] === Tile.Block) blocks++;
   for (const player of state.players) {
-    if (!player.alive || player.id === me.id) continue;
+    if (!player.alive || !isOpponent(state, me.id, player.id)) continue;
     if (cells.has(index(state, ...cellOf(player)))) enemies++;
   }
   return { blocks, enemies };

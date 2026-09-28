@@ -26,7 +26,13 @@ export interface LobbyPlayer {
   bot?: BotLevel;
   /** Personnage choisi (voir `CHARACTERS`) ; absent : celui de sa place. */
   character?: number;
+  /** Équipe (0 ou 1), pour les parties en équipes. */
+  team?: number;
 }
+
+/** Chacun pour soi, ou deux équipes. */
+export type GameMode = 'ffa' | 'teams';
+export const TEAM_COUNT = 2;
 
 /**
  * Message de mise en relation WebRTC entre deux téléphones (chat vocal) :
@@ -56,6 +62,12 @@ export type ClientMessage =
   | { type: 'character'; character: number }
   /** Utilise le pouvoir de son personnage. */
   | { type: 'power' }
+  /** Choix du mode (chacun pour soi ou en équipes), réservé à l'hôte. */
+  | { type: 'mode'; mode: GameMode }
+  /** Changement d'équipe : la sienne, ou celle d'un robot (hôte seulement, avec `id`). */
+  | { type: 'team'; team: number; id?: string }
+  /** Ce que sait faire ce téléphone (annoncé à l'arrivée) : les versions plus anciennes n'envoient rien. */
+  | { type: 'features'; teams?: boolean }
   /** Choix de l'arène, réservé à l'hôte. */
   | { type: 'arena'; arena: ArenaChoice }
   | { type: 'start' }
@@ -88,6 +100,8 @@ export type ServerMessage =
       seats: Record<string, number>;
       inMatch: boolean;
       arena: ArenaChoice;
+      /** Absent : chacun pour soi (serveur d'une version plus ancienne). */
+      mode?: GameMode;
     }
   | { type: 'snapshot'; match: MatchState }
   | { type: 'pong'; sent: number }

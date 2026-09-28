@@ -152,6 +152,10 @@ export interface RoundState {
   hiddenBonuses: Bonus[];
   /** Ticks restants de flamme pour chaque case (0 = pas de flamme). */
   flames: number[];
+  /** Joueurs dont les bombes enflamment chaque case (un bit par joueur). */
+  flameOwners: number[];
+  /** Équipe de chaque joueur (partie en équipes), ou `null` : chacun pour soi. */
+  teams: number[] | null;
   players: Player[];
   bombs: Bomb[];
   tick: number;

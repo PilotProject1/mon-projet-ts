@@ -8,7 +8,7 @@ import { TaglineChase } from './menu/chase';
 import { COUNTDOWN_TICKS, SUDDEN_DEATH_TICKS, TICK_RATE, WINS_TO_TAKE_MATCH } from './game/constants';
 import { ARENA_NAMES } from './game/arena';
 import { SKIN_COUNT, UNTIL_USED } from './game/constants';
-import type { ArenaChoice, MatchState } from './game/match';
+import { wonBy, type ArenaChoice, type MatchState } from './game/match';
 import { ARENA_IDS, Bonus, type Direction, type Player } from './game/types';
 import { KeyboardInput } from './input/keyboard';
 import { TouchPad } from './input/touch';
@@ -30,9 +30,9 @@ import {
 } from './game/challenges';
 import { BotBrain, BOT_LEVEL_NAMES, BOT_LEVEL_SHORT, BOT_LEVELS, type BotLevel } from './game/bot';
 import { nearbyAvailable, NearbyGuestLink, NearbyHostLink, NearbyScanner, type Link, type NearbyHost } from './net/nearby';
-import { EMOTES, MAX_PLAYERS, MIN_PLAYERS, RECONNECT_GRACE_SECONDS, type LobbyPlayer, type ServerMessage } from './net/protocol';
+import { EMOTES, MAX_PLAYERS, MIN_PLAYERS, RECONNECT_GRACE_SECONDS, TEAM_COUNT, type GameMode, type LobbyPlayer, type ServerMessage } from './net/protocol';
 import { BONUS_INFO, BONUS_ORDER, paintBonusCanvas } from './render/bonuses';
-import { drawAvatar, HERO_COLORS, lookFor, SKIN_NAMES } from './render/characters';
+import { drawAvatar, HERO_COLORS, lookFor, SKIN_NAMES, TEAM_COLORS, TEAM_NAMES } from './render/characters';
 import { CHARACTERS, defaultCharacter, isCharacter, POWER_START_TICKS } from './game/powers';
 import { Renderer } from './render/renderer';
 import { screenToGrid } from './render/view';
@@ -352,6 +352,7 @@ function onMessage(message: ServerMessage): void {
       voice.rejoin();
       // Personnage choisi sur ce téléphone (annonce aussi que les pouvoirs sont connus).
       connection?.send({ type: 'character', character: myCharacter() });
+      connection?.send({ type: 'features', teams: true });
       connection?.send({ type: 'skin', skin: mySkin() });
       connectionBanner.hidden = true;
       setText(homeError, '');
@@ -438,6 +439,11 @@ function renderLobby(): void {
   arenaName.hidden = isHost;
   if (arenaSelect.value !== lobby.arena) arenaSelect.value = lobby.arena;
   setText(arenaName, arenaLabel(lobby.arena));
+  const mode = lobbyMode();
+  modeSelect.hidden = !isHost;
+  modeName.hidden = isHost;
+  if (modeSelect.value !== mode) modeSelect.value = mode;
+  setText(modeName, mode === 'teams' ? 'En équipes : Rouge contre Bleue' : 'Chacun pour soi');
 
   const othersReady = players.filter((player) => player.id !== lobby?.host).every((player) => player.ready);
   const allHere = players.every((player) => player.connected);
@@ -458,7 +464,10 @@ function renderLobby(): void {
   else if (!isHost) hint = me?.ready ? 'L’hôte va lancer la partie.' : 'Appuyez sur « Je suis prêt ».';
   setText(lobbyHint, hint);
   botRow.hidden = !isHost || players.length >= MAX_PLAYERS;
-  setText(skinHint, 'Touchez votre personnage pour en changer.');
+  setText(
+    skinHint,
+    mode === 'teams' ? 'Touchez votre personnage pour en changer, et la pastille de couleur pour changer d’équipe.' : 'Touchez votre personnage pour en changer.',
+  );
   // Joueurs avec une version plus ancienne (sans personnage choisi) : pas de pouvoirs ni de vocal pour eux.
   const outdated = players.filter((player) => !player.bot && player.id !== you && player.character === undefined && player.connected);
   const versionHint = required<HTMLElement>('#version-hint');
@@ -471,6 +480,40 @@ function renderLobby(): void {
   );
   setText(lobbyError, '');
   renderVoice();
+}
+
+const modeSelect = required<HTMLSelectElement>('#mode-select');
+const modeName = required<HTMLElement>('#mode-name');
+
+/** Mode du salon (un serveur plus ancien ne l'envoie pas : chacun pour soi). */
+function lobbyMode(): GameMode {
+  return lobby?.mode ?? 'ffa';
+}
+
+modeSelect.addEventListener('change', () => {
+  const value = modeSelect.value;
+  if (value === 'ffa' || value === 'teams') connection?.send({ type: 'mode', mode: value });
+});
+
+/** Pastille d'équipe d'un joueur du salon ; la toucher change d'équipe (soi, ou un robot pour l'hôte). */
+function teamDot(player: LobbyPlayer, self: boolean): HTMLElement {
+  const team = player.team ?? 0;
+  const label = `Équipe ${TEAM_NAMES[team]}`;
+  const canSwitch = self || (!!player.bot && lobby?.host === you);
+  const dot = document.createElement(canSwitch ? 'button' : 'span');
+  dot.className = 'team-dot';
+  dot.style.setProperty('--team', TEAM_COLORS[team] ?? TEAM_COLORS[0]);
+  dot.setAttribute('aria-label', canSwitch ? `${label} : toucher pour changer d’équipe` : label);
+  dot.title = label;
+  if (dot instanceof HTMLButtonElement) {
+    dot.type = 'button';
+    dot.addEventListener('click', () => {
+      audio.playClick();
+      const next = (team + 1) % TEAM_COUNT;
+      connection?.send(self ? { type: 'team', team: next } : { type: 'team', team: next, id: player.id });
+    });
+  }
+  return dot;
 }
 
 function arenaLabel(choice: ArenaChoice): string {
@@ -506,6 +549,7 @@ function lobbyRow(player: LobbyPlayer, index: number, host: boolean, self: boole
   } else {
     status.textContent = 'pas prêt';
   }
+  if (lobbyMode() === 'teams') item.append(teamDot(player, self));
   if (self) {
     // Son propre personnage : le toucher ouvre le choix du personnage.
     const skinButton = document.createElement('button');
@@ -692,16 +736,20 @@ function renderScores(match: MatchState): void {
     if (seat !== undefined) names.set(seat, player.name);
   }
   const me = mySeat();
-  const key = JSON.stringify([match.scores, match.round.players.map((player) => player.alive), [...names], me, match.skins]);
+  const key = JSON.stringify([match.scores, match.round.players.map((player) => player.alive), [...names], me, match.skins, match.teams]);
   if (key === renderedScoresKey) return;
   renderedScoresKey = key;
   scoresList.dataset.count = String(match.round.players.length);
+  screens.game.dataset.crowd = String(match.round.players.length >= 3);
   scoresList.replaceChildren(
     ...match.round.players.map((player) => {
       const item = document.createElement('li');
       item.dataset.seat = String(player.id);
       if (player.id === me) item.classList.add('me');
       if (!player.alive) item.classList.add('out');
+      const team = match.teams?.[player.id];
+      if (team !== undefined) item.style.setProperty('--team', TEAM_COLORS[team] ?? TEAM_COLORS[0]);
+      item.classList.toggle('teamed', team !== undefined);
       const avatar = document.createElement('canvas');
       avatar.className = 'avatar';
       const name = document.createElement('span');
@@ -731,6 +779,18 @@ function seatName(seat: number | null): string {
 /** Personnage d'un joueur de la partie (celui de sa place avec un serveur plus ancien). */
 function seatCharacter(match: MatchState, seat: number): number {
   return match.characters?.[seat] ?? defaultCharacter(seat);
+}
+
+function teamName(team: number | null): string {
+  return TEAM_NAMES[team ?? 0] ?? TEAM_NAMES[0];
+}
+
+/** Score du match : par joueur, ou par équipe (« Rouge 2 – 1 Bleue »). */
+function scoresText(match: MatchState): string {
+  const teams = match.teams;
+  if (!teams) return match.scores.join(' – ');
+  const teamScore = (team: number) => match.scores[teams.indexOf(team)] ?? 0;
+  return `${TEAM_NAMES[0]} ${teamScore(0)} – ${teamScore(1)} ${TEAM_NAMES[1]}`;
 }
 
 function formatClock(ticks: number): string {
@@ -769,11 +829,13 @@ function updateGameHud(match: MatchState): void {
   let subtitle = '';
   if (match.phase === 'roundOver') {
     if (match.roundWinner === null) title = 'Égalité !';
+    else if (match.teams) title = wonBy(match, me) ? 'Manche gagnée par votre équipe !' : `L’équipe ${teamName(match.winningTeam)} gagne la manche`;
     else title = match.roundWinner === me ? 'Manche gagnée !' : `${seatName(match.roundWinner)} gagne la manche`;
-    subtitle = `Manche ${match.roundNumber} · ${match.scores.join(' – ')}`;
+    subtitle = `Manche ${match.roundNumber} · ${scoresText(match)}`;
   } else if (match.phase === 'matchOver') {
-    title = match.matchWinner === me ? 'Victoire !' : `${seatName(match.matchWinner)} remporte le match`;
-    subtitle = match.scores.join(' – ');
+    if (match.teams) title = wonBy(match, me, match.matchWinner) ? 'Victoire de votre équipe !' : `L’équipe ${teamName(match.winningTeam)} remporte le match`;
+    else title = match.matchWinner === me ? 'Victoire !' : `${seatName(match.matchWinner)} remporte le match`;
+    subtitle = scoresText(match);
   } else if (match.phase === 'playing' && me !== null && !match.round.players[me]?.alive) {
     title = 'Éliminé !';
     subtitle = 'Regardez la fin de la manche…';
@@ -821,12 +883,16 @@ function updateVictory(match: MatchState, me: number | null): void {
   const winner = match.matchWinner!;
   const winnerId = lobby ? Object.entries(lobby.seats).find(([, seat]) => seat === winner)?.[0] : undefined;
   const winnerIsBot = !!lobby?.players.find((player) => player.id === winnerId)?.bot;
-  const mine = winner === me;
+  const mine = wonBy(match, me, winner);
   setText(required<HTMLElement>('#victory-eyebrow'), mine ? 'Victoire !' : 'Fin du match');
   renderChallengeResult(match, me);
-  setText(required<HTMLElement>('#victory-title'), mine ? `Bravo ${seatName(winner)} !` : `${seatName(winner)} remporte le match`);
+  const team = match.teams ? teamName(match.winningTeam) : null;
+  setText(
+    required<HTMLElement>('#victory-title'),
+    team ? (mine ? `Bravo l’équipe ${team} !` : `L’équipe ${team} gagne`) : mine ? `Bravo ${seatName(winner)} !` : `${seatName(winner)} remporte le match`,
+  );
   setText(required<HTMLElement>('#victory-taunt'), pickTaunt(winnerIsBot));
-  setText(required<HTMLElement>('#victory-score'), [...match.scores].sort((a, b) => b - a).join(' – '));
+  setText(required<HTMLElement>('#victory-score'), match.teams ? scoresText(match) : [...match.scores].sort((a, b) => b - a).join(' – '));
   victory.classList.toggle('mine', mine);
   victory.hidden = false;
   document.getElementById('coach')?.setAttribute('hidden', '');
@@ -1399,6 +1465,7 @@ function leaveGame(): void {
  * l'accueil du salon (qui les annonce d'habitude) arrive après le lancement.
  */
 function announceHero(): void {
+  connection?.send({ type: 'features', teams: true });
   connection?.send({ type: 'character', character: myCharacter() });
   connection?.send({ type: 'skin', skin: mySkin() });
 }

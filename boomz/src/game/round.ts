@@ -98,6 +98,7 @@ export function createRound(
   arena: ArenaId = 'chantier',
   characters: readonly number[] = [],
   powers = false,
+  teams: readonly number[] | null = null,
 ): RoundState {
   const width = GRID_WIDTH;
   const height = GRID_HEIGHT;
@@ -113,6 +114,8 @@ export function createRound(
     bonuses: new Array<Bonus>(width * height).fill(Bonus.None),
     hiddenBonuses: generated.hiddenBonuses,
     flames: new Array<number>(width * height).fill(0),
+    flameOwners: new Array<number>(width * height).fill(0),
+    teams: teams ? teams.slice(0, playerCount) : null,
     players: SPAWNS.slice(0, playerCount).map(([x, y], id) => createPlayer(id, x, y, characters[id] ?? defaultCharacter(id))),
     bombs: [],
     tick: 0,
@@ -123,6 +126,29 @@ export function createRound(
     toxic: new Array<number>(width * height).fill(0),
     toxicOwner: new Array<number>(width * height).fill(-1),
   };
+}
+
+/** Deux joueurs différents de la même équipe (jamais en chacun pour soi). */
+export function areTeammates(state: Pick<RoundState, 'teams'>, a: number, b: number): boolean {
+  return a !== b && state.teams !== null && state.teams[a] === state.teams[b];
+}
+
+/** Un autre joueur, qui n'est pas un coéquipier. */
+export function isOpponent(state: Pick<RoundState, 'teams'>, a: number, b: number): boolean {
+  return a !== b && !areTeammates(state, a, b);
+}
+
+/**
+ * La flamme de cette case blesse-t-elle ce joueur ? En équipes, celles des
+ * coéquipiers l'épargnent ; les siennes et celles des adversaires, non.
+ */
+function flameHurts(state: RoundState, index: number, player: number): boolean {
+  const owners = state.flameOwners[index];
+  if (state.teams === null || owners === 0) return true;
+  for (let id = 0; id < state.players.length; id++) {
+    if (owners & (1 << id) && !areTeammates(state, id, player)) return true;
+  }
+  return false;
 }
 
 /** Effet de pouvoir en cours chez ce joueur ? */
@@ -279,7 +305,7 @@ function applyPower(state: RoundState, player: Player, power: number, events: Ro
     case Hero.Frost: {
       let hit = false;
       for (const other of state.players) {
-        if (!other.alive || other.id === player.id) continue;
+        if (!other.alive || !isOpponent(state, player.id, other.id)) continue;
         if (Math.hypot(other.x - player.x, other.y - player.y) > FREEZE_RADIUS) continue;
         other.frozenUntil = state.tick + FREEZE_TICKS;
         other.moving = false;
@@ -311,7 +337,7 @@ function applyPower(state: RoundState, player: Player, power: number, events: Ro
       let nearest: Player | null = null;
       let best = Infinity;
       for (const other of state.players) {
-        if (!other.alive || other.id === player.id || other.character === Hero.Omega) continue;
+        if (!other.alive || !isOpponent(state, player.id, other.id) || other.character === Hero.Omega) continue;
         const distance = Math.hypot(other.x - player.x, other.y - player.y);
         if (distance < best) {
           best = distance;
@@ -357,7 +383,11 @@ function explode(state: RoundState, bomb: Bomb, events: RoundEvent[]): void {
     state.toxic[index] = TOXIC_CLOUD_TICKS;
     state.toxicOwner[index] = bomb.owner;
   };
-  state.flames[bomb.cy * state.width + bomb.cx] = FLAME_TICKS;
+  const ignite = (index: number) => {
+    state.flames[index] = FLAME_TICKS;
+    state.flameOwners[index] |= 1 << bomb.owner;
+  };
+  ignite(bomb.cy * state.width + bomb.cx);
   poison(bomb.cy * state.width + bomb.cx);
   for (const direction of DIRECTIONS) {
     const [dx, dy] = DIRECTION_VECTORS[direction];
@@ -368,7 +398,7 @@ function explode(state: RoundState, bomb: Bomb, events: RoundEvent[]): void {
       const index = y * state.width + x;
       const tile = state.tiles[index];
       if (tile === Tile.Wall || tile === Tile.Burning) break;
-      state.flames[index] = FLAME_TICKS;
+      ignite(index);
       if (tile === Tile.Block) {
         state.tiles[index] = Tile.Burning;
         events.push({ type: 'blockDestroyed', cx: x, cy: y });
@@ -398,6 +428,7 @@ function dropSuddenDeathWall(state: RoundState, events: RoundEvent[]): void {
     const cy = Math.floor(index / state.width);
     state.tiles[index] = Tile.Wall;
     state.flames[index] = 0;
+    state.flameOwners[index] = 0;
     state.features[index] = Feature.None;
     state.bonuses[index] = Bonus.None;
     state.hiddenBonuses[index] = Bonus.None;
@@ -593,6 +624,7 @@ export function stepRound(state: RoundState, inputs: ReadonlyArray<PlayerInput>)
   for (let i = 0; i < state.toxic.length; i++) if (state.toxic[i] > 0) state.toxic[i]--;
 
   for (let i = 0; i < state.flames.length; i++) {
+    if (state.flames[i] > 0 && state.flames[i] === 1) state.flameOwners[i] = 0;
     if (state.flames[i] > 0 && --state.flames[i] === 0 && state.tiles[i] === Tile.Burning) {
       // La caisse disparaît et révèle le bonus qu'elle cachait.
       state.tiles[i] = Tile.Floor;
@@ -621,9 +653,10 @@ export function stepRound(state: RoundState, inputs: ReadonlyArray<PlayerInput>)
     if (!player.alive) continue;
     const [px, py] = cellOf(player);
     const index = py * state.width + px;
-    const poisoned = state.toxic[index] > 0 && state.toxicOwner[index] !== player.id;
+    const poisoned = state.toxic[index] > 0 && isOpponent(state, state.toxicOwner[index], player.id);
+    const burnt = state.flames[index] > 0 && flameHurts(state, index, player.id);
     const shielded = hasEffect(state, player, Hero.Rocco);
-    if ((state.flames[index] > 0 || poisoned) && !shielded && state.tick >= player.invulnerableUntil) {
+    if ((burnt || poisoned) && !shielded && state.tick >= player.invulnerableUntil) {
       if (player.vest) {
         player.buffUntil[Bonus.Vest] = 0;
         player.vest = false;

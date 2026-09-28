@@ -116,6 +116,15 @@ export class Session {
       case 'power':
         room.requestPower(peer.id);
         return;
+      case 'mode':
+        if (message.mode === 'ffa' || message.mode === 'teams') room.setMode(peer.id, message.mode);
+        return;
+      case 'team':
+        room.setTeam(peer.id, Number(message.team), typeof message.id === 'string' ? message.id : undefined);
+        return;
+      case 'features':
+        room.setFeatures(peer.id, message.teams === true);
+        return;
       case 'arena':
         if (message.arena === 'rotation' || (ARENA_IDS as readonly string[]).includes(message.arena)) {
           room.setArena(peer.id, message.arena);

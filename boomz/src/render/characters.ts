@@ -28,6 +28,10 @@ export const PLAYER_LOOKS: PlayerLook[] = [
 ];
 
 /** Couleur propre à chaque personnage : bouton de pouvoir et effets en partie. */
+/** Couleur et nom de chaque équipe (parties en équipes). */
+export const TEAM_COLORS: readonly string[] = ['#e8433a', '#3a8ee8'];
+export const TEAM_NAMES: readonly string[] = ['Rouge', 'Bleue'];
+
 export const HERO_COLORS: readonly string[] = ['#2447a8', '#c42a22', '#2f78c4', '#3a8a2b', '#b83a7e', '#3a78a8', '#d8640f', '#5f636c'];
 
 /**

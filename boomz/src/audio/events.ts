@@ -1,5 +1,5 @@
 import { COUNTDOWN_TICKS, SUDDEN_DEATH_TICKS, TICK_RATE } from '../game/constants';
-import type { MatchState } from '../game/match';
+import { wonBy, type MatchState } from '../game/match';
 import { Bonus, Feature, Tile, type Player } from '../game/types';
 
 /** Ce qui s'est passé entre deux états reçus, du point de vue du son. */
@@ -55,10 +55,10 @@ export function soundEvents(before: MatchState | null, after: MatchState, me: nu
   }
   if (after.phase === 'playing' && before.phase === 'countdown') events.push({ kind: 'go' });
   if (after.phase === 'roundOver' && before.phase === 'playing') {
-    events.push({ kind: after.roundWinner !== null && after.roundWinner === me ? 'roundWin' : 'roundLose' });
+    events.push({ kind: wonBy(after, me) ? 'roundWin' : 'roundLose' });
   }
   if (after.phase === 'matchOver' && before.phase !== 'matchOver') {
-    events.push({ kind: after.matchWinner !== null && after.matchWinner === me ? 'matchWin' : 'matchLose' });
+    events.push({ kind: wonBy(after, me, after.matchWinner) ? 'matchWin' : 'matchLose' });
   }
   if (before.roundNumber !== after.roundNumber) return events;
 

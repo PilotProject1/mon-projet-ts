@@ -11,6 +11,8 @@ import {
   MIN_PLAYERS,
   RECONNECT_GRACE_SECONDS,
   SNAPSHOT_EVERY_TICKS,
+  TEAM_COUNT,
+  type GameMode,
   type IceServer,
   type ServerMessage,
   type VoiceSignal,
@@ -70,6 +72,10 @@ export interface Peer {
    * une version plus ancienne de l'application joue sans.
    */
   powersAware: boolean;
+  /** Équipe (0 ou 1), utilisée en partie par équipes. */
+  team: number;
+  /** Le téléphone connaît les parties en équipes (versions récentes). */
+  teamsAware: boolean;
   /** Horloge du salon à l'arrivée (ou au retour) du téléphone. */
   joinedAt: number;
   /** Horloge du salon au dernier émoji envoyé. */
@@ -91,6 +97,8 @@ export function createPeer(id: string, token: string, name: string, send: (messa
     bot: null,
     character: null,
     powersAware: false,
+    team: 0,
+    teamsAware: false,
     joinedAt: 0,
     lastEmoteAt: null,
     disconnectedAt: null,
@@ -116,6 +124,7 @@ export class Room {
   private pendingDetonations: boolean[] = [];
   private pendingPowers: boolean[] = [];
   private arena: ArenaChoice = 'rotation';
+  private mode: GameMode = 'ffa';
   /** Cerveaux des robots de la partie en cours, par numéro de joueur. */
   private brains = new Map<number, BotBrain>();
   private botCount = 0;
@@ -156,6 +165,7 @@ export class Room {
   join(peer: Peer): string | null {
     if (this.inMatch) return 'La partie a déjà commencé dans ce salon.';
     if (this.peers.length >= MAX_PLAYERS) return `Ce salon est complet (${MAX_PLAYERS} joueurs maximum).`;
+    peer.team = this.smallerTeam();
     this.peers.push(peer);
     this.hostId ??= peer.id;
     peer.joinedAt = this.clock;
@@ -237,6 +247,8 @@ export class Room {
     const free = Array.from({ length: CHARACTER_COUNT }, (_, i) => i).filter((i) => !cast.has(i));
     const pool = free.length ? free : Array.from({ length: CHARACTER_COUNT }, (_, i) => i);
     bot.character = isCharacter(character) ? character : pool[Math.floor(Math.random() * pool.length)];
+    bot.team = this.smallerTeam();
+    bot.teamsAware = true;
     this.peers.push(bot);
     this.broadcastLobby();
     return null;
@@ -275,6 +287,33 @@ export class Room {
     this.broadcast({ type: 'emote', seat, emote });
   }
 
+  /** Équipe la moins nombreuse, pour y placer un nouvel arrivant. */
+  private smallerTeam(): number {
+    const counts = new Array<number>(TEAM_COUNT).fill(0);
+    for (const peer of this.peers) counts[peer.team]++;
+    return counts.indexOf(Math.min(...counts));
+  }
+
+  setMode(peerId: string, mode: GameMode): void {
+    if (peerId !== this.hostId || this.inMatch) return;
+    this.mode = mode;
+    this.broadcastLobby();
+  }
+
+  /** Change d'équipe : soi-même, ou un robot si l'on est l'hôte. */
+  setTeam(peerId: string, team: number, targetId?: string): void {
+    if (this.inMatch || !Number.isInteger(team) || team < 0 || team >= TEAM_COUNT) return;
+    const target = this.peers.find((peer) => peer.id === (targetId ?? peerId));
+    if (!target || (target.id !== peerId && (peerId !== this.hostId || !target.bot))) return;
+    target.team = team;
+    this.broadcastLobby();
+  }
+
+  setFeatures(peerId: string, teams: boolean): void {
+    const peer = this.peers.find((candidate) => candidate.id === peerId);
+    if (peer) peer.teamsAware = teams;
+  }
+
   setArena(peerId: string, arena: ArenaChoice): void {
     if (peerId !== this.hostId || this.inMatch) return;
     this.arena = arena;
@@ -288,6 +327,13 @@ export class Room {
     if (present.length !== this.peers.length) return 'Un joueur est en cours de reconnexion.';
     if (present.length < MIN_PLAYERS) return `Il faut au moins ${MIN_PLAYERS} joueurs.`;
     if (present.some((peer) => peer.id !== this.hostId && !peer.ready)) return 'Tous les joueurs ne sont pas prêts.';
+    if (this.mode === 'teams') {
+      const outdated = present.find((peer) => !peer.bot && !peer.teamsAware);
+      if (outdated) return `${outdated.name} doit mettre à jour Boomz pour jouer en équipes.`;
+      for (let team = 0; team < TEAM_COUNT; team++) {
+        if (!present.some((peer) => peer.team === team)) return 'Il faut au moins un joueur dans chaque équipe.';
+      }
+    }
     this.seats = new Map(this.peers.map((peer, seat) => [peer.id, seat]));
     this.directions = this.peers.map(() => null);
     this.pendingBombs = this.peers.map(() => false);
@@ -298,7 +344,8 @@ export class Room {
     const seed = this.randomSeed();
     const characters = this.peers.map((peer, seat) => peer.character ?? defaultCharacter(seat));
     const powers = this.peers.every((peer) => peer.bot !== null || peer.powersAware);
-    this.match = createMatch(this.peers.length, seed, this.arena, characters, powers);
+    const teams = this.mode === 'teams' ? this.peers.map((peer) => peer.team) : null;
+    this.match = createMatch(this.peers.length, seed, this.arena, characters, powers, teams);
     const botRandom = createRng(seed ^ 0x5bd1e995);
     this.brains = new Map(
       this.peers.flatMap((peer, seat) => (peer.bot ? [[seat, new BotBrain(peer.bot, botRandom)] as const] : [])),
@@ -409,19 +456,21 @@ export class Room {
     this.broadcast({
       type: 'lobby',
       host: this.hostId ?? '',
-      players: this.peers.map(({ id, name, connected, ready, skin, voice, bot, character }) => ({
+      players: this.peers.map(({ id, name, connected, ready, skin, voice, bot, character, team }) => ({
         id,
         name,
         connected,
         ready,
         skin,
         voice,
+        team,
         ...(bot ? { bot } : {}),
         ...(character !== null ? { character } : {}),
       })),
       seats: Object.fromEntries(this.seats),
       inMatch: this.inMatch,
       arena: this.arena,
+      mode: this.mode,
     });
     // Après la liste : une ancienne version efface ses messages en l'affichant.
     for (const peer of this.peers) {

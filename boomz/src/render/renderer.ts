@@ -13,7 +13,7 @@ import {
   type RoundState,
 } from '../game/types';
 import { drawBonusIcon } from './bonuses';
-import { drawCharacter, HERO_COLORS, lookFor } from './characters';
+import { drawCharacter, HERO_COLORS, lookFor, TEAM_COLORS } from './characters';
 import { defaultCharacter, FREEZE_RADIUS, Hero } from '../game/powers';
 import { toScreenRound } from './view';
 
@@ -263,7 +263,7 @@ export class Renderer {
     // Du fond vers l'avant : un personnage plus bas à l'écran passe devant.
     const players = [...round.players].sort((a, b) => a.y - b.y);
     for (const player of players) {
-      this.drawPlayer(player, tick, player.id === you, match.skins?.[player.id] ?? 0, round.tick);
+      this.drawPlayer(player, tick, player.id === you, match.skins?.[player.id] ?? 0, round.tick, match.teams?.[player.id] ?? null);
     }
     for (const player of players) this.drawEmote(player, now);
 
@@ -872,7 +872,7 @@ export class Renderer {
 
   // ---- Personnages ----
 
-  private drawPlayer(player: Player, tick: number, isYou: boolean, skin: number, roundTick: number): void {
+  private drawPlayer(player: Player, tick: number, isYou: boolean, skin: number, roundTick: number, team: number | null): void {
     const { ctx, cell, cellW, cellH } = this;
     const look = lookFor(player.character ?? defaultCharacter(player.id), skin);
     let alpha = 1;
@@ -894,6 +894,18 @@ export class Renderer {
     ctx.beginPath();
     ctx.ellipse(cx, groundY + r * 0.8, r * 0.8, r * 0.28, 0, 0, Math.PI * 2);
     ctx.fill();
+    if (team !== null && player.alive) {
+      // En équipes : un disque au sol aux couleurs de l'équipe.
+      ctx.fillStyle = TEAM_COLORS[team] ?? TEAM_COLORS[0];
+      ctx.globalAlpha = alpha * 0.55;
+      ctx.beginPath();
+      ctx.ellipse(cx, groundY + r * 0.8, r * 0.95, r * 0.36, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.globalAlpha = alpha;
+      ctx.strokeStyle = TEAM_COLORS[team] ?? TEAM_COLORS[0];
+      ctx.lineWidth = Math.max(1.5, cell * 0.05);
+      ctx.stroke();
+    }
     if (isYou && player.alive) {
       // Anneau au sol aux couleurs du joueur.
       ctx.strokeStyle = '#ffffff';
