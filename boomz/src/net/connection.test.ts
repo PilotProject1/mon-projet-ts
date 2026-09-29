@@ -31,4 +31,30 @@ describe('interpolation des états reçus', () => {
     next.push(after, 1050);
     expect(next.sample(1125)?.round.players[0].x).toBeCloseTo(2.5);
   });
+
+  it('écarte un état arrivé après un plus récent, sauf après une reconnexion', () => {
+    const first = createMatch(2, 1);
+    const second = structuredClone(first);
+    second.round.tick = 10;
+    const buffer = new SnapshotBuffer();
+    buffer.push(second, 1000, 5);
+    buffer.push(first, 1010, 4);
+    expect(buffer.latest()?.round.tick).toBe(10);
+    buffer.restartSequence();
+    buffer.push(first, 1020, 1);
+    expect(buffer.latest()?.round.tick).toBe(0);
+  });
+
+  it('allonge le retard d’affichage quand les états arrivent irrégulièrement, puis le résorbe', () => {
+    const match = createMatch(2, 1);
+    const buffer = new SnapshotBuffer();
+    let at = 0;
+    for (let i = 0; i < 5; i++) buffer.push(match, (at += 50));
+    expect(buffer.delay).toBe(100);
+    buffer.push(match, (at += 180));
+    expect(buffer.delay).toBeGreaterThan(200);
+    expect(buffer.delay).toBeLessThanOrEqual(260);
+    for (let i = 0; i < 200; i++) buffer.push(match, (at += 50));
+    expect(buffer.delay).toBeLessThan(105);
+  });
 });

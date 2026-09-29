@@ -341,6 +341,7 @@ function resetRoomState(): void {
 function onMessage(message: ServerMessage): void {
   switch (message.type) {
     case 'welcome':
+      snapshots.restartSequence();
       you = message.you;
       session = { room: message.room, token: message.token };
       // Sans internet, le salon vit sur le téléphone hôte : rien à reprendre après un rechargement.
@@ -381,7 +382,7 @@ function onMessage(message: ServerMessage): void {
         if (events.length && previousState) haptics.play(hapticFor(events, nearestNewFlame(previousState, message.match, mySeat())));
         if (tutorial?.update(message.match, mySeat(), events, performance.now())) renderCoach();
       }
-      snapshots.push(message.match, performance.now());
+      snapshots.push(message.match, performance.now(), message.seq);
       decideScreen();
       return;
     }

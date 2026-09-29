@@ -47,7 +47,7 @@ export class NearbyWeb extends WebPlugin implements Omit<NearbyPlugin, 'addListe
     this.post({ kind: 'invite', from: this.me, to: options.id });
   }
 
-  async send(options: { to: string; data: string }): Promise<void> {
+  async send(options: { to: string; data: string; reliable?: boolean }): Promise<void> {
     if (this.connected.has(options.to)) this.post({ kind: 'data', from: this.me, to: options.to, data: options.data });
   }
 

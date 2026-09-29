@@ -78,9 +78,12 @@ public class NearbyPlugin: CAPPlugin, CAPBridgedPlugin, MCSessionDelegate, MCNea
             call.resolve()
             return
         }
+        // États de la partie : envoi rapide sans renvoi (un état perdu est remplacé
+        // par le suivant, au lieu de bloquer tous les autres en attendant).
+        let mode: MCSessionSendDataMode = call.getBool("reliable", true) ? .reliable : .unreliable
         do {
             let data = try (Data(text.utf8) as NSData).compressed(using: .zlib) as Data
-            try session.send(data, toPeers: [peer], with: .reliable)
+            try session.send(data, toPeers: [peer], with: mode)
             call.resolve()
         } catch {
             // Téléphone parti entre-temps : sa déconnexion est signalée à part.

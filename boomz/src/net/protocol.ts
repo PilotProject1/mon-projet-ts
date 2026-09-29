@@ -107,7 +107,8 @@ export type ServerMessage =
       /** Absent : chacun pour soi (serveur d'une version plus ancienne). */
       mode?: GameMode;
     }
-  | { type: 'snapshot'; match: MatchState }
+  /** `seq` : numéro d'envoi croissant, pour écarter un état arrivé après un plus récent. */
+  | { type: 'snapshot'; match: MatchState; seq?: number }
   | { type: 'pong'; sent: number }
   | { type: 'signal'; from: string; data: VoiceSignal }
   | { type: 'emote'; seat: number; emote: number }

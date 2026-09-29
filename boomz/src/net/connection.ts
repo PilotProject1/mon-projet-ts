@@ -1,6 +1,7 @@
 import type { MatchState } from '../game/match';
 import { DIRECTION_VECTORS, type Bomb } from '../game/types';
-import { WS_PATH, type ClientMessage, type ServerMessage } from './protocol';
+import { TICK_RATE } from '../game/constants';
+import { SNAPSHOT_EVERY_TICKS, WS_PATH, type ClientMessage, type ServerMessage } from './protocol';
 import { websocketUrl } from './server';
 
 export class Connection {
@@ -32,6 +33,13 @@ export class Connection {
  * au lieu de sauter d'une position à l'autre à chaque envoi du serveur.
  */
 const INTERPOLATION_DELAY_MS = 100;
+/**
+ * Connexion irrégulière (Bluetooth, réseau mobile) : le retard s'allonge d'autant
+ * que les états arrivent en retard, jusqu'à cette limite, puis se résorbe.
+ */
+const MAX_INTERPOLATION_DELAY_MS = 260;
+/** Écart normal entre deux états (20 par seconde). */
+const EXPECTED_GAP_MS = (SNAPSHOT_EVERY_TICKS * 1000) / TICK_RATE;
 const BUFFER_SIZE = 30;
 
 interface TimedSnapshot {
@@ -41,14 +49,36 @@ interface TimedSnapshot {
 
 export class SnapshotBuffer {
   private snapshots: TimedSnapshot[] = [];
+  private lastSeq = 0;
+  /** Retard récent des états sur leur rythme normal (ms), qui s'estompe peu à peu. */
+  private lateness = 0;
 
-  push(match: MatchState, at: number): void {
+  /** `seq` : numéro d'envoi ; un état plus ancien que le dernier reçu est écarté. */
+  push(match: MatchState, at: number, seq?: number): void {
+    if (seq !== undefined) {
+      if (seq <= this.lastSeq) return;
+      this.lastSeq = seq;
+    }
+    const previous = this.snapshots[this.snapshots.length - 1];
+    if (previous) this.lateness = Math.max(at - previous.at - EXPECTED_GAP_MS, this.lateness * 0.97);
     this.snapshots.push({ at, match });
     if (this.snapshots.length > BUFFER_SIZE) this.snapshots.shift();
   }
 
   clear(): void {
     this.snapshots = [];
+    this.lastSeq = 0;
+    this.lateness = 0;
+  }
+
+  /** Nouvelle connexion (le serveur a pu redémarrer) : la numérotation des états repart de zéro. */
+  restartSequence(): void {
+    this.lastSeq = 0;
+  }
+
+  /** Retard d'affichage actuel : plus long quand la connexion est irrégulière. */
+  get delay(): number {
+    return Math.min(MAX_INTERPOLATION_DELAY_MS, INTERPOLATION_DELAY_MS + this.lateness);
   }
 
   latest(): MatchState | null {
@@ -57,7 +87,7 @@ export class SnapshotBuffer {
 
   /** État à afficher à l'instant `now`, positions interpolées. */
   sample(now: number): MatchState | null {
-    const target = now - INTERPOLATION_DELAY_MS;
+    const target = now - this.delay;
     const index = this.snapshots.findIndex((snapshot) => snapshot.at > target);
     if (index === -1) return this.latest();
     if (index === 0) return this.snapshots[0].match;

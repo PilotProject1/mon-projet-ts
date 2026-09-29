@@ -45,9 +45,12 @@ const BOT_NAMES = ['Bip', 'Zorg', 'Nova', 'Tic', 'Rex', 'Pixel'];
  * serveur (sinon un joueur pourrait les lire) ; l'ordre du resserrement ne sert
  * qu'au serveur.
  */
+let snapshotSeq = 0;
+
 function snapshotMessage(match: MatchState): ServerMessage {
   return {
     type: 'snapshot',
+    seq: ++snapshotSeq,
     match: { ...match, round: { ...match.round, suddenDeathOrder: [], hiddenBonuses: [] } },
   };
 }

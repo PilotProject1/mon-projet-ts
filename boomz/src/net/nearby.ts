@@ -17,7 +17,8 @@ export interface NearbyPlugin {
   startBrowsing(): Promise<void>;
   /** Demande à rejoindre un salon trouvé. */
   join(options: { id: string }): Promise<void>;
-  send(options: { to: string; data: string }): Promise<void>;
+  /** `reliable` à faux : envoi rapide, sans renvoi en cas de perte (états de la partie). */
+  send(options: { to: string; data: string; reliable?: boolean }): Promise<void>;
   /** Arrête tout : annonce, recherche et connexions. */
   stop(): Promise<void>;
   addListener(event: 'hostFound', listener: (host: NearbyHost) => void): Promise<PluginListenerHandle>;
@@ -163,7 +164,14 @@ export class NearbyHostLink implements Link {
       Nearby.addListener('peerConnected', ({ id }) => {
         // Un téléphone revenu repart d'une connexion neuve (il reprendra sa place avec son jeton).
         this.guests.get(id)?.closed();
-        this.guests.set(id, new Session(directory, (message) => void Nearby.send({ to: id, data: serialize(message) }), newId));
+        this.guests.set(
+          id,
+          new Session(
+            directory,
+            (message) => void Nearby.send({ to: id, data: serialize(message), reliable: message.type !== 'snapshot' }),
+            newId,
+          ),
+        );
       }),
       Nearby.addListener('peerDisconnected', ({ id }) => {
         this.guests.get(id)?.closed();
