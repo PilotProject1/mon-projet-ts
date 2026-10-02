@@ -27,13 +27,31 @@ npm test            # règles du jeu (points, phases, déconnexions…)
 npm run typecheck
 ```
 
-## Production
+## Mise en ligne sur Render
+
+La configuration est dans [`render.yaml`](../render.yaml), à la racine du
+dépôt. À faire une seule fois :
+
+1. Sur [dashboard.render.com](https://dashboard.render.com) : **New** >
+   **Blueprint**.
+2. Choisir le dépôt `mon-projet-ts`, puis la branche **`claude/qui2nous`**.
+3. Valider (**Apply**). Render installe, compile et démarre le service
+   `qui2nous`, puis donne son adresse (`https://qui2nous-xxxx.onrender.com`).
+
+Ensuite, chaque push sur la branche redéploie automatiquement. L'adresse
+`/sante` indique si le serveur répond.
+
+Aucune variable d'environnement n'est à renseigner : Render fournit `PORT`.
+
+À savoir sur l'offre gratuite :
+
+- le service s'endort après 15 minutes sans visite. Le premier chargement
+  suivant prend alors environ une minute ;
+- les parties sont gardées en mémoire. Un redéploiement ou une mise en veille
+  interrompt les parties en cours, d'où une seule instance (`numInstances: 1`).
+
+Pour reproduire la production en local :
 
 ```bash
 npm run build && npm start   # le serveur sert aussi l'interface compilée
 ```
-
-Le serveur écoute sur `PORT` (3001 par défaut). L'hébergeur doit accepter les
-WebSockets : un service web Render convient, Vercel non. Les parties sont
-gardées en mémoire, donc un redémarrage du serveur interrompt les parties en
-cours, et il ne faut qu'une seule instance.

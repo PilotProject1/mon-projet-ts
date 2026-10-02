@@ -1,0 +1,18 @@
+# Qui2Nous : service web Render, déployé depuis la branche claude/qui2nous.
+# À créer une fois dans Render : New > Blueprint, dépôt mon-projet-ts,
+# branche claude/qui2nous. Chaque push sur la branche redéploie ensuite.
+services:
+  - type: web
+    name: qui2nous
+    runtime: node
+    plan: free
+    branch: claude/qui2nous
+    rootDir: qui2nous
+    buildCommand: npm ci --include=dev && npm run build
+    startCommand: npm start
+    healthCheckPath: /sante
+    # Les parties sont gardées en mémoire : une seule instance.
+    numInstances: 1
+    envVars:
+      - key: NODE_VERSION
+        value: "22"

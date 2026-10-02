@@ -291,6 +291,11 @@ automatiques · ⬜ questions personnalisées · ✅ votes · ✅ réponses anon
 - **Suite :** le créateur passe à la manche suivante. S'il est déconnecté,
   n'importe quel joueur peut le faire.
 
+## Hébergement
+
+Render (offre gratuite pour commencer), depuis la branche `claude/qui2nous` :
+voir le [README](README.md#mise-en-ligne-sur-render).
+
 ## Questions ouvertes à trancher
 
 1. **Qui a répondu ? / Qui2Nous a dit ça ?** La feuille de route d'origine
@@ -298,7 +303,5 @@ automatiques · ⬜ questions personnalisées · ✅ votes · ✅ réponses anon
    dans « Qui2Nous a dit ça ? », on montre une seule réponse anonyme à la
    fois, en révélation progressive.
 2. **Choix des modes** dans le lobby : liste à cocher, ou mélange automatique ?
-3. **Hébergement :** le jeu a besoin d'un serveur qui garde une connexion
-   ouverte avec chaque téléphone (WebSocket). Render le permet, Vercel non.
-4. **Photos :** prévoir un avertissement sur le contenu des photos partagées,
+3. **Photos :** prévoir un avertissement sur le contenu des photos partagées,
    et une modération minimale si le jeu devient public.

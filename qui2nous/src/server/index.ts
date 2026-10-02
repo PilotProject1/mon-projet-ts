@@ -11,6 +11,8 @@ const PORT = Number(process.env.PORT ?? 3001);
 const DELAI_ABANDON_MS = 30 * 60_000;
 
 const app = express();
+// Vérifié par Render avant de basculer le trafic sur une nouvelle version.
+app.get('/sante', (_req, res) => res.json({ ok: true, salons: salons.size }));
 const dist = fileURLToPath(new URL('../../dist', import.meta.url));
 if (existsSync(dist)) {
   app.use(express.static(dist));
