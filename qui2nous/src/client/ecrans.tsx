@@ -88,7 +88,7 @@ export function Accueil() {
   }
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="animate-entree flex flex-col gap-6">
       <header className="pt-6 text-center">
         <Logo grand />
         <p className="mt-2 text-white/70">Le jeu qui révèle ce que vous pensez vraiment les uns des autres.</p>

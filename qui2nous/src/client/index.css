@@ -1,4 +1,7 @@
 @import "tailwindcss";
+@import "@fontsource/fredoka/latin-500.css";
+@import "@fontsource/fredoka/latin-600.css";
+@import "@fontsource/fredoka/latin-700.css";
 
 @theme {
   --font-display: "Fredoka", ui-rounded, system-ui, sans-serif;
@@ -28,3 +31,116 @@ body {
   to { transform: none; opacity: 1; }
 }
 .animate-entree { animation: entree 0.35s ease-out both; }
+
+/* ——— Écran d'ouverture (Intro.tsx) ——— */
+
+.intro-fond {
+  background: linear-gradient(135deg, #5b21b6, #c026d3, #f43f5e, #f97316, #c026d3, #5b21b6);
+  background-size: 400% 400%;
+  animation: intro-degrade 12s ease-in-out infinite;
+}
+@keyframes intro-degrade {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+.intro-tache {
+  position: absolute;
+  width: 70vmax;
+  height: 70vmax;
+  border-radius: 9999px;
+  filter: blur(80px);
+  opacity: 0.55;
+  pointer-events: none;
+  animation: intro-derive 14s ease-in-out infinite alternate;
+}
+@keyframes intro-derive {
+  to { transform: translate(12vw, 10vh) scale(1.15); }
+}
+
+.intro-etincelle {
+  opacity: 0;
+  pointer-events: none;
+  animation-name: intro-scintille;
+  animation-iteration-count: infinite;
+  animation-timing-function: ease-in-out;
+}
+@keyframes intro-scintille {
+  0%, 100% { opacity: 0; transform: scale(0.3); }
+  50% { opacity: 1; transform: scale(1); }
+}
+
+/* Chute d'un mot : il tombe, s'écrase en touchant le sol, rebondit, se pose. */
+.intro-mot {
+  transform-origin: 50% 100%;
+  animation-name: intro-chute;
+  animation-fill-mode: both;
+  animation-timing-function: linear;
+}
+@keyframes intro-chute {
+  0% { transform: translateY(-110vh) rotate(calc(var(--angle) * -3)); animation-timing-function: cubic-bezier(0.55, 0, 1, 0.45); }
+  60% { transform: translateY(0) scale(1.18, 0.78) rotate(var(--angle)); animation-timing-function: ease-out; }
+  74% { transform: translateY(-0.18em) scale(0.94, 1.08) rotate(var(--angle)); animation-timing-function: ease-in; }
+  86% { transform: translateY(0) scale(1.05, 0.95) rotate(var(--angle)); }
+  100% { transform: translateY(0) scale(1) rotate(var(--angle)); }
+}
+
+/* La pile tremble à chaque atterrissage (un délai par mot, posé en ligne). */
+.intro-pile {
+  animation-name: intro-secousse, intro-secousse, intro-secousse;
+  animation-duration: 0.35s, 0.35s, 0.5s;
+}
+@keyframes intro-secousse {
+  0%, 100% { transform: translate(0, 0); }
+  20% { transform: translate(-6px, 4px); }
+  40% { transform: translate(5px, -3px); }
+  60% { transform: translate(-3px, 2px); }
+  80% { transform: translate(2px, -1px); }
+}
+
+.intro-eclat {
+  opacity: 0;
+  animation: intro-gerbe 0.9s ease-out both;
+}
+@keyframes intro-gerbe {
+  0% { opacity: 1; transform: translate(0, 0) scale(0.4) rotate(0deg); }
+  70% { opacity: 1; }
+  100% { opacity: 0; transform: translate(var(--dx), var(--dy)) scale(1) rotate(260deg); }
+}
+
+.intro-apparition {
+  animation: intro-monte 0.6s ease-out 2.5s both;
+}
+@keyframes intro-monte {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: none; }
+}
+
+.intro-pulsation {
+  animation-name: intro-monte, intro-pulse;
+  animation-duration: 0.6s, 1.4s;
+  animation-timing-function: ease-out, ease-in-out;
+  animation-fill-mode: both, none;
+  animation-iteration-count: 1, infinite;
+}
+@keyframes intro-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.07); }
+}
+
+.intro-sortie {
+  animation: intro-sort 0.45s ease-in forwards;
+}
+@keyframes intro-sort {
+  to { opacity: 0; transform: scale(1.15); filter: blur(6px); }
+}
+
+/* Mouvement réduit demandé par l'utilisateur : tout apparaît sans chute ni secousse. */
+@media (prefers-reduced-motion: reduce) {
+  .intro-mot, .intro-pile, .intro-eclat, .intro-tache, .intro-fond, .intro-pulsation, .intro-etincelle {
+    animation: none !important;
+  }
+  .intro-eclat { display: none; }
+  .intro-etincelle { opacity: 0.7; }
+  .intro-apparition { animation-delay: 0s; }
+}

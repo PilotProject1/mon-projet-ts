@@ -1,11 +1,45 @@
+import { useState } from 'react';
 import { useCompteARebours, useJeu } from './connexion.ts';
+import { Intro } from './Intro.tsx';
 import { Accueil, Decompte, Redaction, EcranReponse, EcranResultat, EcranVote, EnAttente, EnTete, Lobby, Podium } from './ecrans.tsx';
 import { Logo } from './ui.tsx';
+
+const CLE_INTRO = 'qui2nous:intro';
+
+function introDejaVue() {
+  try {
+    return sessionStorage.getItem(CLE_INTRO) === '1';
+  } catch {
+    return false;
+  }
+}
+
+function memoriserIntroVue() {
+  try {
+    sessionStorage.setItem(CLE_INTRO, '1');
+  } catch {
+    /* sans stockage, l'intro reviendra au prochain rechargement */
+  }
+}
 
 export function App() {
   const { vue, decalage, connecte, reprise, quitter } = useJeu();
   const secondes = useCompteARebours(vue?.echeance ?? null, decalage);
   const moi = vue?.joueurs.find((j) => j.id === vue.moi);
+  // L'intro s'affiche à l'ouverture, une fois par visite, mais jamais quand on
+  // revient dans une partie en cours (écran rallumé, page rechargée).
+  const [intro, setIntro] = useState(() => !reprise && !introDejaVue());
+
+  if (intro) {
+    return (
+      <Intro
+        onFini={() => {
+          memoriserIntroVue();
+          setIntro(false);
+        }}
+      />
+    );
+  }
 
   let ecran;
   if (!vue) {
