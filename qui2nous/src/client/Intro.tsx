@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type CSSProperties } from 'react';
 import { COULEURS_CONFETTIS, DecorPetillant, aleatoire } from './Fond.tsx';
-import { boom, contexteAudio, vibrer } from './sons.ts';
+import { DUREE_SIFFLEMENT, bandeSonIntro, contexteAudio, vibrer } from './sons.ts';
 
 // Écran d'ouverture : « QUI », « 2 » puis « NOUS » tombent du haut et
 // s'empilent, sur un fond coloré et pétillant. Un toucher mène à l'accueil.
@@ -10,29 +10,44 @@ const MOTS = [
   { texte: '2', couleur: '#fde047', ombre: '#b45309', taille: 'clamp(6rem, 34vw, 12rem)', angle: '6deg' },
   { texte: 'NOUS', couleur: '#67e8f9', ombre: '#1e3a8a', taille: 'clamp(4.5rem, 24vw, 8.5rem)', angle: '-3deg' },
 ];
-/** Début de chute de chaque mot (s) ; il touche le sol à 60 % de la durée de chute. */
-const DEPARTS = [0.25, 0.85, 1.45];
+/**
+ * Début de chute de chaque mot (s) ; il touche le sol à 60 % de la durée de
+ * chute. Chaque impact est précédé d'un sifflement de bombe : le premier mot
+ * part donc assez tard pour que son sifflement s'entende en entier.
+ */
 const DUREE_CHUTE = 0.8;
+const DEPARTS = [0.25, 1.0, 1.75].map((d) => d + DUREE_SIFFLEMENT - DUREE_CHUTE * 0.6);
 const atterrissage = (i: number) => DEPARTS[i] + DUREE_CHUTE * 0.6;
+/** Instants d'impact des trois mots (s), pour la bande-son. */
+export const IMPACTS = DEPARTS.map((_, i) => atterrissage(i));
+/** Apparition de la phrase d'accroche, puis du bouton « Jouer ». */
+const APRES_CHUTE = IMPACTS[IMPACTS.length - 1] + 0.6;
 
-/** Gerbe de confettis qui jaillit quand un mot touche le sol. */
+/**
+ * Explosion de feu d'artifice quand un mot touche le sol : un éclair de
+ * lumière, puis des étincelles lumineuses qui partent en cercle et retombent.
+ */
 function Eclats({ delai, graine }: { delai: number; graine: number }) {
   const eclats = useMemo(() => {
     const r = aleatoire(graine);
-    return Array.from({ length: 14 }, (_, i) => {
-      const angle = (i / 14) * Math.PI * 2 + r() * 0.4;
-      const distance = 70 + r() * 90;
+    const n = 28;
+    return Array.from({ length: n }, (_, i) => {
+      const angle = (i / n) * Math.PI * 2 + r() * 0.3;
+      const distance = 100 + r() * 100;
+      const couleur = COULEURS_CONFETTIS[Math.floor(r() * COULEURS_CONFETTIS.length)];
       return {
         dx: `${Math.cos(angle) * distance}px`,
-        dy: `${Math.sin(angle) * distance * 0.6 - 20}px`,
-        couleur: COULEURS_CONFETTIS[Math.floor(r() * COULEURS_CONFETTIS.length)],
-        taille: 6 + r() * 8,
-        rond: r() > 0.5,
+        // Les étincelles retombent un peu, comme sous l'effet de la pesanteur.
+        dy: `${Math.sin(angle) * distance * 0.75 + 25}px`,
+        couleur,
+        taille: 4 + r() * 6,
+        rond: r() > 0.3,
       };
     });
   }, [graine]);
   return (
     <span className="pointer-events-none absolute inset-0 flex items-center justify-center" aria-hidden>
+      <span className="intro-eclair absolute size-40 rounded-full" style={{ animationDelay: `${delai}s` }} />
       {eclats.map((e, i) => (
         <span
           key={i}
@@ -45,6 +60,7 @@ function Eclats({ delai, graine }: { delai: number; graine: number }) {
               height: e.rond ? e.taille : e.taille / 2,
               borderRadius: e.rond ? '9999px' : '2px',
               backgroundColor: e.couleur,
+              boxShadow: `0 0 ${e.taille * 1.5}px ${e.couleur}`,
               animationDelay: `${delai}s`,
             } as CSSProperties
           }
@@ -83,10 +99,9 @@ export function Intro({ onFini }: { onFini: () => void }) {
       .catch(() => {})
       .then(() => {
         if (annule || ctx.state !== 'running') return;
-        const t0 = ctx.currentTime;
-        DEPARTS.forEach((_, i) => {
-          boom(ctx, t0 + atterrissage(i), 1 + i * 0.3);
-          minuteries.push(setTimeout(() => vibrer(60 + i * 40), atterrissage(i) * 1000));
+        bandeSonIntro(ctx, ctx.currentTime, IMPACTS);
+        IMPACTS.forEach((impact, i) => {
+          minuteries.push(setTimeout(() => vibrer(60 + i * 40), impact * 1000));
         });
       });
     return () => {
@@ -152,12 +167,12 @@ export function Intro({ onFini }: { onFini: () => void }) {
             ))}
           </div>
 
-          <p className="intro-apparition mt-6 max-w-xs text-center font-display text-xl font-medium text-white drop-shadow">
+          <p style={{ animationDelay: `${APRES_CHUTE}s` }} className="intro-apparition mt-6 max-w-xs text-center font-display text-xl font-medium text-white drop-shadow">
             Le jeu qui révèle ce que vous pensez vraiment les uns des autres
           </p>
           <span
             className="intro-apparition intro-pulsation mt-8 rounded-full bg-white px-10 py-4 font-display text-2xl font-bold text-fuchsia-600 shadow-[0_6px_0_#a21caf,0_12px_30px_rgba(0,0,0,0.3)]"
-            style={{ animationDelay: '2.9s, 3.4s' }}
+            style={{ animationDelay: `${APRES_CHUTE + 0.4}s, ${APRES_CHUTE + 0.9}s` }}
           >
             Jouer
           </span>

@@ -100,7 +100,18 @@ body {
 
 .intro-eclat {
   opacity: 0;
-  animation: intro-gerbe 0.9s ease-out both;
+  animation: intro-gerbe 1.1s cubic-bezier(0.15, 0.7, 0.3, 1) forwards;
+}
+
+/* Éclair de lumière au centre de l'explosion. */
+.intro-eclair {
+  opacity: 0;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.95) 0%, rgba(253, 224, 71, 0.6) 35%, transparent 70%);
+  animation: intro-flash 0.5s ease-out forwards;
+}
+@keyframes intro-flash {
+  0% { opacity: 1; transform: scale(0.2); }
+  100% { opacity: 0; transform: scale(1.8); }
 }
 @keyframes intro-gerbe {
   0% { opacity: 1; transform: translate(0, 0) scale(0.4) rotate(0deg); }
@@ -137,10 +148,10 @@ body {
 
 /* Mouvement réduit demandé par l'utilisateur : tout apparaît sans chute ni secousse. */
 @media (prefers-reduced-motion: reduce) {
-  .intro-mot, .intro-pile, .intro-eclat, .intro-tache, .intro-fond, .intro-pulsation, .intro-etincelle {
+  .intro-mot, .intro-pile, .intro-eclat, .intro-eclair, .intro-tache, .intro-fond, .intro-pulsation, .intro-etincelle {
     animation: none !important;
   }
-  .intro-eclat { display: none; }
+  .intro-eclat, .intro-eclair { display: none; }
   .intro-etincelle { opacity: 0.7; }
   .intro-apparition { animation-delay: 0s; }
 }
