@@ -1,11 +1,16 @@
 import { useState, type FormEvent } from 'react';
 import {
   AVATARS,
+  LONGUEUR_MAX_QUESTION,
   MAX_JOUEURS,
+  MAX_QUESTIONS_PAR_JOUEUR,
   MIN_JOUEURS,
   MODES,
+  SOURCES,
   type Ack,
   type JoueurVue,
+  type Mode,
+  type SourceQuestions,
   type Vue,
 } from '../shared/protocol.ts';
 import { envoyer, memoriserSession, socket } from './connexion.ts';
@@ -141,6 +146,7 @@ export function Accueil() {
 
 export function Lobby({ vue }: { vue: Vue }) {
   const [manches, setManches] = useState(6);
+  const [source, setSource] = useState<SourceQuestions>('auto');
   const [copie, setCopie] = useState(false);
   const { enCours, erreur, agir } = useAction();
   const estHote = vue.moi === vue.hoteId;
@@ -231,14 +237,31 @@ export function Lobby({ vue }: { vue: Vue }) {
               ))}
             </div>
             <p className="mt-2 text-xs text-white/50">
-              Les modes « Qui2Nous ? » et « Qui a répondu ? » alternent. La dernière manche est la grande finale : points
-              doublés.
+              Modes « Qui2Nous ? » et « Qui a répondu ? ». La dernière manche est la grande finale : points doublés.
             </p>
           </div>
+          <fieldset>
+            <legend className="mb-2 text-sm font-medium text-white/70">Questions</legend>
+            <div className="flex flex-col gap-2">
+              {(Object.keys(SOURCES) as SourceQuestions[]).map((s) => (
+                <button
+                  key={s}
+                  onClick={() => setSource(s)}
+                  aria-pressed={source === s}
+                  className={`rounded-xl px-3 py-2 text-left ${source === s ? 'bg-amber-400 text-indigo-950' : 'bg-white/10'}`}
+                >
+                  <span className="block font-display text-lg leading-tight">{SOURCES[s].nom}</span>
+                  <span className={`block text-sm ${source === s ? 'text-indigo-950/80' : 'text-white/60'}`}>
+                    {SOURCES[s].description}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </fieldset>
           <Erreur message={erreur} />
           <Bouton
             disabled={enCours || connectes < MIN_JOUEURS}
-            onClick={() => agir((ack) => socket.emit('lancer', { manches }, ack))}
+            onClick={() => agir((ack) => socket.emit('lancer', { manches, questions: source }, ack))}
           >
             Lancer la partie
           </Bouton>
@@ -252,6 +275,142 @@ export function Lobby({ vue }: { vue: Vue }) {
   );
 }
 
+// ——— Rédaction des questions (mode créateur ou collectif) ———
+
+const TYPES_QUESTION: Record<Mode, { libelle: string; exemple: string }> = {
+  qui2nous: { libelle: 'Qui de nous… ?', exemple: 'Qui de nous chante sous la douche ?' },
+  quiARepondu: { libelle: 'Question ouverte', exemple: 'Ton pire souvenir de vacances ?' },
+};
+
+export function Redaction({ vue }: { vue: Vue }) {
+  const [mode, setMode] = useState<Mode>('qui2nous');
+  const [texte, setTexte] = useState('');
+  const { enCours, erreur, agir } = useAction();
+  const joueurs = parId(vue);
+  const ecrit = vue.redacteurs.includes(vue.moi);
+  const fini = vue.ontFini.includes(vue.moi);
+  const plein = vue.mesQuestions.length >= MAX_QUESTIONS_PAR_JOUEUR;
+  const redacteurs = vue.redacteurs.map((id) => joueurs.get(id)).filter((j): j is JoueurVue => !!j);
+  // En mode créateur, l'auteur est connu de tous : on ne promet l'anonymat qu'en mode collectif.
+  const melange =
+    vue.sourceQuestions === 'collectif'
+      ? 'Elles seront mélangées : personne ne saura qui les a écrites.'
+      : 'Elles seront mélangées avec celles du jeu, dans un ordre surprise.';
+  const progression = (
+    <div className="text-center">
+      <p className="mb-2 text-sm text-white/60">
+        {vue.nbQuestionsGroupe} question{vue.nbQuestionsGroupe > 1 ? 's' : ''} écrite{vue.nbQuestionsGroupe > 1 ? 's' : ''} ·{' '}
+        {vue.ontFini.length}/{redacteurs.length} {redacteurs.length > 1 ? 'ont terminé' : 'a terminé'}
+      </p>
+      <div className="flex flex-wrap justify-center gap-2">
+        {redacteurs.map((j) => (
+          <span key={j.id} className={vue.ontFini.includes(j.id) ? '' : 'opacity-30'} title={j.nom}>
+            <Avatar joueur={j} taille="sm" />
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+
+  if (!ecrit || fini) {
+    const createur = joueurs.get(vue.hoteId);
+    return (
+      <div className="flex flex-col gap-6">
+        <Carte className="text-center">
+          <p className="text-4xl">✏️</p>
+          <p className="mt-2 font-display text-xl">
+            {fini ? 'Questions envoyées ✓' : `${createur?.nom ?? 'Le créateur'} prépare les questions…`}
+          </p>
+          <p className="mt-1 text-sm text-white/60">{melange}</p>
+        </Carte>
+        {progression}
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-5">
+      <div className="text-center">
+        <p className="font-display text-2xl">Écris tes questions</p>
+        <p className="text-sm text-white/60">
+          Jusqu’à {MAX_QUESTIONS_PAR_JOUEUR}. {melange}
+        </p>
+      </div>
+      <Carte className="flex flex-col gap-3">
+        <div className="grid grid-cols-2 gap-2">
+          {(Object.keys(TYPES_QUESTION) as Mode[]).map((m) => (
+            <button
+              key={m}
+              onClick={() => setMode(m)}
+              aria-pressed={mode === m}
+              className={`min-h-11 rounded-xl px-2 text-sm font-semibold ${mode === m ? 'bg-amber-400 text-indigo-950' : 'bg-white/10'}`}
+            >
+              {TYPES_QUESTION[m].libelle}
+            </button>
+          ))}
+        </div>
+        <p className="text-xs text-white/50">{MODES[mode].consigne}</p>
+        <form
+          className="flex flex-col gap-2"
+          onSubmit={async (e) => {
+            e.preventDefault();
+            const r = await agir((ack) => socket.emit('proposerQuestion', { texte, mode }, ack));
+            if (r.ok) setTexte('');
+          }}
+        >
+          <textarea
+            value={texte}
+            onChange={(e) => setTexte(e.target.value)}
+            maxLength={LONGUEUR_MAX_QUESTION}
+            rows={2}
+            disabled={plein}
+            placeholder={`Ex. ${TYPES_QUESTION[mode].exemple}`}
+            className="w-full resize-none rounded-xl bg-indigo-950/60 px-4 py-3 text-lg ring-1 ring-white/20 outline-none placeholder:text-white/30 focus:ring-2 focus:ring-amber-400 disabled:opacity-40"
+          />
+          <Bouton type="submit" variante="secondaire" disabled={enCours || plein || texte.trim().length < 8}>
+            {plein ? 'Maximum atteint' : 'Ajouter la question'}
+          </Bouton>
+        </form>
+        <Erreur message={erreur} />
+      </Carte>
+
+      {vue.mesQuestions.length > 0 && (
+        <section>
+          <h2 className="mb-2 flex items-baseline justify-between font-display text-xl">
+            Mes questions
+            <span className="text-base text-white/60">
+              {vue.mesQuestions.length}/{MAX_QUESTIONS_PAR_JOUEUR}
+            </span>
+          </h2>
+          <ul className="flex flex-col gap-2">
+            {vue.mesQuestions.map((q) => (
+              <li key={q.id} className="flex min-w-0 items-start gap-3 rounded-2xl bg-white/5 px-3 py-2 ring-1 ring-white/10">
+                <span className="min-w-0 flex-1">
+                  <span className="block text-xs text-pink-300">{TYPES_QUESTION[q.mode].libelle}</span>
+                  <span className="block break-words">{q.texte}</span>
+                </span>
+                <button
+                  onClick={() => agir((ack) => socket.emit('retirerQuestion', { id: q.id }, ack))}
+                  aria-label="Retirer cette question"
+                  title="Retirer cette question"
+                  className="flex size-8 shrink-0 items-center justify-center rounded-full text-white/50 hover:bg-white/10 hover:text-white"
+                >
+                  ✕
+                </button>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      <Bouton disabled={enCours} onClick={() => agir((ack) => socket.emit('finirRedaction', ack))}>
+        {vue.mesQuestions.length ? 'J’ai fini' : 'Passer (questions du jeu)'}
+      </Bouton>
+      {progression}
+    </div>
+  );
+}
+
 // ——— En jeu ———
 
 export function EnTete({ vue, secondes }: { vue: Vue; secondes: number | null }) {
@@ -260,7 +419,7 @@ export function EnTete({ vue, secondes }: { vue: Vue; secondes: number | null })
     <div className="flex flex-col gap-2">
       <div className="flex items-center justify-between gap-3">
         <span className="shrink-0 text-sm font-medium text-white/70">
-          Manche {vue.manche}/{vue.totalManches}
+          {vue.phase === 'redaction' ? 'Préparation' : `Manche ${vue.manche}/${vue.totalManches}`}
         </span>
         {mode && <span className="min-w-0 truncate text-sm font-semibold text-pink-300">{mode}</span>}
         {secondes !== null && vue.phase !== 'decompte' && (

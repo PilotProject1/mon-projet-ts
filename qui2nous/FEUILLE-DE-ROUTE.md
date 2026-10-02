@@ -22,7 +22,7 @@ Le point crucial : **ne pas essayer de tout faire d'un coup.**
 | 1 | Question → réponse → vote → révélation → points | ✅ |
 | 2 | Salon de 3 à 8 joueurs | ✅ |
 | 3 | Classement + système de manches | ✅ |
-| 4 | Questions personnalisées | ⬜ |
+| 4 | Questions personnalisées | ✅ |
 | 5 | Photos (Qui2Photo ?) | ⬜ |
 | 6 | Dessins (Qui2Dessine ?) | ⬜ |
 | 7 | Grande finale | 🟡 points doublés sur la dernière manche ; révélation progressive à faire |
@@ -40,8 +40,8 @@ But : définir exactement les règles avant de développer.
 - ✅ Un téléphone par joueur
 - ✅ Salon avec code
 - ✅ Questions automatiques
-- ⬜ Questions personnalisées
-- ⬜ Créateur seul ou tous les joueurs selon le mode
+- ✅ Questions personnalisées
+- ✅ Créateur seul ou tous les joueurs selon le mode
 - ✅ Système de points
 - ✅ Classement final
 
@@ -91,14 +91,14 @@ le prototype, sauf le choix des modes (pour l'instant, ils alternent).
 | 2 | ➕ Créer une partie | ✅ |
 | 3 | 🔑 Rejoindre une partie | ✅ (code ou lien d'invitation) |
 | 4 | 👥 Lobby | ✅ |
-| 5 | ⚙️ Configuration | 🟡 nombre de manches seulement |
+| 5 | ⚙️ Configuration | 🟡 nombre de manches et source des questions |
 | 6 | ❓ Question | ✅ |
 | 7 | ✍️ Réponse | ✅ |
 | 8 | 🗳️ Vote | ✅ |
 | 9 | 🔎 Révélation | ✅ |
 | 10 | ⭐ Résultat | ✅ |
 | 11 | 🏆 Classement | ✅ |
-| 12 | ✏️ Création de question | ⬜ |
+| 12 | ✏️ Création de question | ✅ |
 | 13 | 📸 Sélection de photo | ⬜ |
 | 14 | 🎨 Dessin | ⬜ |
 | 15 | 👑 Podium final | ✅ |
@@ -153,8 +153,8 @@ chronomètre est corrigé du décalage d'horloge de chaque téléphone.
 
 **Questions personnalisées** — deux modes :
 
-- ⬜ **Mode créateur :** seul le créateur écrit les questions.
-- ⬜ **Mode collectif :** chaque joueur peut proposer ses propres questions.
+- ✅ **Mode créateur :** seul le créateur écrit les questions.
+- ✅ **Mode collectif :** chaque joueur peut proposer ses propres questions.
 
 Les questions sont ensuite mélangées pour ne pas révéler leur auteur.
 
@@ -258,7 +258,7 @@ Faire tester Qui2Nous à plusieurs groupes et recueillir notamment :
 ## 🏁 Phase 14 — Qui2Nous v1.0
 
 **Obligatoire :** ✅ 3 à 8 joueurs · ✅ code de salon · ✅ lobby · ✅ questions
-automatiques · ⬜ questions personnalisées · ✅ votes · ✅ réponses anonymes ·
+automatiques · ✅ questions personnalisées · ✅ votes · ✅ réponses anonymes ·
 ✅ révélations · ✅ score · ✅ classement · ⬜ photos · ⬜ dessins · 🟡 grande finale
 
 **Puis v2 :** ⏳ statistiques personnelles · ⏳ historique des parties ·
@@ -293,6 +293,19 @@ automatiques · ⬜ questions personnalisées · ✅ votes · ✅ réponses anon
   (Robot Bob, Robot Zoé…), ou les retirer. Ils comptent comme des joueurs :
   avec deux robots, une seule personne peut lancer une partie. Ils répondent et
   votent au hasard, après quelques secondes de « réflexion ».
+- **Questions :** le créateur choisit dans le lobby entre trois options :
+  - **Automatiques** : la bibliothèque du jeu.
+  - **Mode créateur** : lui seul écrit les questions.
+  - **Mode collectif** : chaque joueur écrit les siennes.
+
+  Dans les deux derniers cas, une phase de préparation (2 minutes) précède la
+  première manche. Chacun écrit jusqu'à 5 questions, de type « Qui de nous… ? »
+  ou ouvertes, puis touche « J'ai fini ». La phase s'arrête quand tous ont
+  terminé, ou à la fin du temps. Les questions du groupe passent en priorité,
+  une par manche, et la bibliothèque complète en équilibrant les deux modes.
+  L'ensemble est ensuite mélangé, et chaque question du groupe s'affiche avec
+  la mention « ✏️ Question du groupe », sans nom d'auteur. Les robots
+  proposent deux questions chacun.
 - **Suite :** le créateur passe à la manche suivante. S'il est déconnecté,
   n'importe quel joueur peut le faire.
 

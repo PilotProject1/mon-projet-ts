@@ -136,7 +136,10 @@ io.on('connection', (socket: Socket<ClientVersServeur, ServeurVersClient>) => {
 
   socket.on('ajouterRobot', (ack) => dansSalon(ack, (s, id) => void s.ajouterRobot(id)));
   socket.on('retirerRobot', (p, ack) => dansSalon(ack, (s, id) => s.retirerRobot(id, p?.id)));
-  socket.on('lancer', (p, ack) => dansSalon(ack, (s, id) => s.lancer(id, Number(p?.manches))));
+  socket.on('lancer', (p, ack) => dansSalon(ack, (s, id) => s.lancer(id, Number(p?.manches), p?.questions)));
+  socket.on('proposerQuestion', (p, ack) => dansSalon(ack, (s, id) => s.proposerQuestion(id, p?.texte, p?.mode)));
+  socket.on('retirerQuestion', (p, ack) => dansSalon(ack, (s, id) => s.retirerQuestion(id, p?.id)));
+  socket.on('finirRedaction', (ack) => dansSalon(ack, (s, id) => s.finirRedaction(id)));
   socket.on('repondre', (p, ack) => dansSalon(ack, (s, id) => s.repondre(id, p?.valeur)));
   socket.on('voter', (p, ack) => dansSalon(ack, (s, id) => s.voter(id, p?.attributions)));
   socket.on('suivant', (ack) => dansSalon(ack, (s, id) => s.suivant(id)));

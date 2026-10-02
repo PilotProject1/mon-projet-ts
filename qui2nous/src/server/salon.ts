@@ -1,13 +1,16 @@
 import { randomBytes, randomUUID } from 'node:crypto';
 import {
   AVATARS,
+  LONGUEUR_MAX_QUESTION,
   MAX_JOUEURS,
+  MAX_QUESTIONS_PAR_JOUEUR,
   MIN_JOUEURS,
   type Gain,
   type Mode,
   type Phase,
   type Question,
   type Resultat,
+  type SourceQuestions,
   type Titre,
   type Vue,
 } from '../shared/protocol.ts';
@@ -22,6 +25,7 @@ export const POINTS = {
 } as const;
 
 export const DUREES = {
+  redaction: 120_000,
   decompte: 3_500,
   reponse: { qui2nous: 25_000, quiARepondu: 60_000 } satisfies Record<Mode, number>,
   vote: 60_000,
@@ -44,7 +48,16 @@ const REPONSES_ROBOT = [
   'Courir après le bus',
   'Bip bip, je ne sais pas',
 ];
+const QUESTIONS_ROBOT: { mode: Mode; texte: string }[] = [
+  { mode: 'qui2nous', texte: 'Qui de nous parle à ses plantes ?' },
+  { mode: 'qui2nous', texte: 'Qui de nous mange le dessert en premier ?' },
+  { mode: 'qui2nous', texte: 'Qui de nous se perdrait dans son propre quartier ?' },
+  { mode: 'quiARepondu', texte: 'Ton snack de minuit préféré ?' },
+  { mode: 'quiARepondu', texte: 'Le pire prénom pour un chat ?' },
+  { mode: 'quiARepondu', texte: 'Ce que tu emporterais sur Mars ?' },
+];
 export const DELAIS_ROBOT = {
+  redaction: [3_000, 8_000],
   reponse: { qui2nous: [2_000, 9_000], quiARepondu: [4_000, 15_000] },
   vote: [3_000, 10_000],
 } as const;
@@ -112,6 +125,13 @@ export class Salon {
   private votes = new Map<string, Record<string, string>>();
   private anonymes: { id: string; texte: string; auteurId: string }[] = [];
   private dejaPosees = new Set<string>();
+  sourceQuestions: SourceQuestions = 'auto';
+  /** Qui écrit des questions pendant la phase de rédaction. */
+  redacteurs: string[] = [];
+  private finis = new Set<string>();
+  private propositions: { id: string; auteurId: string; texte: string; mode: Mode }[] = [];
+  /** Questions de chaque manche, décidées au lancement. */
+  private plan: Question[] = [];
   private annulerMinuteur: (() => void) | null = null;
   private annulerRobots: (() => void)[] = [];
 
@@ -222,7 +242,7 @@ export class Salon {
 
   // ——— Déroulement ———
 
-  lancer(id: string, manches: number) {
+  lancer(id: string, manches: number, source: unknown = 'auto') {
     if (id !== this.hoteId) throw new ErreurJeu('Seul le créateur du salon peut lancer la partie.');
     if (this.phase !== 'lobby') throw new ErreurJeu('La partie est déjà lancée.');
     if (this.connectes().length < MIN_JOUEURS) {
@@ -234,7 +254,78 @@ export class Salon {
       j.score = 0;
       j.stats = { trouves: 0, devine: 0, designe: 0, anticipations: 0 };
     }
+    this.sourceQuestions = source === 'createur' || source === 'collectif' ? source : 'auto';
+    this.propositions = [];
+    this.finis.clear();
+    if (this.sourceQuestions === 'auto') {
+      this.redacteurs = [];
+      this.construirePlan();
+      return this.mancheSuivante();
+    }
+    this.redacteurs = this.sourceQuestions === 'createur' ? [this.hoteId] : [...this.joueurs.keys()];
+    this.passerA('redaction', DUREES.redaction, () => this.finRedaction());
+  }
+
+  // ——— Questions personnalisées ———
+
+  proposerQuestion(id: string, texte: unknown, mode: unknown) {
+    if (this.phase !== 'redaction') throw new ErreurJeu('Ce n’est pas le moment d’écrire des questions.');
+    if (!this.redacteurs.includes(id)) throw new ErreurJeu('Dans ce mode, c’est le créateur qui écrit les questions.');
+    if (this.finis.has(id)) throw new ErreurJeu('Tu as déjà terminé.');
+    if (mode !== 'qui2nous' && mode !== 'quiARepondu') throw new ErreurJeu('Type de question inconnu.');
+    const t = String(texte ?? '').replace(/\s+/g, ' ').trim().slice(0, LONGUEUR_MAX_QUESTION);
+    if (t.length < 8) throw new ErreurJeu('Ta question est trop courte.');
+    const miennes = this.propositions.filter((q) => q.auteurId === id);
+    if (miennes.length >= MAX_QUESTIONS_PAR_JOUEUR) {
+      throw new ErreurJeu(`${MAX_QUESTIONS_PAR_JOUEUR} questions maximum par joueur.`);
+    }
+    if (this.propositions.some((q) => q.texte.toLowerCase() === t.toLowerCase())) {
+      throw new ErreurJeu('Cette question est déjà proposée.');
+    }
+    this.propositions.push({ id: randomUUID(), auteurId: id, texte: t, mode });
+    this.surChangement();
+  }
+
+  retirerQuestion(id: string, questionId: unknown) {
+    if (this.phase !== 'redaction') throw new ErreurJeu('Les questions sont déjà distribuées.');
+    const avant = this.propositions.length;
+    this.propositions = this.propositions.filter((q) => !(q.id === questionId && q.auteurId === id));
+    if (this.propositions.length === avant) throw new ErreurJeu('Question introuvable.');
+    this.surChangement();
+  }
+
+  finirRedaction(id: string) {
+    if (this.phase !== 'redaction') throw new ErreurJeu('Ce n’est pas le moment.');
+    if (!this.redacteurs.includes(id)) throw new ErreurJeu('Tu n’écris pas de questions dans ce mode.');
+    this.finis.add(id);
+    this.surChangement();
+    this.verifierFinDePhase();
+  }
+
+  private finRedaction() {
+    if (this.phase !== 'redaction') return;
+    this.construirePlan();
     this.mancheSuivante();
+  }
+
+  /**
+   * Questions du groupe d'abord (au plus une par manche), complétées par la
+   * bibliothèque en équilibrant les deux modes. Sans question du groupe, les
+   * modes alternent ; avec, tout est mélangé pour ne pas trahir les auteurs.
+   */
+  private construirePlan() {
+    const perso: Question[] = melanger(this.propositions, this.hasard)
+      .slice(0, this.totalManches)
+      .map((q) => ({ mode: q.mode, categorie: '✏️ Question du groupe', texte: q.texte, perso: true }));
+    const plan = [...perso];
+    while (plan.length < this.totalManches) {
+      const nb = (m: Mode) => plan.filter((q) => q.mode === m).length;
+      const mode: Mode = perso.length === 0
+        ? (plan.length % 2 === 0 ? 'qui2nous' : 'quiARepondu')
+        : nb('qui2nous') <= nb('quiARepondu') ? 'qui2nous' : 'quiARepondu';
+      plan.push(this.tirerQuestion(mode));
+    }
+    this.plan = perso.length ? melanger(plan, this.hasard) : plan;
   }
 
   suivant(id: string) {
@@ -254,6 +345,10 @@ export class Salon {
     this.resultat = null;
     this.titres = [];
     this.echeance = null;
+    this.plan = [];
+    this.propositions = [];
+    this.redacteurs = [];
+    this.finis.clear();
     for (const j of this.joueurs.values()) {
       j.enAttente = false;
       j.score = 0;
@@ -267,8 +362,8 @@ export class Salon {
 
   private mancheSuivante() {
     this.manche += 1;
-    const mode: Mode = this.manche % 2 === 1 ? 'qui2nous' : 'quiARepondu';
-    this.question = this.tirerQuestion(mode);
+    this.question = this.plan[this.manche - 1] ?? this.tirerQuestion(this.manche % 2 === 1 ? 'qui2nous' : 'quiARepondu');
+    const mode = this.question.mode;
     for (const j of this.joueurs.values()) j.enAttente = false;
     this.participants = [...this.joueurs.keys()];
     this.reponses.clear();
@@ -318,6 +413,7 @@ export class Salon {
   }
 
   private faireJouerRobots() {
+    if (this.phase === 'redaction') return this.faireEcrireRobots();
     if (!this.question || (this.phase !== 'reponse' && this.phase !== 'vote')) return;
     const mode = this.question.mode;
     const [min, max] = this.phase === 'reponse' ? DELAIS_ROBOT.reponse[mode] : DELAIS_ROBOT.vote;
@@ -361,7 +457,10 @@ export class Salon {
   }
 
   private verifierFinDePhase() {
-    if (this.phase === 'reponse' && this.attendus().every((id) => this.reponses.has(id))) this.finReponses();
+    if (this.phase === 'redaction') {
+      const attendus = this.redacteurs.filter((id) => this.joueurs.get(id)?.connecte);
+      if (attendus.every((id) => this.finis.has(id))) this.finRedaction();
+    } else if (this.phase === 'reponse' && this.attendus().every((id) => this.reponses.has(id))) this.finReponses();
     else if (this.phase === 'vote' && this.attendus().every((id) => this.votes.has(id))) this.finVotes();
   }
 
@@ -498,6 +597,24 @@ export class Salon {
     this.passerA('podium', null);
   }
 
+  private faireEcrireRobots() {
+    const [min, max] = DELAIS_ROBOT.redaction;
+    for (const id of this.redacteurs.filter((r) => this.joueurs.get(r)?.robot)) {
+      const delai = min + Math.floor(this.hasard() * (max - min));
+      this.annulerRobots.push(
+        this.horloge.planifier(delai, () => {
+          try {
+            const libres = QUESTIONS_ROBOT.filter((q) => !this.propositions.some((p) => p.texte === q.texte));
+            for (const q of melanger(libres, this.hasard).slice(0, 2)) this.proposerQuestion(id, q.texte, q.mode);
+            this.finirRedaction(id);
+          } catch {
+            /* la phase a changé entre-temps */
+          }
+        }),
+      );
+    }
+  }
+
   // ——— Ce que voit chaque joueur ———
 
   vuePour(id: string): Vue {
@@ -523,6 +640,13 @@ export class Salon {
       maintenant: this.horloge.maintenant(),
       // La question n'apparaît qu'à la fin du décompte, en même temps pour tous.
       question: this.phase === 'decompte' ? null : this.question,
+      sourceQuestions: this.sourceQuestions,
+      redacteurs: this.redacteurs,
+      ontFini: [...this.finis],
+      mesQuestions: this.propositions
+        .filter((q) => q.auteurId === id)
+        .map((q) => ({ id: q.id, texte: q.texte, mode: q.mode })),
+      nbQuestionsGroupe: this.propositions.length,
       participants: this.participants,
       ontRepondu: [...this.reponses.keys()],
       ontVote: [...this.votes.keys()],

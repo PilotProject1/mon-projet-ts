@@ -204,3 +204,76 @@ test('robots : seul l’hôte en ajoute, avant le lancement, et ils ne gardent p
   for (const j of [...s.joueurs.values()].filter((j) => !j.robot)) s.retirer(j.id);
   assert.equal(s.vide, true);
 });
+
+test('questions automatiques : les modes alternent', () => {
+  const { s, a, avancer } = partieA3();
+  s.lancer(a, 4, 'auto');
+  avancer(3_500);
+  assert.equal(s.question!.mode, 'qui2nous');
+  assert.equal(s.question!.perso, undefined);
+});
+
+test('mode créateur : seul le créateur écrit, puis ses questions sont jouées', () => {
+  const { s, a, b, c, avancer } = partieA3();
+  s.lancer(a, 4, 'createur');
+  assert.equal(s.phase, 'redaction');
+  assert.deepEqual(s.redacteurs, [a]);
+  assert.throws(() => s.proposerQuestion(b, 'Qui de nous ronfle ?', 'qui2nous'), /créateur/);
+  assert.throws(() => s.proposerQuestion(a, 'Qui ?', 'qui2nous'), /trop courte/);
+  s.proposerQuestion(a, 'Qui de nous ronfle le plus ?', 'qui2nous');
+  s.proposerQuestion(a, 'Ton pire souvenir de camping ?', 'quiARepondu');
+  assert.throws(() => s.proposerQuestion(a, 'qui de nous ronfle le plus ?', 'qui2nous'), /déjà proposée/);
+  // Les autres ne voient ni le texte ni l'auteur, seulement le nombre.
+  assert.equal(s.vuePour(b).mesQuestions.length, 0);
+  assert.equal(s.vuePour(b).nbQuestionsGroupe, 2);
+  s.finirRedaction(a);
+  assert.equal(s.phase, 'decompte');
+  const jouees: string[] = [];
+  for (let m = 1; m <= 4; m++) {
+    avancer(3_500);
+    jouees.push(s.question!.texte);
+    if (s.question!.mode === 'qui2nous') {
+      for (const id of [a, b, c]) s.repondre(id, a);
+    } else {
+      for (const id of [a, b, c]) s.repondre(id, `réponse ${id}`);
+      avancer(60_000);
+    }
+    s.suivant(a);
+  }
+  assert.ok(jouees.includes('Qui de nous ronfle le plus ?'));
+  assert.ok(jouees.includes('Ton pire souvenir de camping ?'));
+  assert.equal(new Set(jouees).size, 4);
+});
+
+test('mode collectif : tout le monde écrit, la phase finit quand tous ont terminé ou au bout du temps', () => {
+  const { s, a, b, c, avancer } = partieA3();
+  s.lancer(a, 4, 'collectif');
+  assert.equal(s.redacteurs.length, 3);
+  for (let i = 1; i <= 5; i++) s.proposerQuestion(b, `Question numéro ${i} ?`, 'quiARepondu');
+  assert.throws(() => s.proposerQuestion(b, 'Une de trop ?', 'quiARepondu'), /5 questions maximum/);
+  const id = s.vuePour(b).mesQuestions[0].id;
+  assert.throws(() => s.retirerQuestion(a, id), /introuvable/);
+  s.retirerQuestion(b, id);
+  s.finirRedaction(a);
+  s.finirRedaction(b);
+  assert.equal(s.phase, 'redaction');
+  avancer(120_000); // c n'a pas fini : le temps tranche
+  assert.equal(s.phase, 'decompte');
+  avancer(3_500);
+  assert.equal(s.question!.perso, true);
+  void c;
+});
+
+test('mode collectif avec robots : ils proposent leurs questions tout seuls', () => {
+  const { horloge, avancer } = horlogeFactice();
+  const s = new Salon('ABCD', () => {}, horloge, () => 0.5);
+  const moi = s.ajouter('Moi', '🦊').id;
+  s.ajouterRobot(moi);
+  s.ajouterRobot(moi);
+  s.lancer(moi, 4, 'collectif');
+  avancer(8_000);
+  assert.equal(s.vuePour(moi).nbQuestionsGroupe, 4);
+  assert.equal(s.phase, 'redaction'); // on m'attend encore
+  s.finirRedaction(moi);
+  assert.equal(s.phase, 'decompte');
+});

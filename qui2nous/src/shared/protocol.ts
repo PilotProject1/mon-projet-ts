@@ -20,7 +20,19 @@ export const MODES: Record<Mode, { nom: string; consigne: string }> = {
   },
 };
 
-export type Phase = 'lobby' | 'decompte' | 'reponse' | 'vote' | 'resultat' | 'podium';
+/** D'où viennent les questions de la partie (étape 4 de la feuille de route). */
+export type SourceQuestions = 'auto' | 'createur' | 'collectif';
+
+export const SOURCES: Record<SourceQuestions, { nom: string; description: string }> = {
+  auto: { nom: 'Automatiques', description: 'Les questions de la bibliothèque du jeu.' },
+  createur: { nom: 'Mode créateur', description: 'Seul le créateur du salon écrit les questions.' },
+  collectif: { nom: 'Mode collectif', description: 'Chaque joueur propose ses propres questions.' },
+};
+
+export const MAX_QUESTIONS_PAR_JOUEUR = 5;
+export const LONGUEUR_MAX_QUESTION = 120;
+
+export type Phase = 'lobby' | 'redaction' | 'decompte' | 'reponse' | 'vote' | 'resultat' | 'podium';
 
 export interface JoueurVue {
   id: string;
@@ -38,6 +50,8 @@ export interface Question {
   mode: Mode;
   categorie: string;
   texte: string;
+  /** Écrite par un joueur. Son auteur n'est jamais révélé. */
+  perso?: boolean;
 }
 
 export interface Gain {
@@ -78,6 +92,13 @@ export interface Vue {
   /** Heure du serveur à l'envoi, pour corriger l'horloge du téléphone. */
   maintenant: number;
   question: Question | null;
+  sourceQuestions: SourceQuestions;
+  /** Phase de rédaction : qui écrit des questions, et qui a terminé. */
+  redacteurs: string[];
+  ontFini: string[];
+  mesQuestions: { id: string; texte: string; mode: Mode }[];
+  /** Nombre de questions écrites par le groupe (sans dire par qui). */
+  nbQuestionsGroupe: number;
   /** Joueurs attendus pour cette manche. */
   participants: string[];
   ontRepondu: string[];
@@ -100,7 +121,10 @@ export interface ClientVersServeur {
   reprendre: (p: { code: string; jeton: string }, ack: (r: Ack) => void) => void;
   ajouterRobot: (ack: (r: Ack) => void) => void;
   retirerRobot: (p: { id: string }, ack: (r: Ack) => void) => void;
-  lancer: (p: { manches: number }, ack: (r: Ack) => void) => void;
+  lancer: (p: { manches: number; questions: SourceQuestions }, ack: (r: Ack) => void) => void;
+  proposerQuestion: (p: { texte: string; mode: Mode }, ack: (r: Ack) => void) => void;
+  retirerQuestion: (p: { id: string }, ack: (r: Ack) => void) => void;
+  finirRedaction: (ack: (r: Ack) => void) => void;
   repondre: (p: { valeur: string }, ack: (r: Ack) => void) => void;
   voter: (p: { attributions: Record<string, string> }, ack: (r: Ack) => void) => void;
   suivant: (ack: (r: Ack) => void) => void;

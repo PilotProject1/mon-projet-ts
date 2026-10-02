@@ -1,5 +1,5 @@
 import { useCompteARebours, useJeu } from './connexion.ts';
-import { Accueil, Decompte, EcranReponse, EcranResultat, EcranVote, EnAttente, EnTete, Lobby, Podium } from './ecrans.tsx';
+import { Accueil, Decompte, Redaction, EcranReponse, EcranResultat, EcranVote, EnAttente, EnTete, Lobby, Podium } from './ecrans.tsx';
 import { Logo } from './ui.tsx';
 
 export function App() {
@@ -22,6 +22,7 @@ export function App() {
     ecran = (
       <div className="flex flex-col gap-5">
         <EnTete vue={vue} secondes={secondes} />
+        {vue.phase === 'redaction' && <Redaction vue={vue} />}
         {vue.phase === 'decompte' && <Decompte key={cle} vue={vue} secondes={secondes} />}
         {vue.phase === 'reponse' && <EcranReponse key={cle} vue={vue} />}
         {vue.phase === 'vote' && <EcranVote key={cle} vue={vue} />}
