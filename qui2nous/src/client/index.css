@@ -78,7 +78,7 @@ body {
   animation-timing-function: linear;
 }
 @keyframes intro-chute {
-  0% { transform: translateY(-110vh) rotate(calc(var(--angle) * -3)); animation-timing-function: cubic-bezier(0.55, 0, 1, 0.45); }
+  0% { transform: translateY(calc(-1 * var(--depart, 70vh))) rotate(calc(var(--angle) * -3)); animation-timing-function: cubic-bezier(0.4, 0, 0.85, 0.6); }
   60% { transform: translateY(0) scale(1.18, 0.78) rotate(var(--angle)); animation-timing-function: ease-out; }
   74% { transform: translateY(-0.18em) scale(0.94, 1.08) rotate(var(--angle)); animation-timing-function: ease-in; }
   86% { transform: translateY(0) scale(1.05, 0.95) rotate(var(--angle)); }

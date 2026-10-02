@@ -136,19 +136,18 @@ export function feuDArtifice(ctx: BaseAudioContext, quand: number, force = 1) {
   crepitement.start(quand);
 }
 
-/** Durée du sifflement avant chaque impact (s). */
-export const DUREE_SIFFLEMENT = 0.9;
+/** Le sifflement unique du début (s) : il se termine quand le premier mot touche le sol. */
+export const DUREE_SIFFLEMENT = 1.3;
 
 /**
- * Toute la bande-son de l'intro : pour chaque mot, un sifflement qui se
- * termine à l'impact, puis l'explosion. `impacts` : instants d'impact (s)
- * comptés depuis `t0`.
+ * Toute la bande-son de l'intro : un seul sifflement de bombe au début,
+ * qui s'achève sur le premier impact, puis une explosion de feu d'artifice à
+ * chaque mot. `impacts` : instants d'impact (s) comptés depuis `t0`.
  */
 export function bandeSonIntro(ctx: BaseAudioContext, t0: number, impacts: number[]) {
-  impacts.forEach((impact, i) => {
-    sifflement(ctx, t0 + Math.max(0, impact - DUREE_SIFFLEMENT), Math.min(DUREE_SIFFLEMENT, impact));
-    feuDArtifice(ctx, t0 + impact, 1 + i * 0.3);
-  });
+  const premier = impacts[0];
+  sifflement(ctx, t0 + Math.max(0, premier - DUREE_SIFFLEMENT), Math.min(DUREE_SIFFLEMENT, premier));
+  impacts.forEach((impact, i) => feuDArtifice(ctx, t0 + impact, 1 + i * 0.3));
 }
 
 /** Petite vibration du téléphone (Android ; l'iPhone ne le permet pas aux sites web). */

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type CSSProperties } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { COULEURS_CONFETTIS, DecorPetillant, aleatoire } from './Fond.tsx';
 import { DUREE_SIFFLEMENT, bandeSonIntro, contexteAudio, vibrer } from './sons.ts';
 
@@ -12,11 +12,12 @@ const MOTS = [
 ];
 /**
  * Début de chute de chaque mot (s) ; il touche le sol à 60 % de la durée de
- * chute. Chaque impact est précédé d'un sifflement de bombe : le premier mot
- * part donc assez tard pour que son sifflement s'entende en entier.
+ * chute. Le premier mot touche le sol à la fin du sifflement du début, les
+ * deux autres suivent à intervalle régulier.
  */
-const DUREE_CHUTE = 0.8;
-const DEPARTS = [0.25, 1.0, 1.75].map((d) => d + DUREE_SIFFLEMENT - DUREE_CHUTE * 0.6);
+const DUREE_CHUTE = 1.0;
+const PREMIER_IMPACT = 0.15 + DUREE_SIFFLEMENT;
+const DEPARTS = [0, 0.75, 1.5].map((d) => PREMIER_IMPACT + d - DUREE_CHUTE * 0.6);
 const atterrissage = (i: number) => DEPARTS[i] + DUREE_CHUTE * 0.6;
 /** Instants d'impact des trois mots (s), pour la bande-son. */
 export const IMPACTS = DEPARTS.map((_, i) => atterrissage(i));
@@ -70,6 +71,25 @@ function Eclats({ delai, graine }: { delai: number; graine: number }) {
   );
 }
 
+/**
+ * Chaque mot part juste au-dessus du bord de l'écran, quelle que soit sa place
+ * dans la pile : le mot du haut (QUI) est ainsi visible pendant toute sa chute
+ * au lieu de surgir au dernier moment.
+ */
+function useDepartsAuBord(lance: boolean) {
+  const mots = useRef<(HTMLSpanElement | null)[]>([]);
+  useLayoutEffect(() => {
+    if (!lance) return;
+    for (const el of mots.current) {
+      const conteneur = el?.parentElement;
+      if (!el || !conteneur) continue;
+      // Le conteneur n'est pas animé : sa position est celle du mot posé.
+      el.style.setProperty('--depart', `${conteneur.getBoundingClientRect().bottom + 90}px`);
+    }
+  }, [lance]);
+  return mots;
+}
+
 const mouvementReduit = () => window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
 
 export function Intro({ onFini }: { onFini: () => void }) {
@@ -80,6 +100,8 @@ export function Intro({ onFini }: { onFini: () => void }) {
     const ctx = contexteAudio();
     return !ctx || ctx.state === 'running' || mouvementReduit();
   });
+
+  const mots = useDepartsAuBord(lance);
 
   const partir = () => {
     if (!lance) {
@@ -148,6 +170,9 @@ export function Intro({ onFini }: { onFini: () => void }) {
             {MOTS.map((m, i) => (
               <span key={m.texte} className="relative block leading-[0.82]">
                 <span
+                  ref={(el) => {
+                    mots.current[i] = el;
+                  }}
                   className="intro-mot block font-display font-bold tracking-tight"
                   style={
                     {
