@@ -18,7 +18,8 @@ import {
 import { envoyer, memoriserSession, socket } from './connexion.ts';
 import { preparerPhoto } from './photo.ts';
 import { Ardoise } from './ardoise.tsx';
-import { Avatar, Bouton, Carte, Erreur, Logo, Pastille } from './ui.tsx';
+import { DecorPetillant } from './Fond.tsx';
+import { Avatar, Bouton, Carte, Erreur, Pastille } from './ui.tsx';
 
 /** Lance une action serveur et expose son état d'envoi et son erreur. */
 function useAction() {
@@ -70,6 +71,12 @@ export function Accueil() {
   const [code, setCode] = useState(codeLien);
   const { enCours, erreur, agir } = useAction();
 
+  // Le fond sombre de la page masquerait le fond pétillant : on l'efface le temps de l'accueil.
+  useEffect(() => {
+    document.body.classList.add('fond-vif');
+    return () => document.body.classList.remove('fond-vif');
+  }, []);
+
   async function entrer(e: FormEvent, mode: 'creer' | 'rejoindre') {
     e.preventDefault();
     try {
@@ -88,73 +95,141 @@ export function Accueil() {
   }
 
   return (
-    <div className="animate-entree flex flex-col gap-6">
-      <header className="pt-6 text-center">
-        <Logo grand />
-        <p className="mt-2 text-white/70">Le jeu qui révèle ce que vous pensez vraiment les uns des autres.</p>
-      </header>
+    <>
+      {/* Même fond que l'intro, fixé derrière la page */}
+      <div className="intro-fond fixed inset-0 -z-10 overflow-hidden" aria-hidden>
+        <DecorPetillant etincelles={28} />
+      </div>
 
-      <Carte className="flex flex-col gap-4">
-        <label className="flex flex-col gap-1.5">
-          <span className="text-sm font-medium text-white/70">Ton pseudo</span>
-          <input
-            value={nom}
-            onChange={(e) => setNom(e.target.value)}
-            maxLength={16}
-            autoComplete="nickname"
-            placeholder="Ex. Lucas"
-            className="min-h-12 w-full rounded-xl bg-indigo-950/60 px-4 text-lg ring-1 ring-white/20 outline-none placeholder:text-white/30 focus:ring-2 focus:ring-amber-400"
-          />
-        </label>
-        <fieldset>
-          <legend className="mb-1.5 text-sm font-medium text-white/70">Ton avatar</legend>
-          <div className="grid grid-cols-6 gap-2">
-            {AVATARS.map((a) => (
-              <button
-                key={a}
-                type="button"
-                aria-pressed={a === avatar}
-                onClick={() => setAvatar(a)}
-                className={`aspect-square rounded-xl text-2xl transition sm:text-3xl ${a === avatar ? 'scale-110 bg-amber-400/90 ring-2 ring-white' : 'bg-white/10'}`}
-              >
-                {a}
-              </button>
-            ))}
-          </div>
-        </fieldset>
-      </Carte>
+      <div className="flex flex-col gap-5 pt-2">
+        <header className="accueil-monte text-center">
+          <LogoVif />
+          <p className="mt-2 font-display text-lg font-medium text-white [text-shadow:0_2px_8px_rgba(0,0,0,0.25)]">
+            Le jeu qui révèle ce que vous pensez vraiment les uns des autres
+          </p>
+        </header>
 
-      <Erreur message={erreur} />
-
-      {!codeLien && (
-        <form onSubmit={(e) => entrer(e, 'creer')}>
-          <Bouton type="submit" className="w-full" disabled={enCours || !nom.trim()}>
-            Créer une partie
-          </Bouton>
-        </form>
-      )}
-
-      <form onSubmit={(e) => entrer(e, 'rejoindre')} className="flex flex-col gap-3 sm:flex-row">
-        <input
-          value={code}
-          onChange={(e) => setCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ''))}
-          maxLength={4}
-          inputMode="text"
-          autoCapitalize="characters"
-          placeholder="CODE"
-          aria-label="Code du salon"
-          className="min-h-12 w-full min-w-0 rounded-2xl bg-indigo-950/60 px-4 text-center font-display text-2xl tracking-[0.4em] ring-1 ring-white/20 outline-none placeholder:text-white/30 focus:ring-2 focus:ring-amber-400 sm:flex-1"
-        />
-        <Bouton
-          type="submit"
-          variante={codeLien ? 'principal' : 'secondaire'}
-          disabled={enCours || !nom.trim() || code.length !== 4}
-          className="sm:shrink-0"
+        <section
+          className="accueil-monte flex flex-col gap-4 rounded-3xl bg-white/20 p-4 shadow-xl ring-1 ring-white/40 backdrop-blur-md"
+          style={{ animationDelay: '0.1s' }}
         >
-          Rejoindre
-        </Bouton>
-      </form>
-    </div>
+          <label className="flex flex-col gap-1.5">
+            <span className="font-display text-lg font-semibold text-white [text-shadow:0_1px_4px_rgba(0,0,0,0.2)]">
+              Ton pseudo
+            </span>
+            <input
+              value={nom}
+              onChange={(e) => setNom(e.target.value)}
+              maxLength={16}
+              autoComplete="nickname"
+              placeholder="Ex. Lucas"
+              className="min-h-13 w-full rounded-2xl bg-white px-4 font-display text-xl text-indigo-950 shadow-inner outline-none placeholder:text-indigo-950/35 focus:ring-4 focus:ring-yellow-300"
+            />
+          </label>
+          <fieldset>
+            <legend className="mb-1.5 font-display text-lg font-semibold text-white [text-shadow:0_1px_4px_rgba(0,0,0,0.2)]">
+              Ton avatar
+            </legend>
+            <div className="grid grid-cols-6 gap-2">
+              {AVATARS.map((a) => (
+                <button
+                  key={a}
+                  type="button"
+                  aria-pressed={a === avatar}
+                  onClick={() => setAvatar(a)}
+                  className={`aspect-square rounded-2xl text-2xl transition duration-200 sm:text-3xl ${
+                    a === avatar
+                      ? 'scale-110 bg-yellow-300 shadow-[0_4px_0_#ca8a04] ring-4 ring-white'
+                      : 'bg-white/25 hover:bg-white/40 active:scale-95'
+                  }`}
+                >
+                  {a}
+                </button>
+              ))}
+            </div>
+          </fieldset>
+        </section>
+
+        {erreur && (
+          <p role="alert" className="rounded-2xl bg-white px-4 py-2 text-center font-medium text-rose-600 shadow-lg">
+            {erreur}
+          </p>
+        )}
+
+        {!codeLien && (
+          <form onSubmit={(e) => entrer(e, 'creer')} className="accueil-monte" style={{ animationDelay: '0.2s' }}>
+            <button type="submit" className={`${BOUTON_BLANC} w-full`} disabled={enCours || !nom.trim()}>
+              Créer une partie
+            </button>
+          </form>
+        )}
+
+        {!codeLien && (
+          <p
+            className="accueil-monte flex items-center gap-3 font-display text-white/90"
+            style={{ animationDelay: '0.25s' }}
+          >
+            <span className="h-px flex-1 bg-white/50" />
+            ou rejoins tes amis
+            <span className="h-px flex-1 bg-white/50" />
+          </p>
+        )}
+
+        <form
+          onSubmit={(e) => entrer(e, 'rejoindre')}
+          className="accueil-monte flex flex-col gap-3 rounded-3xl bg-white/20 p-3 ring-1 ring-white/40 backdrop-blur-md sm:flex-row"
+          style={{ animationDelay: '0.3s' }}
+        >
+          <input
+            value={code}
+            onChange={(e) => setCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ''))}
+            maxLength={4}
+            inputMode="text"
+            autoCapitalize="characters"
+            placeholder="CODE"
+            aria-label="Code du salon"
+            className="min-h-14 w-full min-w-0 rounded-2xl bg-white px-4 text-center font-display text-3xl font-bold tracking-[0.4em] text-fuchsia-600 shadow-inner outline-none placeholder:text-indigo-950/25 focus:ring-4 focus:ring-yellow-300 sm:flex-1"
+          />
+          <button
+            type="submit"
+            disabled={enCours || !nom.trim() || code.length !== 4}
+            className={`${BOUTON_JAUNE} sm:shrink-0`}
+          >
+            Rejoindre
+          </button>
+        </form>
+      </div>
+    </>
+  );
+}
+
+/** Gros bouton blanc en relief, comme « Jouer » dans l'intro. */
+const BOUTON_BLANC =
+  'min-h-16 rounded-full bg-white px-8 font-display text-2xl font-bold text-fuchsia-600 shadow-[0_6px_0_#a21caf,0_12px_30px_rgba(0,0,0,0.25)] transition active:translate-y-1 active:shadow-[0_2px_0_#a21caf] disabled:opacity-60 disabled:active:translate-y-0';
+const BOUTON_JAUNE =
+  'min-h-14 rounded-2xl bg-yellow-300 px-6 font-display text-xl font-bold text-indigo-950 shadow-[0_5px_0_#ca8a04] transition active:translate-y-1 active:shadow-[0_1px_0_#ca8a04] disabled:opacity-60 disabled:active:translate-y-0';
+
+/** Le logo de l'intro, en ligne : QUI en blanc, 2 en jaune, NOUS en cyan, en relief. */
+function LogoVif() {
+  const mot = (texte: string, couleur: string, ombre: string, taille: string, angle: string) => (
+    <span
+      className="inline-block font-display font-bold tracking-tight"
+      style={{
+        color: couleur,
+        fontSize: taille,
+        transform: `rotate(${angle})`,
+        textShadow: `0 0.06em 0 ${ombre}, 0 0.12em 0 rgba(0,0,0,0.2), 0 0.2em 0.4em rgba(0,0,0,0.3)`,
+      }}
+    >
+      {texte}
+    </span>
+  );
+  return (
+    <h1 className="flex items-end justify-center gap-1 leading-none" aria-label="Qui2Nous">
+      {mot('QUI', '#ffffff', '#9d174d', 'clamp(2.75rem, 13vw, 4rem)', '-4deg')}
+      {mot('2', '#fde047', '#b45309', 'clamp(3.5rem, 17vw, 5rem)', '6deg')}
+      {mot('NOUS', '#67e8f9', '#1e3a8a', 'clamp(2.75rem, 13vw, 4rem)', '-3deg')}
+    </h1>
   );
 }
 

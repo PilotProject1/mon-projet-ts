@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, type CSSProperties } from 'react';
+import { COULEURS_CONFETTIS, DecorPetillant, aleatoire } from './Fond.tsx';
 
 // Écran d'ouverture : « QUI », « 2 » puis « NOUS » tombent du haut et
 // s'empilent, sur un fond coloré et pétillant. Un toucher mène à l'accueil.
@@ -12,31 +13,6 @@ const MOTS = [
 const DEPARTS = [0.25, 0.85, 1.45];
 const DUREE_CHUTE = 0.8;
 const atterrissage = (i: number) => DEPARTS[i] + DUREE_CHUTE * 0.6;
-
-const COULEURS_CONFETTIS = ['#fde047', '#f472b6', '#67e8f9', '#a3e635', '#fb923c', '#ffffff', '#c084fc'];
-
-/** Petit générateur déterministe : les étincelles ne bougent pas d'un rendu à l'autre. */
-function aleatoire(graine: number) {
-  let s = graine;
-  return () => {
-    s = (s * 9301 + 49297) % 233280;
-    return s / 233280;
-  };
-}
-
-function useEtincelles(n: number) {
-  return useMemo(() => {
-    const r = aleatoire(42);
-    return Array.from({ length: n }, (_, i) => ({
-      gauche: `${r() * 100}%`,
-      haut: `${r() * 100}%`,
-      taille: 3 + r() * 7,
-      couleur: COULEURS_CONFETTIS[i % COULEURS_CONFETTIS.length],
-      delai: `${r() * 3}s`,
-      duree: `${1.6 + r() * 2.4}s`,
-    }));
-  }, [n]);
-}
 
 /** Gerbe de confettis qui jaillit quand un mot touche le sol. */
 function Eclats({ delai, graine }: { delai: number; graine: number }) {
@@ -79,7 +55,6 @@ function Eclats({ delai, graine }: { delai: number; graine: number }) {
 
 export function Intro({ onFini }: { onFini: () => void }) {
   const [sortie, setSortie] = useState(false);
-  const etincelles = useEtincelles(36);
 
   const partir = () => {
     if (!sortie) setSortie(true);
@@ -101,37 +76,7 @@ export function Intro({ onFini }: { onFini: () => void }) {
       onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && partir()}
       className={`intro-fond fixed inset-0 z-50 flex cursor-pointer flex-col items-center justify-center overflow-hidden px-4 select-none ${sortie ? 'intro-sortie' : ''}`}
     >
-      {/* Taches de couleur floues qui dérivent lentement */}
-      <span className="intro-tache" style={{ background: '#e879f9', top: '-10%', left: '-20%' }} aria-hidden />
-      <span
-        className="intro-tache"
-        style={{ background: '#7c3aed', bottom: '-15%', right: '-25%', animationDelay: '-4s' }}
-        aria-hidden
-      />
-      <span
-        className="intro-tache"
-        style={{ background: '#fb923c', top: '35%', left: '55%', animationDelay: '-8s', opacity: 0.45 }}
-        aria-hidden
-      />
-
-      {/* Étincelles */}
-      {etincelles.map((e, i) => (
-        <span
-          key={i}
-          aria-hidden
-          className="intro-etincelle absolute rounded-full"
-          style={{
-            left: e.gauche,
-            top: e.haut,
-            width: e.taille,
-            height: e.taille,
-            backgroundColor: e.couleur,
-            boxShadow: `0 0 ${e.taille * 2}px ${e.couleur}`,
-            animationDelay: e.delai,
-            animationDuration: e.duree,
-          }}
-        />
-      ))}
+      <DecorPetillant />
 
       {/* Les mots qui tombent, puis la pile qui tremble à chaque atterrissage */}
       <div
