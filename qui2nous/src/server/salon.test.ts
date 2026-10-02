@@ -155,3 +155,52 @@ test('si l’hôte part, un autre joueur devient hôte', () => {
   s.retirer(a);
   assert.equal(s.hoteId, b);
 });
+
+test('robots : une seule personne peut lancer et jouer une partie entière', () => {
+  const { horloge, avancer } = horlogeFactice();
+  let hasard = 0.37;
+  const s = new Salon('ABCD', () => {}, horloge, () => (hasard = (hasard * 9301 + 0.49297) % 1));
+  const moi = s.ajouter('Moi', '🦊').id;
+  assert.throws(() => s.lancer(moi, 4), /au moins 3/);
+  const bob = s.ajouterRobot(moi);
+  s.ajouterRobot(moi);
+  assert.equal(bob.nom, 'Robot Bob');
+  assert.equal(s.vuePour(moi).joueurs.filter((j) => j.robot).length, 2);
+  s.lancer(moi, 4);
+  for (let m = 1; m <= 4; m++) {
+    avancer(3_500);
+    assert.equal(s.phase, 'reponse');
+    if (s.question!.mode === 'qui2nous') {
+      s.repondre(moi, bob.id);
+      avancer(9_000); // les robots ont tous répondu avant la fin du temps
+      assert.equal(s.phase, 'resultat');
+    } else {
+      s.repondre(moi, 'Ma réponse');
+      avancer(15_000);
+      assert.equal(s.phase, 'vote');
+      const vue = s.vuePour(moi);
+      assert.equal(new Set(vue.reponsesAnonymes.map((r) => r.texte)).size, 3);
+      const attributions: Record<string, string> = {};
+      for (const r of vue.reponsesAnonymes) if (!r.estLaMienne) attributions[r.id] = bob.id;
+      s.voter(moi, attributions);
+      avancer(10_000);
+      assert.equal(s.phase, 'resultat');
+    }
+    s.suivant(moi);
+  }
+  assert.equal(s.phase, 'podium');
+});
+
+test('robots : seul l’hôte en ajoute, avant le lancement, et ils ne gardent pas un salon en vie', () => {
+  const { s, a, b } = partieA3();
+  assert.throws(() => s.ajouterRobot(b), /créateur/);
+  const r = s.ajouterRobot(a);
+  assert.throws(() => s.retirerRobot(a, b), /pas un robot/);
+  s.retirerRobot(a, r.id);
+  assert.equal(s.joueurs.has(r.id), false);
+  s.ajouterRobot(a);
+  s.lancer(a, 4);
+  assert.throws(() => s.ajouterRobot(a), /avant de lancer/);
+  for (const j of [...s.joueurs.values()].filter((j) => !j.robot)) s.retirer(j.id);
+  assert.equal(s.vide, true);
+});

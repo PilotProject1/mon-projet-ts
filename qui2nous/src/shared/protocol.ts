@@ -30,6 +30,8 @@ export interface JoueurVue {
   connecte: boolean;
   /** Arrivé en cours de manche : joue à partir de la suivante. */
   enAttente: boolean;
+  /** Faux joueur pour tester seul : il répond et vote au hasard. */
+  robot: boolean;
 }
 
 export interface Question {
@@ -96,6 +98,8 @@ export interface ClientVersServeur {
     ack: (r: Ack<{ code: string; jeton: string }>) => void,
   ) => void;
   reprendre: (p: { code: string; jeton: string }, ack: (r: Ack) => void) => void;
+  ajouterRobot: (ack: (r: Ack) => void) => void;
+  retirerRobot: (p: { id: string }, ack: (r: Ack) => void) => void;
   lancer: (p: { manches: number }, ack: (r: Ack) => void) => void;
   repondre: (p: { valeur: string }, ack: (r: Ack) => void) => void;
   voter: (p: { attributions: Record<string, string> }, ack: (r: Ack) => void) => void;

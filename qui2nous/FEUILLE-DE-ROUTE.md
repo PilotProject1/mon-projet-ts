@@ -134,6 +134,7 @@ ordinateur (1 280 px).
 - ✅ Reconnexion (écran éteint, page rechargée, réseau coupé)
 - ✅ Maître de partie (le créateur ; s'il perd la connexion, n'importe qui peut faire avancer la partie)
 - ✅ Lancement de la partie
+- ✅ Robots pour tester seul : le créateur ajoute de faux joueurs depuis le lobby
 - ✅ Synchronisation des téléphones
 
 **Synchronisation :** tous les joueurs reçoivent en même temps « 3… 2… 1… »
@@ -288,6 +289,10 @@ automatiques · ⬜ questions personnalisées · ✅ votes · ✅ réponses anon
   la moitié des votants l'ont trouvée.
 - **Fin d'une phase :** dès que tous les joueurs connectés ont agi, ou quand le
   temps est écoulé. Un joueur déconnecté n'est pas attendu.
+- **Robots :** dans le lobby, le créateur peut ajouter jusqu'à 7 robots
+  (Robot Bob, Robot Zoé…), ou les retirer. Ils comptent comme des joueurs :
+  avec deux robots, une seule personne peut lancer une partie. Ils répondent et
+  votent au hasard, après quelques secondes de « réflexion ».
 - **Suite :** le créateur passe à la manche suivante. S'il est déconnecté,
   n'importe quel joueur peut le faire.
 

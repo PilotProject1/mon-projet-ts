@@ -27,6 +27,12 @@ npm test            # règles du jeu (points, phases, déconnexions…)
 npm run typecheck
 ```
 
+## Tester seul
+
+Dans le lobby, le créateur du salon touche **🤖 Ajouter un robot** deux fois :
+avec deux robots, on atteint les 3 joueurs nécessaires pour lancer. Les robots
+répondent et votent au hasard, quelques secondes après le début de chaque phase.
+
 ## Mise en ligne sur Render
 
 La configuration est dans [`render.yaml`](../render.yaml), à la racine du

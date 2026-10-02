@@ -184,6 +184,16 @@ export function Lobby({ vue }: { vue: Vue }) {
                 {j.id === vue.moi && <span className="text-white/50"> (toi)</span>}
               </span>
               {j.id === vue.hoteId && <span title="Créateur du salon">👑</span>}
+              {j.robot && estHote && (
+                <button
+                  onClick={() => agir((ack) => socket.emit('retirerRobot', { id: j.id }, ack))}
+                  aria-label={`Retirer ${j.nom}`}
+                  title="Retirer ce robot"
+                  className="flex size-8 shrink-0 items-center justify-center rounded-full text-white/50 hover:bg-white/10 hover:text-white"
+                >
+                  ✕
+                </button>
+              )}
             </li>
           ))}
         </ul>
@@ -191,6 +201,16 @@ export function Lobby({ vue }: { vue: Vue }) {
           <p className="mt-3 text-center text-sm text-white/60">
             Encore {MIN_JOUEURS - connectes} joueur{MIN_JOUEURS - connectes > 1 ? 's' : ''} minimum pour jouer.
           </p>
+        )}
+        {estHote && vue.joueurs.length < MAX_JOUEURS && (
+          <Bouton
+            variante="secondaire"
+            className="mt-3 w-full text-base"
+            disabled={enCours}
+            onClick={() => agir((ack) => socket.emit('ajouterRobot', ack))}
+          >
+            🤖 Ajouter un robot
+          </Bouton>
         )}
       </section>
 

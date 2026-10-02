@@ -43,12 +43,15 @@ function surveillerAbandon(salon: Salon) {
   clearTimeout(abandons.get(salon.code));
   abandons.delete(salon.code);
   if (salon.vide) {
+    salon.fermer();
     salons.delete(salon.code);
   } else if (salon.toutLeMondeDeconnecte) {
     abandons.set(
       salon.code,
       setTimeout(() => {
-        if (salon.toutLeMondeDeconnecte) salons.delete(salon.code);
+        if (!salon.toutLeMondeDeconnecte) return;
+        salon.fermer();
+        salons.delete(salon.code);
       }, DELAI_ABANDON_MS),
     );
   }
@@ -131,6 +134,8 @@ io.on('connection', (socket: Socket<ClientVersServeur, ServeurVersClient>) => {
     ack({ ok: true });
   });
 
+  socket.on('ajouterRobot', (ack) => dansSalon(ack, (s, id) => void s.ajouterRobot(id)));
+  socket.on('retirerRobot', (p, ack) => dansSalon(ack, (s, id) => s.retirerRobot(id, p?.id)));
   socket.on('lancer', (p, ack) => dansSalon(ack, (s, id) => s.lancer(id, Number(p?.manches))));
   socket.on('repondre', (p, ack) => dansSalon(ack, (s, id) => s.repondre(id, p?.valeur)));
   socket.on('voter', (p, ack) => dansSalon(ack, (s, id) => s.voter(id, p?.attributions)));

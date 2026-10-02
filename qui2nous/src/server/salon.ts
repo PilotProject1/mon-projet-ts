@@ -29,6 +29,26 @@ export const DUREES = {
 
 export const MANCHES_POSSIBLES = [4, 6, 8] as const;
 
+// Robots : de faux amis pour tester une partie seul. Ils répondent et votent
+// au hasard, après un délai qui imite un humain qui réfléchit.
+const ROBOTS = ['Robot Bob', 'Robot Zoé', 'Robot Max', 'Robot Lili', 'Robot Gus', 'Robot Nina', 'Robot Tom'];
+const REPONSES_ROBOT = [
+  'Les brocolis tièdes',
+  'Une licorne gonflable',
+  'Danser la macarena',
+  'Mon grille-pain',
+  'Un câlin de chat',
+  'Le karaoké du mardi',
+  'Des chaussettes dépareillées',
+  'Une pizza à l’ananas',
+  'Courir après le bus',
+  'Bip bip, je ne sais pas',
+];
+export const DELAIS_ROBOT = {
+  reponse: { qui2nous: [2_000, 9_000], quiARepondu: [4_000, 15_000] },
+  vote: [3_000, 10_000],
+} as const;
+
 interface Joueur {
   id: string;
   jeton: string;
@@ -37,6 +57,7 @@ interface Joueur {
   score: number;
   connecte: boolean;
   enAttente: boolean;
+  robot: boolean;
   stats: { trouves: number; devine: number; designe: number; anticipations: number };
 }
 
@@ -92,6 +113,7 @@ export class Salon {
   private anonymes: { id: string; texte: string; auteurId: string }[] = [];
   private dejaPosees = new Set<string>();
   private annulerMinuteur: (() => void) | null = null;
+  private annulerRobots: (() => void)[] = [];
 
   constructor(
     readonly code: string,
@@ -116,12 +138,44 @@ export class Salon {
       score: 0,
       connecte: true,
       enAttente: this.phase !== 'lobby',
+      robot: false,
       stats: { trouves: 0, devine: 0, designe: 0, anticipations: 0 },
     };
     this.joueurs.set(j.id, j);
     if (!this.hoteId) this.hoteId = j.id;
     this.surChangement();
     return j;
+  }
+
+  ajouterRobot(id: string): Joueur {
+    if (id !== this.hoteId) throw new ErreurJeu('Seul le créateur du salon peut ajouter un robot.');
+    if (this.phase !== 'lobby') throw new ErreurJeu('On ajoute les robots avant de lancer la partie.');
+    if (this.joueurs.size >= MAX_JOUEURS) throw new ErreurJeu(`Le salon est complet (${MAX_JOUEURS} joueurs).`);
+    const pris = new Set([...this.joueurs.values()].map((j) => j.nom.toLowerCase()));
+    const nom = ROBOTS.find((n) => !pris.has(n.toLowerCase()));
+    if (!nom) throw new ErreurJeu('Plus de robot disponible.');
+    const j: Joueur = {
+      id: randomUUID(),
+      jeton: randomBytes(18).toString('base64url'),
+      nom,
+      avatar: '🤖',
+      score: 0,
+      connecte: true,
+      enAttente: false,
+      robot: true,
+      stats: { trouves: 0, devine: 0, designe: 0, anticipations: 0 },
+    };
+    this.joueurs.set(j.id, j);
+    this.surChangement();
+    return j;
+  }
+
+  retirerRobot(id: string, robotId: unknown) {
+    if (id !== this.hoteId) throw new ErreurJeu('Seul le créateur du salon peut retirer un robot.');
+    if (this.phase !== 'lobby') throw new ErreurJeu('On retire les robots avant de lancer la partie.');
+    const r = this.joueurs.get(String(robotId));
+    if (!r?.robot) throw new ErreurJeu('Ce joueur n’est pas un robot.');
+    this.retirer(r.id);
   }
 
   parJeton(jeton: string): Joueur | undefined {
@@ -140,19 +194,21 @@ export class Salon {
     if (!this.joueurs.delete(id)) return;
     this.participants = this.participants.filter((p) => p !== id);
     if (this.hoteId === id) {
-      const suivant = [...this.joueurs.values()].find((j) => j.connecte) ?? [...this.joueurs.values()][0];
+      const humains = [...this.joueurs.values()].filter((j) => !j.robot);
+      const suivant = humains.find((j) => j.connecte) ?? humains[0];
       this.hoteId = suivant?.id ?? '';
     }
     this.surChangement();
     this.verifierFinDePhase();
   }
 
+  /** Plus aucun humain : les robots seuls ne font pas vivre un salon. */
   get vide() {
-    return this.joueurs.size === 0;
+    return [...this.joueurs.values()].every((j) => j.robot);
   }
 
   get toutLeMondeDeconnecte() {
-    return [...this.joueurs.values()].every((j) => !j.connecte);
+    return [...this.joueurs.values()].every((j) => j.robot || !j.connecte);
   }
 
   private connectes() {
@@ -242,11 +298,61 @@ export class Salon {
     this.echeance = duree === null ? null : this.horloge.maintenant() + duree;
     if (duree !== null && alEcheance) this.annulerMinuteur = this.horloge.planifier(duree, alEcheance);
     this.surChangement();
+    this.faireJouerRobots();
   }
 
   private arreterMinuteur() {
     this.annulerMinuteur?.();
     this.annulerMinuteur = null;
+    for (const annuler of this.annulerRobots) annuler();
+    this.annulerRobots = [];
+  }
+
+  /** Salon supprimé : on coupe les minuteurs encore en route. */
+  fermer() {
+    this.arreterMinuteur();
+  }
+
+  private auHasard<T>(t: readonly T[]): T {
+    return t[Math.floor(this.hasard() * t.length)];
+  }
+
+  private faireJouerRobots() {
+    if (!this.question || (this.phase !== 'reponse' && this.phase !== 'vote')) return;
+    const mode = this.question.mode;
+    const [min, max] = this.phase === 'reponse' ? DELAIS_ROBOT.reponse[mode] : DELAIS_ROBOT.vote;
+    const robots = this.participants.filter((id) => this.joueurs.get(id)?.robot);
+    const phase = this.phase;
+    const dejaPrises = new Set<string>();
+    for (const id of robots) {
+      const delai = min + Math.floor(this.hasard() * (max - min));
+      let action: () => void;
+      if (phase === 'reponse' && mode === 'qui2nous') {
+        const choix = this.auHasard(this.participants);
+        action = () => this.repondre(id, choix);
+      } else if (phase === 'reponse') {
+        const libres = REPONSES_ROBOT.filter((r) => !dejaPrises.has(r));
+        const texte = this.auHasard(libres.length ? libres : REPONSES_ROBOT);
+        dejaPrises.add(texte);
+        action = () => this.repondre(id, texte);
+      } else {
+        action = () => {
+          const attributions: Record<string, string> = {};
+          const candidats = this.participants.filter((p) => p !== id);
+          for (const r of this.anonymes) if (r.auteurId !== id) attributions[r.id] = this.auHasard(candidats);
+          this.voter(id, attributions);
+        };
+      }
+      this.annulerRobots.push(
+        this.horloge.planifier(delai, () => {
+          try {
+            action();
+          } catch {
+            /* la phase a changé entre-temps : le robot laisse tomber */
+          }
+        }),
+      );
+    }
   }
 
   /** Participants encore là, dont on attend l'action. */
@@ -407,6 +513,7 @@ export class Salon {
         score: j.score,
         connecte: j.connecte,
         enAttente: j.enAttente,
+        robot: j.robot,
       })),
       phase: this.phase,
       manche: this.manche,
