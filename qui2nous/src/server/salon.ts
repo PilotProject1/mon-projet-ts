@@ -1,21 +1,24 @@
 import { randomBytes, randomUUID } from 'node:crypto';
 import {
   AVATARS,
+  IMAGE_TAILLE_MAX,
   LONGUEUR_MAX_QUESTION,
   MAX_JOUEURS,
   MAX_QUESTIONS_PAR_JOUEUR,
   MIN_JOUEURS,
+  ORDRE_MODES,
+  estModeImage,
   type Gain,
   type Mode,
   type Phase,
   type Question,
   type Resultat,
   type SourceQuestions,
+  type Statistiques,
   type Titre,
   type Vue,
 } from '../shared/protocol.ts';
-import { QUESTIONS } from '../shared/questions.ts';
-import { PHOTO_TAILLE_MAX } from '../shared/protocol.ts';
+import { QUESTIONS, QUESTIONS_FINALE } from '../shared/questions.ts';
 import { imageRobot } from './imageRobot.ts';
 
 // Barème (phase 9 de la feuille de route).
@@ -29,7 +32,10 @@ export const POINTS = {
 export const DUREES = {
   redaction: 120_000,
   decompte: 3_500,
-  reponse: { qui2nous: 25_000, quiARepondu: 60_000, qui2photo: 60_000 } satisfies Record<Mode, number>,
+  reponse: { qui2nous: 25_000, quiARepondu: 60_000, qui2photo: 60_000, qui2dessine: 80_000 } satisfies Record<
+    Mode,
+    number
+  >,
   vote: 60_000,
 } as const;
 
@@ -58,45 +64,52 @@ const QUESTIONS_ROBOT: { mode: Mode; texte: string }[] = [
   { mode: 'quiARepondu', texte: 'Le pire prénom pour un chat ?' },
   { mode: 'quiARepondu', texte: 'Ce que tu emporterais sur Mars ?' },
   { mode: 'qui2photo', texte: 'La photo la plus étrange de ta galerie.' },
+  { mode: 'qui2dessine', texte: 'Dessine un robot qui fait la fête.' },
 ];
+export const DELAIS_ROBOT = {
+  redaction: [3_000, 8_000],
+  reponse: {
+    qui2nous: [2_000, 9_000],
+    quiARepondu: [4_000, 15_000],
+    qui2photo: [4_000, 15_000],
+    qui2dessine: [6_000, 20_000],
+  },
+  vote: [3_000, 10_000],
+} as const;
 
-export interface Photo {
+export class ErreurJeu extends Error {}
+
+/** Photo ou dessin envoyé par un joueur. */
+export interface ImageJeu {
   type: 'image/jpeg' | 'image/png';
   octets: Buffer;
 }
 
 /**
- * Photo envoyée par un téléphone : une data URL JPEG ou PNG dont le contenu
+ * Image envoyée par un téléphone : une data URL JPEG ou PNG dont le contenu
  * commence bien par la signature du format annoncé. Tout le reste est refusé
  * (SVG compris, qui pourrait embarquer du script).
  */
-export function lirePhoto(valeur: unknown): Photo {
+export function lireImage(valeur: unknown): ImageJeu {
   const v = String(valeur ?? '');
-  if (v.length > PHOTO_TAILLE_MAX) throw new ErreurJeu('Photo trop lourde, choisis-en une autre.');
+  if (v.length > IMAGE_TAILLE_MAX) throw new ErreurJeu('Image trop lourde, choisis-en une autre.');
   const m = /^data:(image\/jpeg|image\/png);base64,([A-Za-z0-9+/]+={0,2})$/.exec(v);
-  if (!m) throw new ErreurJeu('Ce fichier n’est pas une photo.');
-  const type = m[1] as Photo['type'];
+  if (!m) throw new ErreurJeu('Ce fichier n’est pas une image.');
+  const type = m[1] as ImageJeu['type'];
   const octets = Buffer.from(m[2], 'base64');
   const signature = type === 'image/jpeg' ? [0xff, 0xd8, 0xff] : [0x89, 0x50, 0x4e, 0x47];
-  if (!signature.every((o, i) => octets[i] === o)) throw new ErreurJeu('Ce fichier n’est pas une photo.');
+  if (!signature.every((o, i) => octets[i] === o)) throw new ErreurJeu('Ce fichier n’est pas une image.');
   return { type, octets };
 }
-export const DELAIS_ROBOT = {
-  redaction: [3_000, 8_000],
-  reponse: { qui2nous: [2_000, 9_000], quiARepondu: [4_000, 15_000], qui2photo: [4_000, 15_000] },
-  vote: [3_000, 10_000],
-} as const;
 
-interface Stats {
-  trouves: number;
-  devine: number;
-  designe: number;
-  anticipations: number;
-  /** Nombre de fois où ses photos ont été reconnues. */
-  photos: number;
-}
-
-const statsVides = (): Stats => ({ trouves: 0, devine: 0, designe: 0, anticipations: 0, photos: 0 });
+const statsVides = (): Statistiques => ({
+  trouves: 0,
+  devine: 0,
+  designe: 0,
+  anticipations: 0,
+  photos: 0,
+  dessins: 0,
+});
 
 interface Joueur {
   id: string;
@@ -107,7 +120,7 @@ interface Joueur {
   connecte: boolean;
   enAttente: boolean;
   robot: boolean;
-  stats: Stats;
+  stats: Statistiques;
 }
 
 export interface Horloge {
@@ -122,8 +135,6 @@ const horlogeReelle: Horloge = {
     return () => clearTimeout(t);
   },
 };
-
-export class ErreurJeu extends Error {}
 
 function melanger<T>(t: T[], hasard: () => number): T[] {
   const r = [...t];
@@ -144,6 +155,13 @@ export function nettoyerAvatar(avatar: unknown): string {
   return (AVATARS as readonly string[]).includes(String(avatar)) ? String(avatar) : AVATARS[0];
 }
 
+/** Modes demandés par le créateur, dans l'ordre de rotation ; tous si la demande est vide ou invalide. */
+export function nettoyerModes(modes: unknown): Mode[] {
+  const demandes = Array.isArray(modes) ? modes : [];
+  const valides = ORDRE_MODES.filter((m) => demandes.includes(m));
+  return valides.length ? valides : [...ORDRE_MODES];
+}
+
 export class Salon {
   readonly joueurs = new Map<string, Joueur>();
   hoteId = '';
@@ -155,17 +173,17 @@ export class Salon {
   echeance: number | null = null;
   resultat: Resultat | null = null;
   titres: Titre[] = [];
-  /** Réponse secrète de chaque participant : un joueurId (Qui2Nous) ou un texte. */
-  private reponses = new Map<string, { valeur: string; a: number; photo?: Photo }>();
-  private debutReponse = 0;
-  private votes = new Map<string, Record<string, string>>();
-  private anonymes: { id: string; texte: string; auteurId: string; photo?: Photo }[] = [];
-  private dejaPosees = new Set<string>();
   sourceQuestions: SourceQuestions = 'auto';
-  /** Le créateur peut exclure Qui2Photo (groupe qui ne veut pas partager de photos). */
-  photos = true;
+  /** Modes choisis dans le lobby (un groupe peut refuser les photos, par exemple). */
+  modes: Mode[] = [...ORDRE_MODES];
   /** Qui écrit des questions pendant la phase de rédaction. */
   redacteurs: string[] = [];
+  /** Réponse secrète de chaque participant : un joueurId (Qui2Nous), un texte, ou une image. */
+  private reponses = new Map<string, { valeur: string; a: number; image?: ImageJeu }>();
+  private debutReponse = 0;
+  private votes = new Map<string, Record<string, string>>();
+  private anonymes: { id: string; texte: string; auteurId: string; image?: ImageJeu }[] = [];
+  private dejaPosees = new Set<string>();
   private finis = new Set<string>();
   private propositions: { id: string; auteurId: string; texte: string; mode: Mode }[] = [];
   /** Questions de chaque manche, décidées au lancement. */
@@ -280,7 +298,7 @@ export class Salon {
 
   // ——— Déroulement ———
 
-  lancer(id: string, manches: number, source: unknown = 'auto', photos: unknown = true) {
+  lancer(id: string, manches: number, source: unknown = 'auto', modes: unknown = ORDRE_MODES) {
     if (id !== this.hoteId) throw new ErreurJeu('Seul le créateur du salon peut lancer la partie.');
     if (this.phase !== 'lobby') throw new ErreurJeu('La partie est déjà lancée.');
     if (this.connectes().length < MIN_JOUEURS) {
@@ -293,7 +311,7 @@ export class Salon {
       j.stats = statsVides();
     }
     this.sourceQuestions = source === 'createur' || source === 'collectif' ? source : 'auto';
-    this.photos = photos !== false;
+    this.modes = nettoyerModes(modes);
     this.propositions = [];
     this.finis.clear();
     if (this.sourceQuestions === 'auto') {
@@ -311,7 +329,7 @@ export class Salon {
     if (this.phase !== 'redaction') throw new ErreurJeu('Ce n’est pas le moment d’écrire des questions.');
     if (!this.redacteurs.includes(id)) throw new ErreurJeu('Dans ce mode, c’est le créateur qui écrit les questions.');
     if (this.finis.has(id)) throw new ErreurJeu('Tu as déjà terminé.');
-    if (!this.modes().includes(mode as Mode)) throw new ErreurJeu('Type de question indisponible dans cette partie.');
+    if (!this.modes.includes(mode as Mode)) throw new ErreurJeu('Type de question indisponible dans cette partie.');
     const t = String(texte ?? '').replace(/\s+/g, ' ').trim().slice(0, LONGUEUR_MAX_QUESTION);
     if (t.length < 8) throw new ErreurJeu('Ta question est trop courte.');
     const miennes = this.propositions.filter((q) => q.auteurId === id);
@@ -348,25 +366,36 @@ export class Salon {
   }
 
   /**
-   * Questions du groupe d'abord (au plus une par manche), complétées par la
-   * bibliothèque en équilibrant les deux modes. Sans question du groupe, les
-   * modes alternent ; avec, tout est mélangé pour ne pas trahir les auteurs.
+   * Toutes les manches sauf la dernière : questions du groupe d'abord (au plus
+   * une par manche), complétées par la bibliothèque. Sans question du groupe,
+   * les modes tournent dans l'ordre ; avec, tout est mélangé pour ne pas
+   * trahir les auteurs. La dernière manche est toujours la grande finale.
    */
   private construirePlan() {
+    const ordinaires = this.totalManches - 1;
     const perso: Question[] = melanger(this.propositions, this.hasard)
-      .slice(0, this.totalManches)
+      .slice(0, ordinaires)
       .map((q) => ({ mode: q.mode, categorie: '✏️ Question du groupe', texte: q.texte, perso: true }));
     const plan = [...perso];
-    const modes = this.modes();
-    while (plan.length < this.totalManches) {
+    while (plan.length < ordinaires) {
       const nb = (m: Mode) => plan.filter((q) => q.mode === m).length;
-      // Sans question du groupe, les modes tournent dans l'ordre ; sinon on complète le moins représenté.
-      const mode = perso.length === 0
-        ? modes[plan.length % modes.length]
-        : modes.reduce((a, b) => (nb(b) < nb(a) ? b : a));
+      const mode =
+        perso.length === 0
+          ? this.modes[plan.length % this.modes.length]
+          : this.modes.reduce((a, b) => (nb(b) < nb(a) ? b : a));
       plan.push(this.tirerQuestion(mode));
     }
-    this.plan = perso.length ? melanger(plan, this.hasard) : plan;
+    this.plan = [...(perso.length ? melanger(plan, this.hasard) : plan), this.questionFinale(plan)];
+  }
+
+  /**
+   * Question de finale, dans le mode le moins joué jusque-là : une partie de
+   * 4 manches fait ainsi passer les 4 modes.
+   */
+  private questionFinale(plan: Question[]): Question {
+    const nb = (m: Mode) => plan.filter((q) => q.mode === m).length;
+    const mode = this.modes.reduce((a, b) => (nb(b) < nb(a) ? b : a));
+    return this.auHasard(QUESTIONS_FINALE[mode]);
   }
 
   suivant(id: string) {
@@ -393,6 +422,7 @@ export class Salon {
     for (const j of this.joueurs.values()) {
       j.enAttente = false;
       j.score = 0;
+      j.stats = statsVides();
     }
     this.surChangement();
   }
@@ -403,23 +433,18 @@ export class Salon {
 
   private mancheSuivante() {
     this.manche += 1;
-    this.question = this.plan[this.manche - 1] ?? this.tirerQuestion('qui2nous');
+    this.question = this.plan[this.manche - 1] ?? this.tirerQuestion(this.modes[0]);
     const mode = this.question.mode;
     for (const j of this.joueurs.values()) j.enAttente = false;
     this.participants = [...this.joueurs.keys()];
     this.reponses.clear();
     this.votes.clear();
-    this.anonymes = [];
+    this.anonymes = []; // efface les images de la manche précédente
     this.resultat = null;
     this.passerA('decompte', DUREES.decompte, () => {
       this.debutReponse = this.horloge.maintenant();
       this.passerA('reponse', DUREES.reponse[mode], () => this.finReponses());
     });
-  }
-
-  /** Modes joués dans cette partie, dans l'ordre de rotation. */
-  private modes(): Mode[] {
-    return this.photos ? ['qui2nous', 'quiARepondu', 'qui2photo'] : ['qui2nous', 'quiARepondu'];
   }
 
   private tirerQuestion(mode: Mode): Question {
@@ -428,7 +453,7 @@ export class Salon {
       for (const q of QUESTIONS[mode]) this.dejaPosees.delete(q.texte);
       restantes = QUESTIONS[mode];
     }
-    const q = restantes[Math.floor(this.hasard() * restantes.length)];
+    const q = this.auHasard(restantes);
     this.dejaPosees.add(q.texte);
     return q;
   }
@@ -449,7 +474,7 @@ export class Salon {
     this.annulerRobots = [];
   }
 
-  /** Salon supprimé : on coupe les minuteurs encore en route. */
+  /** Salon supprimé : on coupe les minuteurs encore en route et on efface les images. */
   fermer() {
     this.arreterMinuteur();
     this.anonymes = [];
@@ -459,6 +484,8 @@ export class Salon {
   private auHasard<T>(t: readonly T[]): T {
     return t[Math.floor(this.hasard() * t.length)];
   }
+
+  // ——— Robots ———
 
   private faireJouerRobots() {
     if (this.phase === 'redaction') return this.faireEcrireRobots();
@@ -474,9 +501,10 @@ export class Salon {
       if (phase === 'reponse' && mode === 'qui2nous') {
         const choix = this.auHasard(this.participants);
         action = () => this.repondre(id, choix);
-      } else if (phase === 'reponse' && mode === 'qui2photo') {
-        const photo = `data:image/png;base64,${imageRobot(this.hasard).toString('base64')}`;
-        action = () => this.repondre(id, photo);
+      } else if (phase === 'reponse' && estModeImage(mode)) {
+        // Photo ou dessin : de l'art abstrait.
+        const image = `data:image/png;base64,${imageRobot(this.hasard).toString('base64')}`;
+        action = () => this.repondre(id, image);
       } else if (phase === 'reponse') {
         const libres = REPONSES_ROBOT.filter((r) => !dejaPrises.has(r));
         const texte = this.auHasard(libres.length ? libres : REPONSES_ROBOT);
@@ -490,17 +518,37 @@ export class Salon {
           this.voter(id, attributions);
         };
       }
-      this.annulerRobots.push(
-        this.horloge.planifier(delai, () => {
-          try {
-            action();
-          } catch {
-            /* la phase a changé entre-temps : le robot laisse tomber */
-          }
-        }),
-      );
+      this.planifierRobot(delai, action);
     }
   }
+
+  private faireEcrireRobots() {
+    const [min, max] = DELAIS_ROBOT.redaction;
+    for (const id of this.redacteurs.filter((r) => this.joueurs.get(r)?.robot)) {
+      const delai = min + Math.floor(this.hasard() * (max - min));
+      this.planifierRobot(delai, () => {
+        const libres = QUESTIONS_ROBOT.filter(
+          (q) => this.modes.includes(q.mode) && !this.propositions.some((p) => p.texte === q.texte),
+        );
+        for (const q of melanger(libres, this.hasard).slice(0, 2)) this.proposerQuestion(id, q.texte, q.mode);
+        this.finirRedaction(id);
+      });
+    }
+  }
+
+  private planifierRobot(delai: number, action: () => void) {
+    this.annulerRobots.push(
+      this.horloge.planifier(delai, () => {
+        try {
+          action();
+        } catch {
+          /* la phase a changé entre-temps : le robot laisse tomber */
+        }
+      }),
+    );
+  }
+
+  // ——— Réponses et votes ———
 
   /** Participants encore là, dont on attend l'action. */
   private attendus() {
@@ -520,11 +568,12 @@ export class Salon {
     if (!this.participants.includes(id)) throw new ErreurJeu('Tu joues à partir de la prochaine manche.');
     if (this.reponses.has(id)) throw new ErreurJeu('Tu as déjà répondu.');
     const a = this.horloge.maintenant();
-    if (this.question.mode === 'qui2photo') {
-      this.reponses.set(id, { valeur: 'photo', a, photo: lirePhoto(valeur) });
+    const mode = this.question.mode;
+    if (estModeImage(mode)) {
+      this.reponses.set(id, { valeur: 'image', a, image: lireImage(valeur) });
     } else {
       let v = String(valeur ?? '').trim();
-      if (this.question.mode === 'qui2nous') {
+      if (mode === 'qui2nous') {
         if (!this.participants.includes(v)) throw new ErreurJeu('Choisis un joueur de la partie.');
       } else {
         v = v.replace(/\s+/g, ' ').slice(0, 80);
@@ -542,13 +591,13 @@ export class Salon {
     this.anonymes = melanger(
       [...this.reponses].map(([auteurId, r]) => ({
         id: randomUUID(),
-        texte: r.photo ? '' : r.valeur,
+        texte: r.image ? '' : r.valeur,
         auteurId,
-        photo: r.photo,
+        image: r.image,
       })),
       this.hasard,
     );
-    if (this.anonymes.length < 2) return this.resoudreQuiARepondu();
+    if (this.anonymes.length < 2) return this.resoudreAuteurs();
     this.passerA('vote', DUREES.vote, () => this.finVotes());
   }
 
@@ -571,8 +620,10 @@ export class Salon {
   }
 
   private finVotes() {
-    if (this.phase === 'vote') this.resoudreQuiARepondu();
+    if (this.phase === 'vote') this.resoudreAuteurs();
   }
+
+  // ——— Points ———
 
   private multiplicateur() {
     return this.grandeFinale ? 2 : 1;
@@ -619,7 +670,10 @@ export class Salon {
     this.passerA('resultat', null);
   }
 
-  private resoudreQuiARepondu() {
+  /** Résultat des modes « retrouver l'auteur » : réponse écrite, photo ou dessin. */
+  private resoudreAuteurs() {
+    const mode = this.question?.mode;
+    const cle: keyof Statistiques = mode === 'qui2photo' ? 'photos' : mode === 'qui2dessine' ? 'dessins' : 'devine';
     const gains: Record<string, Gain> = {};
     const reponses = this.anonymes.map((r) => {
       const votants = [...this.votes].filter(([votant]) => votant !== r.auteurId);
@@ -632,17 +686,16 @@ export class Salon {
         if (j) j.stats.trouves += 1;
       }
       const auteur = this.joueurs.get(r.auteurId);
-      if (auteur) auteur.stats[r.photo ? 'photos' : 'devine'] += trouvePar.length;
-      return { id: r.id, texte: r.texte, photo: !!r.photo, auteurId: r.auteurId, trouvePar };
+      if (auteur) auteur.stats[cle] += trouvePar.length;
+      return { id: r.id, texte: r.texte, image: !!r.image, auteurId: r.auteurId, trouvePar };
     });
-    const mode = this.question?.mode === 'qui2photo' ? 'qui2photo' : 'quiARepondu';
-    this.resultat = { mode, reponses, gains };
+    this.resultat = { mode: mode && mode !== 'qui2nous' ? mode : 'quiARepondu', reponses, gains };
     this.passerA('resultat', null);
   }
 
   private terminer() {
     const js = [...this.joueurs.values()];
-    const meilleur = (cle: keyof Joueur['stats']) => {
+    const meilleur = (cle: keyof Statistiques) => {
       const j = [...js].sort((a, b) => b.stats[cle] - a.stats[cle])[0];
       return j && j.stats[cle] > 0 ? j.id : null;
     };
@@ -655,38 +708,21 @@ export class Salon {
     ajouter('😂', 'Plus prévisible', meilleur('devine'));
     ajouter('👑', 'Le plus désigné', meilleur('designe'));
     ajouter('📸', 'Roi des dossiers', meilleur('photos'));
+    ajouter('🎨', 'Picasso du groupe', meilleur('dessins'));
     this.titres = titres;
     this.question = null;
-    this.anonymes = []; // les photos de la dernière manche sont effacées
+    this.anonymes = []; // les images de la dernière manche sont effacées
     this.passerA('podium', null);
   }
 
-  private faireEcrireRobots() {
-    const [min, max] = DELAIS_ROBOT.redaction;
-    for (const id of this.redacteurs.filter((r) => this.joueurs.get(r)?.robot)) {
-      const delai = min + Math.floor(this.hasard() * (max - min));
-      this.annulerRobots.push(
-        this.horloge.planifier(delai, () => {
-          try {
-            const libres = QUESTIONS_ROBOT.filter((q) => !this.propositions.some((p) => p.texte === q.texte));
-            for (const q of melanger(libres, this.hasard).slice(0, 2)) this.proposerQuestion(id, q.texte, q.mode);
-            this.finirRedaction(id);
-          } catch {
-            /* la phase a changé entre-temps */
-          }
-        }),
-      );
-    }
-  }
-
   /**
-   * Photo d'une manche, servie aux téléphones par son identifiant anonyme.
-   * Elle n'existe que pendant le vote et le résultat de sa manche : la manche
-   * suivante, la fin de partie ou la fermeture du salon l'effacent.
+   * Image (photo ou dessin) d'une manche, servie aux téléphones par son
+   * identifiant anonyme. Elle n'existe que pendant le vote et le résultat de sa
+   * manche : la manche suivante, la fin de partie ou la fermeture du salon l'effacent.
    */
-  photo(idAnonyme: string): Photo | undefined {
+  image(idAnonyme: string): ImageJeu | undefined {
     if (this.phase !== 'vote' && this.phase !== 'resultat') return undefined;
-    return this.anonymes.find((r) => r.id === idAnonyme)?.photo;
+    return this.anonymes.find((r) => r.id === idAnonyme)?.image;
   }
 
   // ——— Ce que voit chaque joueur ———
@@ -715,7 +751,7 @@ export class Salon {
       // La question n'apparaît qu'à la fin du décompte, en même temps pour tous.
       question: this.phase === 'decompte' ? null : this.question,
       sourceQuestions: this.sourceQuestions,
-      photos: this.photos,
+      modes: this.modes,
       redacteurs: this.redacteurs,
       ontFini: [...this.finis],
       mesQuestions: this.propositions
@@ -727,10 +763,12 @@ export class Salon {
       ontVote: [...this.votes.keys()],
       maReponse: this.reponses.get(id)?.valeur ?? null,
       reponsesAnonymes: montrerReponses
-        ? this.anonymes.map((r) => ({ id: r.id, texte: r.texte, photo: !!r.photo, estLaMienne: r.auteurId === id }))
+        ? this.anonymes.map((r) => ({ id: r.id, texte: r.texte, image: !!r.image, estLaMienne: r.auteurId === id }))
         : [],
       resultat: this.resultat,
       titres: this.titres,
+      statistiques:
+        this.phase === 'podium' ? Object.fromEntries([...this.joueurs.values()].map((j) => [j.id, j.stats])) : {},
     };
   }
 }

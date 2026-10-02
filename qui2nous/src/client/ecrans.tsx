@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
 import {
   AVATARS,
   LONGUEUR_MAX_QUESTION,
@@ -6,15 +6,18 @@ import {
   MAX_QUESTIONS_PAR_JOUEUR,
   MIN_JOUEURS,
   MODES,
+  ORDRE_MODES,
   SOURCES,
   type Ack,
   type JoueurVue,
   type Mode,
   type SourceQuestions,
+  type Statistiques,
   type Vue,
 } from '../shared/protocol.ts';
 import { envoyer, memoriserSession, socket } from './connexion.ts';
 import { preparerPhoto } from './photo.ts';
+import { Ardoise } from './ardoise.tsx';
 import { Avatar, Bouton, Carte, Erreur, Logo, Pastille } from './ui.tsx';
 
 /** Lance une action serveur et expose son état d'envoi et son erreur. */
@@ -32,12 +35,12 @@ function useAction() {
   return { enCours, erreur, agir };
 }
 
-/** Photo d'une manche, servie par le serveur sous un identifiant anonyme. */
-function PhotoManche({ vue, id }: { vue: Vue; id: string }) {
+/** Photo ou dessin d'une manche, servi par le serveur sous un identifiant anonyme. */
+function ImageManche({ vue, id }: { vue: Vue; id: string }) {
   return (
     <img
-      src={`/photo/${vue.code}/${id}`}
-      alt="Photo d’un joueur"
+      src={`/image/${vue.code}/${id}`}
+      alt={vue.question?.mode === 'qui2dessine' ? 'Dessin d’un joueur' : 'Photo d’un joueur'}
       loading="lazy"
       className="max-h-64 w-full rounded-2xl bg-black/30 object-contain"
     />
@@ -157,10 +160,17 @@ export function Accueil() {
 
 // ——— Lobby ———
 
+const DESCRIPTIONS_MODES: Record<Mode, string> = {
+  qui2nous: 'Qui correspond le mieux à la question\u00a0?',
+  quiARepondu: 'Retrouver l’auteur de chaque réponse.',
+  qui2photo: 'Chacun montre une photo de sa galerie.',
+  qui2dessine: 'Chacun dessine, on retrouve l’artiste.',
+};
+
 export function Lobby({ vue }: { vue: Vue }) {
   const [manches, setManches] = useState(6);
   const [source, setSource] = useState<SourceQuestions>('auto');
-  const [photos, setPhotos] = useState(true);
+  const [modes, setModes] = useState<Mode[]>(ORDRE_MODES);
   const [copie, setCopie] = useState(false);
   const { enCours, erreur, agir } = useAction();
   const estHote = vue.moi === vue.hoteId;
@@ -251,24 +261,40 @@ export function Lobby({ vue }: { vue: Vue }) {
               ))}
             </div>
             <p className="mt-2 text-xs text-white/50">
-              Les modes s’enchaînent : Qui2Nous ?, Qui a répondu ?{photos ? ', Qui2Photo ?' : ''}… La dernière manche est la
-              grande finale : points doublés.
+              Les modes choisis s’enchaînent. La dernière manche est la grande finale : question spéciale et points
+              doublés.
             </p>
           </div>
-          <button
-            onClick={() => setPhotos((p) => !p)}
-            role="switch"
-            aria-checked={photos}
-            className="flex items-center gap-3 rounded-xl bg-white/10 px-3 py-2 text-left"
-          >
-            <span className="min-w-0 flex-1">
-              <span className="block font-display text-lg leading-tight">📸 Mode Qui2Photo</span>
-              <span className="block text-sm text-white/60">Chacun montre une photo de sa galerie.</span>
-            </span>
-            <span className={`relative h-7 w-12 shrink-0 rounded-full transition ${photos ? 'bg-amber-400' : 'bg-white/20'}`}>
-              <span className={`absolute top-1 size-5 rounded-full bg-white transition-all ${photos ? 'left-6' : 'left-1'}`} />
-            </span>
-          </button>
+          <fieldset>
+            <legend className="mb-2 text-sm font-medium text-white/70">Modes de jeu</legend>
+            <div className="flex flex-col gap-2">
+              {ORDRE_MODES.map((m) => {
+                const actif = modes.includes(m);
+                const dernier = actif && modes.length === 1;
+                return (
+                  <button
+                    key={m}
+                    role="switch"
+                    aria-checked={actif}
+                    disabled={dernier}
+                    title={dernier ? 'Il faut garder au moins un mode' : undefined}
+                    onClick={() =>
+                      setModes((ms) => (actif ? ms.filter((x) => x !== m) : ORDRE_MODES.filter((x) => ms.includes(x) || x === m)))
+                    }
+                    className="flex items-center gap-3 rounded-xl bg-white/10 px-3 py-2 text-left"
+                  >
+                    <span className="min-w-0 flex-1">
+                      <span className="block font-display text-lg leading-tight">{MODES[m].nom}</span>
+                      <span className="block text-sm text-white/60">{DESCRIPTIONS_MODES[m]}</span>
+                    </span>
+                    <span className={`relative h-7 w-12 shrink-0 rounded-full transition ${actif ? 'bg-amber-400' : 'bg-white/20'}`}>
+                      <span className={`absolute top-1 size-5 rounded-full bg-white transition-all ${actif ? 'left-6' : 'left-1'}`} />
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </fieldset>
           <fieldset>
             <legend className="mb-2 text-sm font-medium text-white/70">Questions</legend>
             <div className="flex flex-col gap-2">
@@ -290,7 +316,7 @@ export function Lobby({ vue }: { vue: Vue }) {
           <Erreur message={erreur} />
           <Bouton
             disabled={enCours || connectes < MIN_JOUEURS}
-            onClick={() => agir((ack) => socket.emit('lancer', { manches, questions: source, photos }, ack))}
+            onClick={() => agir((ack) => socket.emit('lancer', { manches, questions: source, modes }, ack))}
           >
             Lancer la partie
           </Bouton>
@@ -310,10 +336,11 @@ const TYPES_QUESTION: Record<Mode, { libelle: string; exemple: string }> = {
   qui2nous: { libelle: 'Qui de nous… ?', exemple: 'Qui de nous chante sous la douche ?' },
   quiARepondu: { libelle: 'Question ouverte', exemple: 'Ton pire souvenir de vacances ?' },
   qui2photo: { libelle: 'Photo 📸', exemple: 'Une photo de ton dernier repas de fête.' },
+  qui2dessine: { libelle: 'Dessin ✏️', exemple: 'Dessine ton pire cauchemar.' },
 };
 
 export function Redaction({ vue }: { vue: Vue }) {
-  const [mode, setMode] = useState<Mode>('qui2nous');
+  const [mode, setMode] = useState<Mode>(vue.modes[0]);
   const [texte, setTexte] = useState('');
   const { enCours, erreur, agir } = useAction();
   const joueurs = parId(vue);
@@ -367,8 +394,8 @@ export function Redaction({ vue }: { vue: Vue }) {
         </p>
       </div>
       <Carte className="flex flex-col gap-3">
-        <div className={`grid gap-2 ${vue.photos ? 'grid-cols-3' : 'grid-cols-2'}`}>
-          {(Object.keys(TYPES_QUESTION) as Mode[]).filter((m) => vue.photos || m !== 'qui2photo').map((m) => (
+        <div className="grid grid-cols-2 gap-2">
+          {vue.modes.map((m) => (
             <button
               key={m}
               onClick={() => setMode(m)}
@@ -511,12 +538,22 @@ function Progression({ vue, faits, libelle }: { vue: Vue; faits: string[]; libel
   );
 }
 
-export function EcranReponse({ vue }: { vue: Vue }) {
+export function EcranReponse({ vue, secondes }: { vue: Vue; secondes: number | null }) {
   const [texte, setTexte] = useState('');
   const { enCours, erreur, agir } = useAction();
   const joueurs = parId(vue);
   const q = vue.question!;
   const repondre = (valeur: string) => agir((ack) => socket.emit('repondre', { valeur }, ack));
+  const finDuTemps = secondes !== null && secondes <= 1;
+
+  // Réponse écrite mais pas envoyée à la fin du temps : on l'envoie plutôt que de la perdre.
+  const texteEnvoye = useRef(false);
+  useEffect(() => {
+    if (finDuTemps && q.mode === 'quiARepondu' && texte.trim() && !texteEnvoye.current && vue.maReponse === null) {
+      texteEnvoye.current = true;
+      repondre(texte);
+    }
+  });
 
   if (vue.maReponse !== null) {
     return (
@@ -530,6 +567,8 @@ export function EcranReponse({ vue }: { vue: Vue }) {
             </div>
           ) : q.mode === 'qui2photo' ? (
             <p className="mt-1 font-display text-xl">Photo envoyée 📸</p>
+          ) : q.mode === 'qui2dessine' ? (
+            <p className="mt-1 font-display text-xl">Dessin envoyé ✏️</p>
           ) : (
             <p className="mt-1 font-display text-xl break-words">« {vue.maReponse} »</p>
           )}
@@ -562,7 +601,9 @@ export function EcranReponse({ vue }: { vue: Vue }) {
           })}
         </div>
       ) : q.mode === 'qui2photo' ? (
-        <ChoixPhoto envoyer={repondre} enCours={enCours} />
+        <ChoixPhoto envoyer={repondre} enCours={enCours} finDuTemps={finDuTemps} />
+      ) : q.mode === 'qui2dessine' ? (
+        <Ardoise envoyer={repondre} enCours={enCours} secondes={secondes} />
       ) : (
         <form
           className="flex flex-col gap-3"
@@ -588,10 +629,27 @@ export function EcranReponse({ vue }: { vue: Vue }) {
   );
 }
 
-function ChoixPhoto({ envoyer, enCours }: { envoyer: (photo: string) => void; enCours: boolean }) {
+function ChoixPhoto({
+  envoyer,
+  enCours,
+  finDuTemps,
+}: {
+  envoyer: (photo: string) => Promise<{ ok: boolean }>;
+  enCours: boolean;
+  finDuTemps: boolean;
+}) {
   const [photo, setPhoto] = useState<string | null>(null);
   const [preparation, setPreparation] = useState(false);
   const [erreur, setErreur] = useState<string | null>(null);
+
+  // Photo choisie mais pas envoyée à la fin du temps : on l'envoie quand même.
+  const envoyee = useRef(false);
+  useEffect(() => {
+    if (finDuTemps && photo && !envoyee.current) {
+      envoyee.current = true;
+      envoyer(photo);
+    }
+  });
 
   async function choisir(fichier: File | undefined) {
     if (!fichier) return;
@@ -638,6 +696,19 @@ function ChoixPhoto({ envoyer, enCours }: { envoyer: (photo: string) => void; en
   );
 }
 
+const TITRES_VOTE: Record<Mode, string> = {
+  qui2nous: '',
+  quiARepondu: 'Qui a écrit quoi\u00a0?',
+  qui2photo: 'À qui est chaque photo\u00a0?',
+  qui2dessine: 'Qui a dessiné quoi\u00a0?',
+};
+const LA_MIENNE: Record<Mode, string> = {
+  qui2nous: '',
+  quiARepondu: 'C’est ta réponse.',
+  qui2photo: 'C’est ta photo.',
+  qui2dessine: 'C’est ton dessin.',
+};
+
 export function EcranVote({ vue }: { vue: Vue }) {
   const [choix, setChoix] = useState<Record<string, string>>({});
   const { enCours, erreur, agir } = useAction();
@@ -660,14 +731,14 @@ export function EcranVote({ vue }: { vue: Vue }) {
   return (
     <div className="flex flex-col gap-4 pb-24">
       <div className="text-center">
-        <p className="font-display text-2xl">{vue.question?.mode === 'qui2photo' ? 'À qui est chaque photo ?' : 'Qui a écrit quoi ?'}</p>
+        <p className="font-display text-2xl">{TITRES_VOTE[vue.question?.mode ?? 'quiARepondu']}</p>
         <p className="text-sm text-white/60">{vue.question?.texte}</p>
       </div>
       {vue.reponsesAnonymes.map((r) => (
         <Carte key={r.id} className={r.estLaMienne ? 'opacity-60' : ''}>
-          {r.photo ? <PhotoManche vue={vue} id={r.id} /> : <p className="font-display text-xl break-words">« {r.texte} »</p>}
+          {r.image ? <ImageManche vue={vue} id={r.id} /> : <p className="font-display text-xl break-words">« {r.texte} »</p>}
           {r.estLaMienne ? (
-            <p className="mt-2 text-sm text-white/60">{r.photo ? 'C’est ta photo.' : 'C’est ta réponse.'}</p>
+            <p className="mt-2 text-sm text-white/60">{LA_MIENNE[vue.question?.mode ?? 'quiARepondu']}</p>
           ) : (
             <div className="mt-3 flex flex-wrap gap-2">
               {candidats.map((j) => {
@@ -729,6 +800,28 @@ function Classement({ vue }: { vue: Vue }) {
   );
 }
 
+/**
+ * Grande finale : les résultats se révèlent un par un, avec suspense
+ * (étape 7). Renvoie combien d'éléments sont visibles ; tout, hors finale.
+ */
+function useRevelation(total: number, progressive: boolean) {
+  const [reveles, setReveles] = useState(progressive ? 0 : total);
+  useEffect(() => {
+    if (reveles >= total) return;
+    const t = setTimeout(() => setReveles((n) => n + 1), reveles === total - 1 ? 2_500 : 1_600);
+    return () => clearTimeout(t);
+  }, [reveles, total]);
+  return reveles;
+}
+
+function Suspense({ texte }: { texte: string }) {
+  return (
+    <Carte className="animate-pulse text-center">
+      <p className="font-display text-xl">🥁 {texte}</p>
+    </Carte>
+  );
+}
+
 export function EcranResultat({ vue }: { vue: Vue }) {
   const { enCours, erreur, agir } = useAction();
   const joueurs = parId(vue);
@@ -737,6 +830,9 @@ export function EcranResultat({ vue }: { vue: Vue }) {
   const hote = joueurs.get(vue.hoteId);
   const peutPiloter = vue.moi === vue.hoteId || !hote?.connecte;
   const derniere = vue.manche >= vue.totalManches;
+  const total = r.mode === 'qui2nous' ? r.decompte.length : r.reponses.length;
+  const reveles = useRevelation(total, vue.grandeFinale);
+  const toutRevele = reveles >= total;
 
   return (
     <div className="flex flex-col gap-5">
@@ -745,9 +841,11 @@ export function EcranResultat({ vue }: { vue: Vue }) {
       {r.mode === 'qui2nous' ? (
         <div className="flex flex-col gap-2">
           {r.decompte.length === 0 && <p className="text-center text-white/60">Personne n’a répondu à temps.</p>}
+          {/* En finale, on dévoile du moins désigné au plus désigné. */}
+          {!toutRevele && <Suspense texte={total - reveles === 1 ? 'Et le plus désigné est…' : 'Révélation…'} />}
           {r.decompte.map((d, i) => {
             const j = joueurs.get(d.joueurId);
-            if (!j) return null;
+            if (!j || i < total - reveles) return null;
             return (
               <Carte key={d.joueurId} className={`animate-entree ${i === 0 ? 'ring-2 ring-amber-400' : ''}`}>
                 <div className="flex items-center justify-between gap-3">
@@ -766,12 +864,12 @@ export function EcranResultat({ vue }: { vue: Vue }) {
       ) : (
         <div className="flex flex-col gap-2">
           {r.reponses.length === 0 && <p className="text-center text-white/60">Pas assez de réponses cette fois.</p>}
-          {r.reponses.map((rep) => {
+          {r.reponses.slice(0, reveles).map((rep) => {
             const auteur = joueurs.get(rep.auteurId);
             return (
               <Carte key={rep.id} className="animate-entree">
-                {rep.photo ? (
-                  <PhotoManche vue={vue} id={rep.id} />
+                {rep.image ? (
+                  <ImageManche vue={vue} id={rep.id} />
                 ) : (
                   <p className="font-display text-lg break-words">« {rep.texte} »</p>
                 )}
@@ -786,36 +884,50 @@ export function EcranResultat({ vue }: { vue: Vue }) {
               </Carte>
             );
           })}
+          {!toutRevele && <Suspense texte="Révélation suivante…" />}
         </div>
       )}
 
-      <Carte className="text-center">
-        {monGain ? (
-          <>
-            <p className="font-display text-4xl font-bold text-amber-400">+{monGain.points}</p>
-            <p className="text-sm text-white/70">{monGain.raisons.join(' · ')}</p>
-          </>
-        ) : (
-          <p className="text-white/70">Pas de points pour toi cette manche.</p>
-        )}
-      </Carte>
+      {toutRevele && (
+        <>
+          <Carte className="text-center">
+            {monGain ? (
+              <>
+                <p className="font-display text-4xl font-bold text-amber-400">+{monGain.points}</p>
+                <p className="text-sm text-white/70">{monGain.raisons.join(' · ')}</p>
+              </>
+            ) : (
+              <p className="text-white/70">Pas de points pour toi cette manche.</p>
+            )}
+          </Carte>
 
-      <section>
-        <h2 className="mb-2 font-display text-xl">Classement</h2>
-        <Classement vue={vue} />
-      </section>
+          <section>
+            <h2 className="mb-2 font-display text-xl">Classement</h2>
+            <Classement vue={vue} />
+          </section>
 
-      <Erreur message={erreur} />
-      {peutPiloter ? (
-        <Bouton disabled={enCours} onClick={() => agir((ack) => socket.emit('suivant', ack))}>
-          {derniere ? 'Voir le podium 🏆' : 'Manche suivante'}
-        </Bouton>
-      ) : (
-        <p className="text-center text-sm text-white/60">{hote?.nom ?? 'Le créateur'} lance la suite…</p>
+          <Erreur message={erreur} />
+          {peutPiloter ? (
+            <Bouton disabled={enCours} onClick={() => agir((ack) => socket.emit('suivant', ack))}>
+              {derniere ? 'Voir le podium 🏆' : 'Manche suivante'}
+            </Bouton>
+          ) : (
+            <p className="text-center text-sm text-white/60">{hote?.nom ?? 'Le créateur'} lance la suite…</p>
+          )}
+        </>
       )}
     </div>
   );
 }
+
+const STATS_AFFICHEES: [keyof Statistiques, string, string, string][] = [
+  ['trouves', '🕵️', 'auteur trouvé', 'auteurs trouvés'],
+  ['anticipations', '🔮', 'vote avec la majorité', 'votes avec la majorité'],
+  ['designe', '👑', 'fois désigné', 'fois désigné'],
+  ['devine', '😂', 'réponse reconnue', 'réponses reconnues'],
+  ['photos', '📸', 'photo reconnue', 'photos reconnues'],
+  ['dessins', '🎨', 'dessin reconnu', 'dessins reconnus'],
+];
 
 export function Podium({ vue, quitter }: { vue: Vue; quitter: () => void }) {
   const { enCours, erreur, agir } = useAction();
@@ -875,6 +987,32 @@ export function Podium({ vue, quitter }: { vue: Vue; quitter: () => void }) {
       <section>
         <h2 className="mb-2 font-display text-xl">Classement final</h2>
         <Classement vue={vue} />
+      </section>
+
+      <section>
+        <h2 className="mb-2 font-display text-xl">Statistiques</h2>
+        <ul className="flex flex-col gap-2">
+          {tri.map((j) => {
+            const st = vue.statistiques[j.id];
+            const puces = st
+              ? STATS_AFFICHEES.filter(([cle]) => st[cle] > 0).map(([cle, emoji, un, plusieurs]) => (
+                  <span key={cle} className="rounded-full bg-white/10 px-2 py-0.5 text-xs whitespace-nowrap">
+                    {emoji} {st[cle]} {st[cle] > 1 ? plusieurs : un}
+                  </span>
+                ))
+              : [];
+            return (
+              <li key={j.id} className="flex flex-col gap-2 rounded-2xl bg-white/5 px-3 py-2 sm:flex-row sm:items-center">
+                <span className="min-w-0 sm:w-40 sm:shrink-0">
+                  <Pastille joueur={j} moi={j.id === vue.moi} />
+                </span>
+                <span className="flex min-w-0 flex-wrap gap-1.5">
+                  {puces.length ? puces : <span className="text-xs text-white/50">Discret toute la partie 🤐</span>}
+                </span>
+              </li>
+            );
+          })}
+        </ul>
       </section>
 
       <Erreur message={erreur} />

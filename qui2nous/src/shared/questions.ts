@@ -101,6 +101,21 @@ const qui2photo: Record<string, string[]> = {
   ],
 };
 
+const qui2dessine: Record<string, string[]> = {
+  '✏️ Dessins': [
+    'Dessine ton animal préféré, sans écrire de lettres.',
+    'Dessine ton plat préféré.',
+    'Dessine-toi en vacances.',
+    'Dessine le métier de tes rêves.',
+    'Dessine ta plus grande peur.',
+    'Dessine ta maison idéale.',
+    'Dessine ton super-pouvoir.',
+    'Dessine le dernier rêve dont tu te souviens.',
+    'Dessine ton week-end parfait.',
+    'Dessine l’objet que tu emporterais sur une île déserte.',
+  ],
+};
+
 function aplatir(mode: Mode, banque: Record<string, string[]>): Question[] {
   return Object.entries(banque).flatMap(([categorie, textes]) =>
     textes.map((texte) => ({ mode, categorie, texte })),
@@ -111,4 +126,30 @@ export const QUESTIONS: Record<Mode, Question[]> = {
   qui2nous: aplatir('qui2nous', qui2nous),
   quiARepondu: aplatir('quiARepondu', quiARepondu),
   qui2photo: aplatir('qui2photo', qui2photo),
+  qui2dessine: aplatir('qui2dessine', qui2dessine),
 };
+
+// Grande finale (étape 7) : des questions plus marquantes, réservées à la
+// dernière manche.
+const finale: Record<Mode, string[]> = {
+  qui2nous: [
+    'Qui de nous sera le plus célèbre dans 10 ans ?',
+    'Qui de nous survivrait le plus longtemps à une invasion de zombies ?',
+    'Qui de nous cache le plus de secrets ?',
+    'Qui de nous deviendrait président… et le regretterait ?',
+  ],
+  quiARepondu: [
+    'Le secret que personne ici ne connaît sur toi ?',
+    'Ce que tu ferais si tu étais invisible une journée ?',
+    'Le plus gros mensonge que tu aies dit à quelqu’un ici ?',
+  ],
+  qui2photo: ['La photo la plus improbable de toute ta galerie.', 'La photo dont tu es le plus fier.'],
+  qui2dessine: ['Dessine le joueur à ta gauche.', 'Dessine ce groupe dans 20 ans.'],
+};
+
+export const QUESTIONS_FINALE: Record<Mode, Question[]> = Object.fromEntries(
+  Object.entries(finale).map(([mode, textes]) => [
+    mode,
+    textes.map((texte) => ({ mode: mode as Mode, categorie: '👑 Grande finale', texte })),
+  ]),
+) as Record<Mode, Question[]>;

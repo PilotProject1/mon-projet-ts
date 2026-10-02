@@ -10,7 +10,7 @@ export default defineConfig({
     host: true,
     proxy: {
       '/socket.io': { target: 'http://localhost:3001', ws: true },
-      '/photo': 'http://localhost:3001',
+      '/image': 'http://localhost:3001',
     },
   },
 });

@@ -24,9 +24,9 @@ Le point crucial : **ne pas essayer de tout faire d'un coup.**
 | 3 | Classement + système de manches | ✅ |
 | 4 | Questions personnalisées | ✅ |
 | 5 | Photos (Qui2Photo ?) | ✅ |
-| 6 | Dessins (Qui2Dessine ?) | ⬜ |
-| 7 | Grande finale | 🟡 points doublés sur la dernière manche ; révélation progressive à faire |
-| 8 | Animations + sons + identité graphique | 🟡 animations de base ; sons et logo à faire |
+| 6 | Dessins (Qui2Dessine ?) | ✅ |
+| 7 | Grande finale | ✅ question spéciale, points doublés, révélation progressive |
+| 8 | Animations + sons + identité graphique | 🟡 animations de base ; **prochain chantier, après vos tests** |
 | 9 | Tests réels | ⬜ |
 | 10 | Version 1.0 | ⬜ |
 
@@ -52,14 +52,14 @@ But : définir exactement les règles avant de développer.
 | **Qui2Nous ?** | Qui correspond à la question ? | ✅ |
 | **Qui a répondu ?** | Retrouver l'auteur d'une réponse | ✅ |
 | **Qui2Photo ?** | Retrouver le propriétaire d'une photo | ✅ |
-| **Qui2Dessine ?** | Retrouver l'auteur d'un dessin | ⬜ |
+| **Qui2Dessine ?** | Retrouver l'auteur d'un dessin | ✅ |
 | **Qui2Nous a dit ça ?** | Identifier une réponse anonyme | ⬜ à distinguer de « Qui a répondu ? » |
-| **Grande finale** | Dernière manche spéciale | 🟡 |
+| **Grande finale** | Dernière manche spéciale | ✅ |
 
 **Livrable :** 📄 cahier des règles complet. Les règles déjà implémentées sont
 décrites dans [« Règles actuelles »](#règles-actuelles-du-prototype) plus bas.
 
-## 🟡 Phase 2 — Structure du jeu
+## ✅ Phase 2 — Structure du jeu
 
 Comment se déroule une partie :
 
@@ -78,9 +78,8 @@ Choix des modes  Vote
 Lancer           Résultat → Points → Classement
 ```
 
-**Livrable :** 🗺️ architecture complète du gameplay. ✅ Elle est en place dans
-le prototype, sauf le choix des modes (pour l'instant, ils tournent ; seul
-Qui2Photo peut être désactivé).
+**Livrable :** 🗺️ architecture complète du gameplay. ✅ Elle est en place,
+choix des modes compris.
 
 ## 🔵 Phase 3 — Design de l'application
 
@@ -92,7 +91,7 @@ Qui2Photo peut être désactivé).
 | 2 | ➕ Créer une partie | ✅ |
 | 3 | 🔑 Rejoindre une partie | ✅ (code ou lien d'invitation) |
 | 4 | 👥 Lobby | ✅ |
-| 5 | ⚙️ Configuration | 🟡 nombre de manches et source des questions |
+| 5 | ⚙️ Configuration | ✅ manches, modes de jeu, source des questions |
 | 6 | ❓ Question | ✅ |
 | 7 | ✍️ Réponse | ✅ |
 | 8 | 🗳️ Vote | ✅ |
@@ -101,7 +100,7 @@ Qui2Photo peut être désactivé).
 | 11 | 🏆 Classement | ✅ |
 | 12 | ✏️ Création de question | ✅ |
 | 13 | 📸 Sélection de photo | ✅ |
-| 14 | 🎨 Dessin | ⬜ |
+| 14 | 🎨 Dessin | ✅ |
 | 15 | 👑 Podium final | ✅ |
 
 **À créer :** ⬜ logo Qui2Nous · 🟡 avatars (emojis pour l'instant) · ✅ boutons ·
@@ -148,7 +147,8 @@ chronomètre est corrigé du décalage d'horloge de chaque téléphone.
 
 - ✅ 😂 Humour · 🧠 Personnalité · ❤️ Amitié · 🤦 Dossiers · 🏠 Vie quotidienne ·
   💰 Argent · 💘 Couple · 🎉 Soirée (45 questions au départ)
-- ✅ 📸 Photos (10 consignes) · ⬜ ✏️ Dessins (avec leur mode)
+- ✅ 📸 Photos (10 consignes) · ✅ ✏️ Dessins (10 consignes)
+- ✅ 👑 Questions de grande finale (2 à 4 par mode)
 - ⬜ Étoffer la bibliothèque (viser plusieurs centaines de questions)
 - ⬜ Choix des catégories par le créateur
 
@@ -180,8 +180,9 @@ Un mini outil de dessin. Exemple : *« Dessine ton animal préféré sans écrir
 de lettres. »* Les autres voient le « dessin mystérieux » et votent pour son
 auteur.
 
-- ⬜ Zone de dessin tactile (pinceau, couleurs, gomme)
-- ⬜ Vote sur l'auteur, comme dans « Qui a répondu ? »
+- ✅ Zone de dessin tactile : 8 couleurs, 3 épaisseurs, gomme, annuler, effacer
+- ✅ Vote sur l'auteur, comme dans « Qui a répondu ? »
+- ✅ Le dessin part tout seul si le temps se termine (comme une réponse ou une photo déjà choisie)
 
 **Livrable :** ✏️ mode Qui2Dessine fonctionnel.
 
@@ -203,17 +204,17 @@ Dernière manche spéciale : plus de points, question particulière, révélatio
 progressive.
 
 - ✅ Points doublés et bandeau « GRANDE FINALE »
-- ⬜ Question particulière
-- ⬜ Révélation progressive (une réponse après l'autre, avec suspense)
+- ✅ Question particulière, tirée d'une liste réservée à la finale (« Qui de nous sera le plus célèbre dans 10 ans ? »…)
+- ✅ Révélation progressive : les résultats apparaissent un par un, avec roulement de tambour. En Qui2Nous ?, on dévoile du moins désigné au plus désigné (« Et le plus désigné est… »)
 
 Puis **🏆 PARTIE TERMINÉE**, avec :
 
 - ✅ le classement
 - ✅ le gagnant
-- ⬜ des statistiques
+- ✅ des statistiques par joueur
 - ✅ des titres amusants : 🕵️ Meilleur détective · 🔮 Lit dans les pensées ·
   😂 Plus prévisible · 👑 Le plus désigné
-- ✅ 📸 Roi des dossiers (photos les plus reconnues) · ⬜ 🎨 Picasso du groupe (avec le mode dessin)
+- ✅ 📸 Roi des dossiers (photos les plus reconnues) · ✅ 🎨 Picasso du groupe (dessins les plus reconnus)
 
 ## 🟪 Phase 11 — Tests
 
@@ -262,7 +263,7 @@ Faire tester Qui2Nous à plusieurs groupes et recueillir notamment :
 
 **Obligatoire :** ✅ 3 à 8 joueurs · ✅ code de salon · ✅ lobby · ✅ questions
 automatiques · ✅ questions personnalisées · ✅ votes · ✅ réponses anonymes ·
-✅ révélations · ✅ score · ✅ classement · ✅ photos · ⬜ dessins · 🟡 grande finale
+✅ révélations · ✅ score · ✅ classement · ✅ photos · ✅ dessins · ✅ grande finale
 
 **Puis v2 :** ⏳ statistiques personnelles · ⏳ historique des parties ·
 ⏳ nouveaux packs de questions · ⏳ nouveaux modes · ⏳ nouveaux thèmes ·
@@ -275,9 +276,13 @@ automatiques · ✅ questions personnalisées · ✅ votes · ✅ réponses anon
 - **Salon :** le créateur obtient un code de 4 caractères (sans I, O, 0 ni 1,
   pour qu'il se lise à voix haute) et un lien d'invitation. Il faut au moins
   3 joueurs connectés pour lancer, et 8 au maximum.
-- **Manches :** 4, 6 ou 8 au choix. Les modes tournent dans l'ordre :
-  Qui2Nous ?, Qui a répondu ?, Qui2Photo ? (si le mode est activé), puis on
-  recommence. La dernière manche est la grande finale, à points doublés.
+- **Manches :** 4, 6 ou 8 au choix.
+- **Modes :** le créateur choisit les modes joués dans le lobby (tous par
+  défaut, au moins un). Ils tournent dans l'ordre : Qui2Nous ?, Qui a
+  répondu ?, Qui2Photo ?, Qui2Dessine ?
+- **Grande finale :** la dernière manche, dans le mode le moins joué jusque-là
+  (une partie de 4 manches fait donc passer les 4 modes). Elle a une question
+  spéciale, des points doublés et une révélation progressive des résultats.
 - **Décompte :** 3… 2… 1… puis la question apparaît en même temps sur tous les
   téléphones.
 - **Qui2Nous ? (25 s) :** chacun désigne en secret un joueur, lui-même compris.
@@ -303,18 +308,20 @@ automatiques · ✅ questions personnalisées · ✅ votes · ✅ réponses anon
 
   Dans les deux derniers cas, une phase de préparation (2 minutes) précède la
   première manche. Chacun écrit jusqu'à 5 questions, de type « Qui de nous… ? »
-  ou ouvertes, puis touche « J'ai fini ». La phase s'arrête quand tous ont
+  ou ouvertes, consignes photo ou dessin, puis touche « J'ai fini ». La phase s'arrête quand tous ont
   terminé, ou à la fin du temps. Les questions du groupe passent en priorité,
-  une par manche, et la bibliothèque complète en équilibrant les deux modes.
+  une par manche (hors finale), et la bibliothèque complète en équilibrant les modes.
   L'ensemble est ensuite mélangé, et chaque question du groupe s'affiche avec
   la mention « ✏️ Question du groupe », sans nom d'auteur. Les robots
   proposent deux questions chacun.
 - **Qui2Photo ? (60 s, puis 60 s de vote) :** chacun choisit une photo de sa
   galerie qui correspond à la consigne. Les photos sont affichées sans leur
-  auteur, et le vote et les points suivent les règles de « Qui a répondu ? ». Le
-  mode est actif par défaut, et le créateur peut le désactiver dans le lobby.
-  Les modes tournent dans l'ordre : Qui2Nous ?, Qui a répondu ?, Qui2Photo ?
-  En mode créateur ou collectif, on peut aussi écrire des consignes photo.
+  auteur, et le vote et les points suivent les règles de « Qui a répondu ? ».
+- **Qui2Dessine ? (80 s, puis 60 s de vote) :** chacun dessine la consigne sur
+  son téléphone, sans écrire de lettres. Les dessins sont affichés sans leur
+  auteur, et le vote et les points suivent les mêmes règles.
+- En mode créateur ou collectif, on peut écrire des questions pour chacun des
+  modes choisis.
 - **Suite :** le créateur passe à la manche suivante. S'il est déconnecté,
   n'importe quel joueur peut le faire.
 
@@ -329,6 +336,5 @@ voir le [README](README.md#mise-en-ligne-sur-render).
    distingue ces deux modes sans dire en quoi ils diffèrent. Proposition :
    dans « Qui2Nous a dit ça ? », on montre une seule réponse anonyme à la
    fois, en révélation progressive.
-2. **Choix des modes** dans le lobby : liste à cocher, ou mélange automatique ?
-3. **Photos :** prévoir un avertissement sur le contenu des photos partagées,
+2. **Photos :** prévoir un avertissement sur le contenu des photos partagées,
    et une modération minimale si le jeu devient public.

@@ -7,24 +7,35 @@ export const MAX_JOUEURS = 8;
 
 export const AVATARS = ['🦊', '🐼', '🐸', '🐙', '🦄', '🐯', '🐧', '🦉', '🐵', '🐨', '🦖', '🐝'] as const;
 
-export type Mode = 'qui2nous' | 'quiARepondu' | 'qui2photo';
+export type Mode = 'qui2nous' | 'quiARepondu' | 'qui2photo' | 'qui2dessine';
 
-/** Photo envoyée : côté plus long (px) et taille maximale de l'envoi (data URL). */
+/** Ordre de rotation des modes au fil des manches. */
+export const ORDRE_MODES: Mode[] = ['qui2nous', 'quiARepondu', 'qui2photo', 'qui2dessine'];
+
+/** Modes où chaque joueur envoie une image (photo ou dessin) au lieu d'un texte. */
+export type ModeImage = 'qui2photo' | 'qui2dessine';
+export const estModeImage = (m: Mode): m is ModeImage => m === 'qui2photo' || m === 'qui2dessine';
+
+/** Photo envoyée : côté plus long (px). Image (photo ou dessin) : taille maximale de l'envoi (data URL). */
 export const PHOTO_COTE_MAX = 1280;
-export const PHOTO_TAILLE_MAX = 1_500_000;
+export const IMAGE_TAILLE_MAX = 1_500_000;
 
 export const MODES: Record<Mode, { nom: string; consigne: string }> = {
   qui2nous: {
-    nom: 'Qui2Nous ?',
+    nom: 'Qui2Nous\u00a0?',
     consigne: 'Désigne en secret le joueur qui correspond le mieux à la question.',
   },
   quiARepondu: {
-    nom: 'Qui a répondu ?',
+    nom: 'Qui a répondu\u00a0?',
     consigne: 'Réponds en secret. Ensuite, retrouve qui a écrit chaque réponse.',
   },
   qui2photo: {
-    nom: 'Qui2Photo ?',
+    nom: 'Qui2Photo\u00a0?',
     consigne: 'Choisis une photo de ta galerie. Ensuite, retrouve à qui appartient chaque photo.',
+  },
+  qui2dessine: {
+    nom: 'Qui2Dessine\u00a0?',
+    consigne: 'Dessine sans écrire de lettres. Ensuite, retrouve qui a fait chaque dessin.',
   },
 };
 
@@ -75,11 +86,27 @@ export type Resultat =
       gains: Record<string, Gain>;
     }
   | {
-      mode: 'quiARepondu' | 'qui2photo';
-      /** Pour une photo, `texte` est vide : l'image se charge depuis /photo/:code/:id. */
-      reponses: { id: string; texte: string; photo: boolean; auteurId: string; trouvePar: string[] }[];
+      mode: Exclude<Mode, 'qui2nous'>;
+      /** Pour une photo ou un dessin, `texte` est vide : l'image se charge depuis /image/:code/:id. */
+      reponses: { id: string; texte: string; image: boolean; auteurId: string; trouvePar: string[] }[];
       gains: Record<string, Gain>;
     };
+
+/** Ce que chaque joueur a accompli pendant la partie (écran de fin). */
+export interface Statistiques {
+  /** Auteurs correctement identifiés. */
+  trouves: number;
+  /** Fois où ses réponses écrites ont été reconnues. */
+  devine: number;
+  /** Fois où il a été désigné dans Qui2Nous ?. */
+  designe: number;
+  /** Fois où il a voté comme la majorité. */
+  anticipations: number;
+  /** Fois où ses photos ont été reconnues. */
+  photos: number;
+  /** Fois où ses dessins ont été reconnus. */
+  dessins: number;
+}
 
 export interface Titre {
   emoji: string;
@@ -102,8 +129,8 @@ export interface Vue {
   maintenant: number;
   question: Question | null;
   sourceQuestions: SourceQuestions;
-  /** Le créateur a gardé le mode Qui2Photo pour cette partie. */
-  photos: boolean;
+  /** Modes choisis par le créateur pour cette partie. */
+  modes: Mode[];
   /** Phase de rédaction : qui écrit des questions, et qui a terminé. */
   redacteurs: string[];
   ontFini: string[];
@@ -114,12 +141,14 @@ export interface Vue {
   participants: string[];
   ontRepondu: string[];
   ontVote: string[];
-  /** Joueur désigné, texte écrit, ou « photo » une fois la photo envoyée. */
+  /** Joueur désigné, texte écrit, ou « image » une fois la photo ou le dessin envoyé. */
   maReponse: string | null;
   /** Phase de vote de « Qui a répondu ? » : réponses mélangées, anonymes. */
-  reponsesAnonymes: { id: string; texte: string; photo: boolean; estLaMienne: boolean }[];
+  reponsesAnonymes: { id: string; texte: string; image: boolean; estLaMienne: boolean }[];
   resultat: Resultat | null;
   titres: Titre[];
+  /** Écran de fin seulement. */
+  statistiques: Record<string, Statistiques>;
 }
 
 export type Ack<T = object> = ({ ok: true } & T) | { ok: false; erreur: string };
@@ -133,7 +162,7 @@ export interface ClientVersServeur {
   reprendre: (p: { code: string; jeton: string }, ack: (r: Ack) => void) => void;
   ajouterRobot: (ack: (r: Ack) => void) => void;
   retirerRobot: (p: { id: string }, ack: (r: Ack) => void) => void;
-  lancer: (p: { manches: number; questions: SourceQuestions; photos: boolean }, ack: (r: Ack) => void) => void;
+  lancer: (p: { manches: number; questions: SourceQuestions; modes: Mode[] }, ack: (r: Ack) => void) => void;
   proposerQuestion: (p: { texte: string; mode: Mode }, ack: (r: Ack) => void) => void;
   retirerQuestion: (p: { id: string }, ack: (r: Ack) => void) => void;
   finirRedaction: (ack: (r: Ack) => void) => void;

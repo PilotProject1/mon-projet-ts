@@ -1,14 +1,14 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { POINTS, Salon, lirePhoto, type Horloge } from './salon.ts';
-import { PHOTO_TAILLE_MAX } from '../shared/protocol.ts';
+import { POINTS, Salon, lireImage, nettoyerModes, type Horloge } from './salon.ts';
+import { IMAGE_TAILLE_MAX, estModeImage } from '../shared/protocol.ts';
 
 /** Plus petit « JPEG » accepté : seule la signature est vérifiée. */
 const PHOTO = `data:image/jpeg;base64,${Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0, 16]).toString('base64')}`;
 
 /** Une réponse valable pour le mode de la manche en cours (hors Qui2Nous). */
 function reponseLibre(s: Salon, id: string) {
-  return s.question!.mode === 'qui2photo' ? PHOTO : `réponse ${id}`;
+  return estModeImage(s.question!.mode) ? PHOTO : `réponse ${id}`;
 }
 
 function horlogeFactice() {
@@ -185,7 +185,7 @@ test('robots : une seule personne peut lancer et jouer une partie entière', () 
       assert.equal(s.phase, 'resultat');
     } else {
       s.repondre(moi, reponseLibre(s, moi));
-      avancer(15_000);
+      avancer(20_000); // le plus lent : un robot qui dessine
       assert.equal(s.phase, 'vote');
       const vue = s.vuePour(moi);
       assert.equal(new Set(vue.reponsesAnonymes.map((r) => r.id)).size, 3);
@@ -301,26 +301,26 @@ test('Qui2Photo : la 3e manche, photos anonymes servies pendant le vote puis eff
   }
   avancer(3_500);
   assert.equal(s.question!.mode, 'qui2photo');
-  assert.throws(() => s.repondre(a, 'data:image/svg+xml;base64,PHN2Zz4='), /pas une photo/);
-  assert.throws(() => s.repondre(a, 'data:image/jpeg;base64,AAAA'), /pas une photo/);
+  assert.throws(() => s.repondre(a, 'data:image/svg+xml;base64,PHN2Zz4='), /pas une image/);
+  assert.throws(() => s.repondre(a, 'data:image/jpeg;base64,AAAA'), /pas une image/);
   for (const id of [a, b, c]) s.repondre(id, PHOTO);
-  assert.equal(s.vuePour(a).maReponse, 'photo');
+  assert.equal(s.vuePour(a).maReponse, 'image');
   assert.equal(s.phase, 'vote');
   const vue = s.vuePour(a);
-  assert.ok(vue.reponsesAnonymes.every((r) => r.photo && r.texte === ''));
+  assert.ok(vue.reponsesAnonymes.every((r) => r.image && r.texte === ''));
   const idPhoto = vue.reponsesAnonymes[0].id;
-  assert.equal(s.photo(idPhoto)?.type, 'image/jpeg');
+  assert.equal(s.image(idPhoto)?.type, 'image/jpeg');
   avancer(60_000);
   assert.equal(s.resultat!.mode, 'qui2photo');
-  assert.ok(s.photo(idPhoto)); // encore visible sur l'écran de résultat
+  assert.ok(s.image(idPhoto)); // encore visible sur l'écran de résultat
   s.suivant(a);
-  assert.equal(s.photo(idPhoto), undefined); // effacée à la manche suivante
+  assert.equal(s.image(idPhoto), undefined); // effacée à la manche suivante
 });
 
 test('Qui2Photo désactivé par le créateur : jamais de manche photo', () => {
   const { s, a, b, c, avancer } = partieA3();
-  s.lancer(a, 8, 'auto', false);
-  assert.equal(s.vuePour(a).photos, false);
+  s.lancer(a, 8, 'auto', ['qui2nous', 'quiARepondu']);
+  assert.deepEqual(s.vuePour(a).modes, ['qui2nous', 'quiARepondu']);
   for (let m = 1; m <= 8; m++) {
     avancer(3_500);
     assert.notEqual(s.question!.mode, 'qui2photo');
@@ -331,8 +331,8 @@ test('Qui2Photo désactivé par le créateur : jamais de manche photo', () => {
 });
 
 test('lirePhoto refuse une photo trop lourde', () => {
-  assert.throws(() => lirePhoto(`data:image/jpeg;base64,${'A'.repeat(PHOTO_TAILLE_MAX)}`), /trop lourde/);
-  assert.equal(lirePhoto(PHOTO).type, 'image/jpeg');
+  assert.throws(() => lireImage(`data:image/jpeg;base64,${'A'.repeat(IMAGE_TAILLE_MAX)}`), /trop lourde/);
+  assert.equal(lireImage(PHOTO).type, 'image/jpeg');
 });
 
 test('robots : ils envoient une image PNG valable en Qui2Photo', () => {
@@ -343,7 +343,7 @@ test('robots : ils envoient une image PNG valable en Qui2Photo', () => {
   s.ajouterRobot(moi);
   s.lancer(moi, 4, 'createur');
   s.proposerQuestion(moi, 'Une photo de ton petit-déjeuner.', 'qui2photo');
-  assert.throws(() => s.proposerQuestion(moi, 'Inconnu du tout ?', 'qui2dessine'), /indisponible/);
+  assert.throws(() => s.proposerQuestion(moi, 'Inconnu du tout ?', 'qui2chante'), /indisponible/);
   s.finirRedaction(moi);
   // Le plan est mélangé : on joue jusqu'à tomber sur la manche photo.
   for (let m = 1; m <= 4; m++) {
@@ -355,7 +355,7 @@ test('robots : ils envoient une image PNG valable en Qui2Photo', () => {
     if (mode === 'qui2photo') {
       assert.equal(s.phase, 'vote');
       const robot = s.vuePour(moi).reponsesAnonymes.find((r) => !r.estLaMienne)!;
-      assert.equal(s.photo(robot.id)?.type, 'image/png');
+      assert.equal(s.image(robot.id)?.type, 'image/png');
       return;
     }
     if (s.phase === 'vote') {
@@ -368,4 +368,95 @@ test('robots : ils envoient une image PNG valable en Qui2Photo', () => {
     s.suivant(moi);
   }
   assert.fail('aucune manche photo jouée');
+});
+
+/** Joue la manche en cours jusqu'au résultat : tout le monde répond, puis vote pour `cible`. */
+function jouerManche(s: Salon, joueurs: string[], avancer: (ms: number) => void, cible: (id: string) => string) {
+  avancer(3_500);
+  for (const id of joueurs) s.repondre(id, s.question!.mode === 'qui2nous' ? cible(id) : reponseLibre(s, id));
+  if (s.phase === 'vote') {
+    for (const id of joueurs) {
+      const attributions: Record<string, string> = {};
+      for (const r of s.vuePour(id).reponsesAnonymes) if (!r.estLaMienne) attributions[r.id] = cible(id);
+      s.voter(id, attributions);
+    }
+  }
+  assert.equal(s.phase, 'resultat');
+}
+
+test('les quatre modes tournent dans l’ordre, la dernière manche est la grande finale', () => {
+  const { s, a, b, c, avancer } = partieA3();
+  s.lancer(a, 6);
+  const modes: string[] = [];
+  for (let m = 1; m <= 6; m++) {
+    jouerManche(s, [a, b, c], avancer, (id) => (id === a ? b : a));
+    modes.push(s.question!.mode);
+    if (m === 6) {
+      assert.equal(s.grandeFinale, true);
+      assert.equal(s.question!.categorie, '👑 Grande finale');
+    }
+    s.suivant(a);
+  }
+  assert.deepEqual(modes.slice(0, 5), ['qui2nous', 'quiARepondu', 'qui2photo', 'qui2dessine', 'qui2nous']);
+  assert.equal(modes[5], 'quiARepondu'); // la finale prend le mode le moins joué
+});
+
+test('partie de 4 manches : les 4 modes passent, le dessin en finale', () => {
+  const { s, a, b, c, avancer } = partieA3();
+  s.lancer(a, 4);
+  const modes: string[] = [];
+  for (let m = 1; m <= 4; m++) {
+    jouerManche(s, [a, b, c], avancer, (id) => (id === a ? b : a));
+    modes.push(s.question!.mode);
+    s.suivant(a);
+  }
+  assert.deepEqual(modes, ['qui2nous', 'quiARepondu', 'qui2photo', 'qui2dessine']);
+});
+
+test('Qui2Dessine : dessins anonymes, points doublés en finale, Picasso et statistiques au podium', () => {
+  const { s, a, b, c, avancer } = partieA3();
+  s.lancer(a, 4, 'auto', ['qui2dessine']);
+  for (let m = 1; m <= 4; m++) {
+    // b et c reconnaissent toujours le dessin de a ; a se trompe.
+    jouerManche(s, [a, b, c], avancer, (id) => (id === a ? b : a));
+    const r = s.resultat!;
+    assert.equal(r.mode, 'qui2dessine');
+    assert.ok('reponses' in r && r.reponses.every((x) => x.image && x.texte === ''));
+    const attendu = POINTS.identification * (m === 4 ? 2 : 1);
+    assert.equal(r.gains[b].points, attendu);
+    if (m === 4) assert.equal(s.question!.categorie, '👑 Grande finale');
+    s.suivant(a);
+  }
+  assert.equal(s.phase, 'podium');
+  const vue = s.vuePour(a);
+  assert.deepEqual(
+    vue.titres.find((t) => t.intitule === 'Picasso du groupe'),
+    { emoji: '🎨', intitule: 'Picasso du groupe', joueurId: a },
+  );
+  assert.equal(vue.statistiques[a].dessins, 8); // reconnu 2 fois par manche
+  assert.equal(vue.statistiques[b].trouves, 4);
+  assert.deepEqual(s.vuePour(a).statistiques, vue.statistiques);
+});
+
+test('statistiques visibles seulement au podium', () => {
+  const { s, a } = partieA3();
+  assert.deepEqual(s.vuePour(a).statistiques, {});
+});
+
+test('choix des modes : ordre imposé, liste vide ou invalide = tous les modes', () => {
+  assert.deepEqual(nettoyerModes(['qui2dessine', 'qui2nous']), ['qui2nous', 'qui2dessine']);
+  assert.deepEqual(nettoyerModes([]), ['qui2nous', 'quiARepondu', 'qui2photo', 'qui2dessine']);
+  assert.deepEqual(nettoyerModes('n’importe quoi'), ['qui2nous', 'quiARepondu', 'qui2photo', 'qui2dessine']);
+});
+
+test('mode créateur : les questions du groupe n’occupent jamais la finale', () => {
+  const { s, a, b, c, avancer } = partieA3();
+  s.lancer(a, 4, 'createur');
+  for (let i = 1; i <= 5; i++) s.proposerQuestion(a, `Qui de nous numéro ${i} ?`, 'qui2nous');
+  s.finirRedaction(a);
+  for (let m = 1; m <= 4; m++) {
+    jouerManche(s, [a, b, c], avancer, (id) => (id === a ? b : a));
+    assert.equal(s.question!.perso === true, m < 4);
+    s.suivant(a);
+  }
 });

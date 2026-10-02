@@ -27,15 +27,18 @@ npm test            # règles du jeu (points, phases, déconnexions…)
 npm run typecheck
 ```
 
-## Photos (Qui2Photo ?)
+## Photos et dessins (Qui2Photo ?, Qui2Dessine ?)
 
-- Le joueur choisit une seule photo avec le sélecteur du téléphone : le jeu n'a
-  jamais accès à toute la galerie.
-- Avant l'envoi, la photo est réduite et ré-encodée en JPEG sur le téléphone
-  (`src/client/photo.ts`). Cela efface les métadonnées, dont la position GPS.
+- Pour une photo, le joueur en choisit une seule avec le sélecteur du
+  téléphone : le jeu n'a jamais accès à toute la galerie. Avant l'envoi, la
+  photo est réduite et ré-encodée en JPEG sur le téléphone
+  (`src/client/photo.ts`), ce qui efface aussi ses métadonnées, dont la
+  position GPS.
+- Le dessin se fait sur une ardoise tactile (`src/client/ardoise.tsx`) et part
+  en PNG.
 - Le serveur n'accepte que du JPEG ou du PNG dont la signature est vérifiée
-  (`lirePhoto`), de 1,5 Mo au plus. Il garde les photos en mémoire, sous un
-  identifiant aléatoire (`/photo/:code/:id`), le temps du vote et du résultat
+  (`lireImage`), de 1,5 Mo au plus. Il garde les images en mémoire, sous un
+  identifiant aléatoire (`/image/:code/:id`), le temps du vote et du résultat
   de la manche, puis les efface.
 
 ## Tester seul

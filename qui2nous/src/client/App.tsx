@@ -24,7 +24,7 @@ export function App() {
         <EnTete vue={vue} secondes={secondes} />
         {vue.phase === 'redaction' && <Redaction vue={vue} />}
         {vue.phase === 'decompte' && <Decompte key={cle} vue={vue} secondes={secondes} />}
-        {vue.phase === 'reponse' && <EcranReponse key={cle} vue={vue} />}
+        {vue.phase === 'reponse' && <EcranReponse key={cle} vue={vue} secondes={secondes} />}
         {vue.phase === 'vote' && <EcranVote key={cle} vue={vue} />}
         {vue.phase === 'resultat' && <EcranResultat key={cle} vue={vue} />}
       </div>

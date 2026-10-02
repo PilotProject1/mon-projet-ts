@@ -1,4 +1,4 @@
-import { PHOTO_COTE_MAX, PHOTO_TAILLE_MAX } from '../shared/protocol.ts';
+import { PHOTO_COTE_MAX, IMAGE_TAILLE_MAX } from '../shared/protocol.ts';
 
 /**
  * Prépare la photo choisie avant l'envoi : réduite à PHOTO_COTE_MAX px et
@@ -27,7 +27,7 @@ export async function preparerPhoto(fichier: File): Promise<string> {
       canvas.height = Math.round(image.naturalHeight * echelle);
       canvas.getContext('2d')!.drawImage(image, 0, 0, canvas.width, canvas.height);
       const donnees = canvas.toDataURL('image/jpeg', qualite);
-      if (donnees.length <= PHOTO_TAILLE_MAX) return donnees;
+      if (donnees.length <= IMAGE_TAILLE_MAX) return donnees;
     }
     throw new Error('Photo trop lourde, choisis-en une autre.');
   } finally {

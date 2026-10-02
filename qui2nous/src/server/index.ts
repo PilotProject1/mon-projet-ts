@@ -3,7 +3,7 @@ import { existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import express from 'express';
 import { Server, type Socket } from 'socket.io';
-import { PHOTO_TAILLE_MAX, type Ack, type ClientVersServeur, type ServeurVersClient } from '../shared/protocol.ts';
+import { IMAGE_TAILLE_MAX, type Ack, type ClientVersServeur, type ServeurVersClient } from '../shared/protocol.ts';
 import { ErreurJeu, Salon, genererCode } from './salon.ts';
 
 const PORT = Number(process.env.PORT ?? 3001);
@@ -13,16 +13,16 @@ const DELAI_ABANDON_MS = 30 * 60_000;
 const app = express();
 // Vérifié par Render avant de basculer le trafic sur une nouvelle version.
 app.get('/sante', (_req, res) => res.json({ ok: true, salons: salons.size }));
-// Photos de Qui2Photo : l'identifiant est aléatoire et ne dit rien de l'auteur.
-app.get('/photo/:code/:id', (req, res) => {
-  const photo = salons.get(req.params.code.toUpperCase())?.photo(req.params.id);
-  if (!photo) return res.status(404).end();
+// Photos et dessins d'une manche : l'identifiant est aléatoire et ne dit rien de l'auteur.
+app.get('/image/:code/:id', (req, res) => {
+  const image = salons.get(req.params.code.toUpperCase())?.image(req.params.id);
+  if (!image) return res.status(404).end();
   res.set({
-    'Content-Type': photo.type,
+    'Content-Type': image.type,
     'Cache-Control': 'private, max-age=600',
     'X-Content-Type-Options': 'nosniff',
   });
-  res.send(photo.octets);
+  res.send(image.octets);
 });
 const dist = fileURLToPath(new URL('../../dist', import.meta.url));
 if (existsSync(dist)) {
@@ -32,7 +32,7 @@ if (existsSync(dist)) {
 const http = createServer(app);
 // Une photo compressée fait quelques centaines de Ko : on relève la limite
 // par message (1 Mo par défaut) juste au-dessus de la taille acceptée.
-const io = new Server<ClientVersServeur, ServeurVersClient>(http, { maxHttpBufferSize: PHOTO_TAILLE_MAX + 10_000 });
+const io = new Server<ClientVersServeur, ServeurVersClient>(http, { maxHttpBufferSize: IMAGE_TAILLE_MAX + 10_000 });
 
 const salons = new Map<string, Salon>();
 const abandons = new Map<string, NodeJS.Timeout>();
@@ -149,7 +149,7 @@ io.on('connection', (socket: Socket<ClientVersServeur, ServeurVersClient>) => {
 
   socket.on('ajouterRobot', (ack) => dansSalon(ack, (s, id) => void s.ajouterRobot(id)));
   socket.on('retirerRobot', (p, ack) => dansSalon(ack, (s, id) => s.retirerRobot(id, p?.id)));
-  socket.on('lancer', (p, ack) => dansSalon(ack, (s, id) => s.lancer(id, Number(p?.manches), p?.questions, p?.photos)));
+  socket.on('lancer', (p, ack) => dansSalon(ack, (s, id) => s.lancer(id, Number(p?.manches), p?.questions, p?.modes)));
   socket.on('proposerQuestion', (p, ack) => dansSalon(ack, (s, id) => s.proposerQuestion(id, p?.texte, p?.mode)));
   socket.on('retirerQuestion', (p, ack) => dansSalon(ack, (s, id) => s.retirerQuestion(id, p?.id)));
   socket.on('finirRedaction', (ack) => dansSalon(ack, (s, id) => s.finirRedaction(id)));
