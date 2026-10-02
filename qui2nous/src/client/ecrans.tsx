@@ -14,6 +14,7 @@ import {
   type Vue,
 } from '../shared/protocol.ts';
 import { envoyer, memoriserSession, socket } from './connexion.ts';
+import { preparerPhoto } from './photo.ts';
 import { Avatar, Bouton, Carte, Erreur, Logo, Pastille } from './ui.tsx';
 
 /** Lance une action serveur et expose son état d'envoi et son erreur. */
@@ -29,6 +30,18 @@ function useAction() {
     return r;
   }
   return { enCours, erreur, agir };
+}
+
+/** Photo d'une manche, servie par le serveur sous un identifiant anonyme. */
+function PhotoManche({ vue, id }: { vue: Vue; id: string }) {
+  return (
+    <img
+      src={`/photo/${vue.code}/${id}`}
+      alt="Photo d’un joueur"
+      loading="lazy"
+      className="max-h-64 w-full rounded-2xl bg-black/30 object-contain"
+    />
+  );
 }
 
 function parId(vue: Vue) {
@@ -147,6 +160,7 @@ export function Accueil() {
 export function Lobby({ vue }: { vue: Vue }) {
   const [manches, setManches] = useState(6);
   const [source, setSource] = useState<SourceQuestions>('auto');
+  const [photos, setPhotos] = useState(true);
   const [copie, setCopie] = useState(false);
   const { enCours, erreur, agir } = useAction();
   const estHote = vue.moi === vue.hoteId;
@@ -237,9 +251,24 @@ export function Lobby({ vue }: { vue: Vue }) {
               ))}
             </div>
             <p className="mt-2 text-xs text-white/50">
-              Modes « Qui2Nous ? » et « Qui a répondu ? ». La dernière manche est la grande finale : points doublés.
+              Les modes s’enchaînent : Qui2Nous ?, Qui a répondu ?{photos ? ', Qui2Photo ?' : ''}… La dernière manche est la
+              grande finale : points doublés.
             </p>
           </div>
+          <button
+            onClick={() => setPhotos((p) => !p)}
+            role="switch"
+            aria-checked={photos}
+            className="flex items-center gap-3 rounded-xl bg-white/10 px-3 py-2 text-left"
+          >
+            <span className="min-w-0 flex-1">
+              <span className="block font-display text-lg leading-tight">📸 Mode Qui2Photo</span>
+              <span className="block text-sm text-white/60">Chacun montre une photo de sa galerie.</span>
+            </span>
+            <span className={`relative h-7 w-12 shrink-0 rounded-full transition ${photos ? 'bg-amber-400' : 'bg-white/20'}`}>
+              <span className={`absolute top-1 size-5 rounded-full bg-white transition-all ${photos ? 'left-6' : 'left-1'}`} />
+            </span>
+          </button>
           <fieldset>
             <legend className="mb-2 text-sm font-medium text-white/70">Questions</legend>
             <div className="flex flex-col gap-2">
@@ -261,7 +290,7 @@ export function Lobby({ vue }: { vue: Vue }) {
           <Erreur message={erreur} />
           <Bouton
             disabled={enCours || connectes < MIN_JOUEURS}
-            onClick={() => agir((ack) => socket.emit('lancer', { manches, questions: source }, ack))}
+            onClick={() => agir((ack) => socket.emit('lancer', { manches, questions: source, photos }, ack))}
           >
             Lancer la partie
           </Bouton>
@@ -280,6 +309,7 @@ export function Lobby({ vue }: { vue: Vue }) {
 const TYPES_QUESTION: Record<Mode, { libelle: string; exemple: string }> = {
   qui2nous: { libelle: 'Qui de nous… ?', exemple: 'Qui de nous chante sous la douche ?' },
   quiARepondu: { libelle: 'Question ouverte', exemple: 'Ton pire souvenir de vacances ?' },
+  qui2photo: { libelle: 'Photo 📸', exemple: 'Une photo de ton dernier repas de fête.' },
 };
 
 export function Redaction({ vue }: { vue: Vue }) {
@@ -337,8 +367,8 @@ export function Redaction({ vue }: { vue: Vue }) {
         </p>
       </div>
       <Carte className="flex flex-col gap-3">
-        <div className="grid grid-cols-2 gap-2">
-          {(Object.keys(TYPES_QUESTION) as Mode[]).map((m) => (
+        <div className={`grid gap-2 ${vue.photos ? 'grid-cols-3' : 'grid-cols-2'}`}>
+          {(Object.keys(TYPES_QUESTION) as Mode[]).filter((m) => vue.photos || m !== 'qui2photo').map((m) => (
             <button
               key={m}
               onClick={() => setMode(m)}
@@ -498,6 +528,8 @@ export function EcranReponse({ vue }: { vue: Vue }) {
             <div className="mt-2 flex justify-center">
               {joueurs.get(vue.maReponse) && <Pastille joueur={joueurs.get(vue.maReponse)!} />}
             </div>
+          ) : q.mode === 'qui2photo' ? (
+            <p className="mt-1 font-display text-xl">Photo envoyée 📸</p>
           ) : (
             <p className="mt-1 font-display text-xl break-words">« {vue.maReponse} »</p>
           )}
@@ -529,6 +561,8 @@ export function EcranReponse({ vue }: { vue: Vue }) {
             );
           })}
         </div>
+      ) : q.mode === 'qui2photo' ? (
+        <ChoixPhoto envoyer={repondre} enCours={enCours} />
       ) : (
         <form
           className="flex flex-col gap-3"
@@ -550,6 +584,56 @@ export function EcranReponse({ vue }: { vue: Vue }) {
           </Bouton>
         </form>
       )}
+    </div>
+  );
+}
+
+function ChoixPhoto({ envoyer, enCours }: { envoyer: (photo: string) => void; enCours: boolean }) {
+  const [photo, setPhoto] = useState<string | null>(null);
+  const [preparation, setPreparation] = useState(false);
+  const [erreur, setErreur] = useState<string | null>(null);
+
+  async function choisir(fichier: File | undefined) {
+    if (!fichier) return;
+    setErreur(null);
+    setPreparation(true);
+    try {
+      setPhoto(await preparerPhoto(fichier));
+    } catch (e) {
+      setErreur(e instanceof Error ? e.message : 'Impossible de lire cette photo.');
+    } finally {
+      setPreparation(false);
+    }
+  }
+
+  return (
+    <div className="flex flex-col gap-3">
+      {photo && <img src={photo} alt="Ta photo" className="max-h-80 w-full rounded-2xl bg-black/30 object-contain" />}
+      <Erreur message={erreur} />
+      {/* Le sélecteur du téléphone : une seule photo, sans accès à toute la galerie. */}
+      <label
+        className={`flex min-h-12 cursor-pointer items-center justify-center rounded-2xl px-5 py-3 text-center font-display text-lg font-semibold ${photo ? 'bg-white/10 ring-1 ring-white/20' : 'bg-amber-400 text-indigo-950 shadow-[0_4px_0_#b45309]'}`}
+      >
+        {preparation ? 'Préparation…' : photo ? 'Changer de photo' : '📸 Choisir une photo'}
+        <input
+          type="file"
+          accept="image/*"
+          className="sr-only"
+          disabled={preparation || enCours}
+          onChange={(e) => {
+            choisir(e.target.files?.[0]);
+            e.target.value = '';
+          }}
+        />
+      </label>
+      {photo && (
+        <Bouton disabled={enCours} onClick={() => envoyer(photo)}>
+          Envoyer cette photo
+        </Bouton>
+      )}
+      <p className="text-center text-xs text-white/50">
+        Seule la photo choisie est partagée, sans sa localisation. Elle est effacée à la fin de la manche.
+      </p>
     </div>
   );
 }
@@ -576,14 +660,14 @@ export function EcranVote({ vue }: { vue: Vue }) {
   return (
     <div className="flex flex-col gap-4 pb-24">
       <div className="text-center">
-        <p className="font-display text-2xl">Qui a écrit quoi ?</p>
+        <p className="font-display text-2xl">{vue.question?.mode === 'qui2photo' ? 'À qui est chaque photo ?' : 'Qui a écrit quoi ?'}</p>
         <p className="text-sm text-white/60">{vue.question?.texte}</p>
       </div>
       {vue.reponsesAnonymes.map((r) => (
         <Carte key={r.id} className={r.estLaMienne ? 'opacity-60' : ''}>
-          <p className="font-display text-xl break-words">« {r.texte} »</p>
+          {r.photo ? <PhotoManche vue={vue} id={r.id} /> : <p className="font-display text-xl break-words">« {r.texte} »</p>}
           {r.estLaMienne ? (
-            <p className="mt-2 text-sm text-white/60">C’est ta réponse.</p>
+            <p className="mt-2 text-sm text-white/60">{r.photo ? 'C’est ta photo.' : 'C’est ta réponse.'}</p>
           ) : (
             <div className="mt-3 flex flex-wrap gap-2">
               {candidats.map((j) => {
@@ -686,7 +770,11 @@ export function EcranResultat({ vue }: { vue: Vue }) {
             const auteur = joueurs.get(rep.auteurId);
             return (
               <Carte key={rep.id} className="animate-entree">
-                <p className="font-display text-lg break-words">« {rep.texte} »</p>
+                {rep.photo ? (
+                  <PhotoManche vue={vue} id={rep.id} />
+                ) : (
+                  <p className="font-display text-lg break-words">« {rep.texte} »</p>
+                )}
                 <div className="mt-2 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
                   {auteur && <Pastille joueur={auteur} moi={auteur.id === vue.moi} />}
                   <span className="text-sm text-white/60">

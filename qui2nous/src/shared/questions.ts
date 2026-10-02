@@ -86,6 +86,21 @@ const quiARepondu: Record<string, string[]> = {
   ],
 };
 
+const qui2photo: Record<string, string[]> = {
+  '📸 Photos': [
+    'Une photo dont personne ne connaît l’histoire.',
+    'La dernière photo de nourriture de ta galerie.',
+    'Un paysage que tu adores.',
+    'Une photo qui te fait rire à chaque fois.',
+    'La photo la plus floue de ta galerie.',
+    'Une capture d’écran qui résume ta semaine.',
+    'Un animal (le tien ou celui d’un autre).',
+    'Ton plus beau coucher de soleil.',
+    'Un objet de chez toi que personne ici n’a jamais vu.',
+    'Une photo de vacances, sans personne dessus.',
+  ],
+};
+
 function aplatir(mode: Mode, banque: Record<string, string[]>): Question[] {
   return Object.entries(banque).flatMap(([categorie, textes]) =>
     textes.map((texte) => ({ mode, categorie, texte })),
@@ -95,4 +110,5 @@ function aplatir(mode: Mode, banque: Record<string, string[]>): Question[] {
 export const QUESTIONS: Record<Mode, Question[]> = {
   qui2nous: aplatir('qui2nous', qui2nous),
   quiARepondu: aplatir('quiARepondu', quiARepondu),
+  qui2photo: aplatir('qui2photo', qui2photo),
 };

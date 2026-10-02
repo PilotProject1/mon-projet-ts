@@ -7,7 +7,11 @@ export const MAX_JOUEURS = 8;
 
 export const AVATARS = ['🦊', '🐼', '🐸', '🐙', '🦄', '🐯', '🐧', '🦉', '🐵', '🐨', '🦖', '🐝'] as const;
 
-export type Mode = 'qui2nous' | 'quiARepondu';
+export type Mode = 'qui2nous' | 'quiARepondu' | 'qui2photo';
+
+/** Photo envoyée : côté plus long (px) et taille maximale de l'envoi (data URL). */
+export const PHOTO_COTE_MAX = 1280;
+export const PHOTO_TAILLE_MAX = 1_500_000;
 
 export const MODES: Record<Mode, { nom: string; consigne: string }> = {
   qui2nous: {
@@ -17,6 +21,10 @@ export const MODES: Record<Mode, { nom: string; consigne: string }> = {
   quiARepondu: {
     nom: 'Qui a répondu ?',
     consigne: 'Réponds en secret. Ensuite, retrouve qui a écrit chaque réponse.',
+  },
+  qui2photo: {
+    nom: 'Qui2Photo ?',
+    consigne: 'Choisis une photo de ta galerie. Ensuite, retrouve à qui appartient chaque photo.',
   },
 };
 
@@ -67,8 +75,9 @@ export type Resultat =
       gains: Record<string, Gain>;
     }
   | {
-      mode: 'quiARepondu';
-      reponses: { id: string; texte: string; auteurId: string; trouvePar: string[] }[];
+      mode: 'quiARepondu' | 'qui2photo';
+      /** Pour une photo, `texte` est vide : l'image se charge depuis /photo/:code/:id. */
+      reponses: { id: string; texte: string; photo: boolean; auteurId: string; trouvePar: string[] }[];
       gains: Record<string, Gain>;
     };
 
@@ -93,6 +102,8 @@ export interface Vue {
   maintenant: number;
   question: Question | null;
   sourceQuestions: SourceQuestions;
+  /** Le créateur a gardé le mode Qui2Photo pour cette partie. */
+  photos: boolean;
   /** Phase de rédaction : qui écrit des questions, et qui a terminé. */
   redacteurs: string[];
   ontFini: string[];
@@ -103,9 +114,10 @@ export interface Vue {
   participants: string[];
   ontRepondu: string[];
   ontVote: string[];
+  /** Joueur désigné, texte écrit, ou « photo » une fois la photo envoyée. */
   maReponse: string | null;
   /** Phase de vote de « Qui a répondu ? » : réponses mélangées, anonymes. */
-  reponsesAnonymes: { id: string; texte: string; estLaMienne: boolean }[];
+  reponsesAnonymes: { id: string; texte: string; photo: boolean; estLaMienne: boolean }[];
   resultat: Resultat | null;
   titres: Titre[];
 }
@@ -121,7 +133,7 @@ export interface ClientVersServeur {
   reprendre: (p: { code: string; jeton: string }, ack: (r: Ack) => void) => void;
   ajouterRobot: (ack: (r: Ack) => void) => void;
   retirerRobot: (p: { id: string }, ack: (r: Ack) => void) => void;
-  lancer: (p: { manches: number; questions: SourceQuestions }, ack: (r: Ack) => void) => void;
+  lancer: (p: { manches: number; questions: SourceQuestions; photos: boolean }, ack: (r: Ack) => void) => void;
   proposerQuestion: (p: { texte: string; mode: Mode }, ack: (r: Ack) => void) => void;
   retirerQuestion: (p: { id: string }, ack: (r: Ack) => void) => void;
   finirRedaction: (ack: (r: Ack) => void) => void;

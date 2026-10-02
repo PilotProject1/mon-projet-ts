@@ -23,7 +23,7 @@ Le point crucial : **ne pas essayer de tout faire d'un coup.**
 | 2 | Salon de 3 à 8 joueurs | ✅ |
 | 3 | Classement + système de manches | ✅ |
 | 4 | Questions personnalisées | ✅ |
-| 5 | Photos (Qui2Photo ?) | ⬜ |
+| 5 | Photos (Qui2Photo ?) | ✅ |
 | 6 | Dessins (Qui2Dessine ?) | ⬜ |
 | 7 | Grande finale | 🟡 points doublés sur la dernière manche ; révélation progressive à faire |
 | 8 | Animations + sons + identité graphique | 🟡 animations de base ; sons et logo à faire |
@@ -51,7 +51,7 @@ But : définir exactement les règles avant de développer.
 |---|---|---|
 | **Qui2Nous ?** | Qui correspond à la question ? | ✅ |
 | **Qui a répondu ?** | Retrouver l'auteur d'une réponse | ✅ |
-| **Qui2Photo ?** | Retrouver le propriétaire d'une photo | ⬜ |
+| **Qui2Photo ?** | Retrouver le propriétaire d'une photo | ✅ |
 | **Qui2Dessine ?** | Retrouver l'auteur d'un dessin | ⬜ |
 | **Qui2Nous a dit ça ?** | Identifier une réponse anonyme | ⬜ à distinguer de « Qui a répondu ? » |
 | **Grande finale** | Dernière manche spéciale | 🟡 |
@@ -79,7 +79,8 @@ Lancer           Résultat → Points → Classement
 ```
 
 **Livrable :** 🗺️ architecture complète du gameplay. ✅ Elle est en place dans
-le prototype, sauf le choix des modes (pour l'instant, ils alternent).
+le prototype, sauf le choix des modes (pour l'instant, ils tournent ; seul
+Qui2Photo peut être désactivé).
 
 ## 🔵 Phase 3 — Design de l'application
 
@@ -99,7 +100,7 @@ le prototype, sauf le choix des modes (pour l'instant, ils alternent).
 | 10 | ⭐ Résultat | ✅ |
 | 11 | 🏆 Classement | ✅ |
 | 12 | ✏️ Création de question | ✅ |
-| 13 | 📸 Sélection de photo | ⬜ |
+| 13 | 📸 Sélection de photo | ✅ |
 | 14 | 🎨 Dessin | ⬜ |
 | 15 | 👑 Podium final | ✅ |
 
@@ -147,7 +148,7 @@ chronomètre est corrigé du décalage d'horloge de chaque téléphone.
 
 - ✅ 😂 Humour · 🧠 Personnalité · ❤️ Amitié · 🤦 Dossiers · 🏠 Vie quotidienne ·
   💰 Argent · 💘 Couple · 🎉 Soirée (45 questions au départ)
-- ⬜ 📸 Photos · ✏️ Dessins (avec leurs modes)
+- ✅ 📸 Photos (10 consignes) · ⬜ ✏️ Dessins (avec leur mode)
 - ⬜ Étoffer la bibliothèque (viser plusieurs centaines de questions)
 - ⬜ Choix des catégories par le créateur
 
@@ -164,10 +165,12 @@ Chaque joueur reçoit une consigne : *« Choisis une photo de ta galerie
 correspondant à la question »* (ex. « Une photo dont personne ne connaît
 l'histoire »).
 
-- ⬜ Le joueur choisit **une photo précise**. Le jeu ne demande **pas** l'accès à toute la galerie.
-- ⬜ Les photos 1 à 5 s'affichent ; les joueurs doivent trouver leur propriétaire.
-- ⬜ Compresser la photo sur le téléphone avant l'envoi (cas « photo trop lourde »).
-- ⬜ Ne jamais stocker les photos durablement : les supprimer à la fin de la partie.
+- ✅ Le joueur choisit **une photo précise** avec le sélecteur du téléphone. Le jeu ne demande **pas** l'accès à toute la galerie.
+- ✅ Les photos s'affichent sans leur auteur ; les joueurs doivent trouver leur propriétaire.
+- ✅ La photo est réduite (1 280 px au plus) et ré-encodée en JPEG sur le téléphone avant l'envoi. Cela règle le cas « photo trop lourde » et efface les métadonnées, dont la position GPS.
+- ✅ Aucun stockage durable : les photos restent en mémoire du serveur le temps de la manche, puis sont effacées dès la manche suivante, à la fin de la partie ou à la fermeture du salon.
+- ✅ Le créateur peut désactiver Qui2Photo dans le lobby.
+- ✅ Les robots envoient des images abstraites générées par le serveur.
 
 **Livrable :** 📸 mode Qui2Photo fonctionnel.
 
@@ -210,7 +213,7 @@ Puis **🏆 PARTIE TERMINÉE**, avec :
 - ⬜ des statistiques
 - ✅ des titres amusants : 🕵️ Meilleur détective · 🔮 Lit dans les pensées ·
   😂 Plus prévisible · 👑 Le plus désigné
-- ⬜ 📸 Roi des dossiers · 🎨 Picasso du groupe (avec les modes photo et dessin)
+- ✅ 📸 Roi des dossiers (photos les plus reconnues) · ⬜ 🎨 Picasso du groupe (avec le mode dessin)
 
 ## 🟪 Phase 11 — Tests
 
@@ -229,7 +232,7 @@ Faire jouer de vraies personnes.
 | Mauvaise connexion | ⬜ |
 | Joueur qui rejoint tard | ✅ |
 | Temps de réponse | ✅ chronomètre par phase |
-| Photo trop lourde | ⬜ (avec la phase 7) |
+| Photo trop lourde | ✅ compressée sur le téléphone ; refusée au-delà de 1,5 Mo |
 | Joueur qui ne répond pas | ✅ la phase se termine à la fin du temps |
 | Partie abandonnée | ✅ salon supprimé 30 min après le départ du dernier joueur |
 
@@ -259,7 +262,7 @@ Faire tester Qui2Nous à plusieurs groupes et recueillir notamment :
 
 **Obligatoire :** ✅ 3 à 8 joueurs · ✅ code de salon · ✅ lobby · ✅ questions
 automatiques · ✅ questions personnalisées · ✅ votes · ✅ réponses anonymes ·
-✅ révélations · ✅ score · ✅ classement · ⬜ photos · ⬜ dessins · 🟡 grande finale
+✅ révélations · ✅ score · ✅ classement · ✅ photos · ⬜ dessins · 🟡 grande finale
 
 **Puis v2 :** ⏳ statistiques personnelles · ⏳ historique des parties ·
 ⏳ nouveaux packs de questions · ⏳ nouveaux modes · ⏳ nouveaux thèmes ·
@@ -272,9 +275,9 @@ automatiques · ✅ questions personnalisées · ✅ votes · ✅ réponses anon
 - **Salon :** le créateur obtient un code de 4 caractères (sans I, O, 0 ni 1,
   pour qu'il se lise à voix haute) et un lien d'invitation. Il faut au moins
   3 joueurs connectés pour lancer, et 8 au maximum.
-- **Manches :** 4, 6 ou 8 au choix. Les modes alternent : Qui2Nous ?, puis
-  Qui a répondu ?, etc. La dernière manche est la grande finale, à points
-  doublés.
+- **Manches :** 4, 6 ou 8 au choix. Les modes tournent dans l'ordre :
+  Qui2Nous ?, Qui a répondu ?, Qui2Photo ? (si le mode est activé), puis on
+  recommence. La dernière manche est la grande finale, à points doublés.
 - **Décompte :** 3… 2… 1… puis la question apparaît en même temps sur tous les
   téléphones.
 - **Qui2Nous ? (25 s) :** chacun désigne en secret un joueur, lui-même compris.
@@ -306,6 +309,12 @@ automatiques · ✅ questions personnalisées · ✅ votes · ✅ réponses anon
   L'ensemble est ensuite mélangé, et chaque question du groupe s'affiche avec
   la mention « ✏️ Question du groupe », sans nom d'auteur. Les robots
   proposent deux questions chacun.
+- **Qui2Photo ? (60 s, puis 60 s de vote) :** chacun choisit une photo de sa
+  galerie qui correspond à la consigne. Les photos sont affichées sans leur
+  auteur, et le vote et les points suivent les règles de « Qui a répondu ? ». Le
+  mode est actif par défaut, et le créateur peut le désactiver dans le lobby.
+  Les modes tournent dans l'ordre : Qui2Nous ?, Qui a répondu ?, Qui2Photo ?
+  En mode créateur ou collectif, on peut aussi écrire des consignes photo.
 - **Suite :** le créateur passe à la manche suivante. S'il est déconnecté,
   n'importe quel joueur peut le faire.
 
