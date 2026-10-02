@@ -1,0 +1,30 @@
+@import "tailwindcss";
+
+@theme {
+  --font-display: "Fredoka", ui-rounded, system-ui, sans-serif;
+}
+
+html,
+body {
+  background: #1e1b4b;
+  color: white;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  min-height: 100dvh;
+  background: radial-gradient(circle at 20% 0%, #4c1d95 0%, #1e1b4b 55%, #0f0d2e 100%);
+}
+
+@keyframes pop {
+  0% { transform: scale(0.4); opacity: 0; }
+  60% { transform: scale(1.15); opacity: 1; }
+  100% { transform: scale(1); }
+}
+.animate-pop { animation: pop 0.45s ease-out both; }
+
+@keyframes entree {
+  from { transform: translateY(12px); opacity: 0; }
+  to { transform: none; opacity: 1; }
+}
+.animate-entree { animation: entree 0.35s ease-out both; }

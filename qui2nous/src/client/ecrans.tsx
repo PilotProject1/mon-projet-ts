@@ -1,0 +1,636 @@
+import { useState, type FormEvent } from 'react';
+import {
+  AVATARS,
+  MAX_JOUEURS,
+  MIN_JOUEURS,
+  MODES,
+  type Ack,
+  type JoueurVue,
+  type Vue,
+} from '../shared/protocol.ts';
+import { envoyer, memoriserSession, socket } from './connexion.ts';
+import { Avatar, Bouton, Carte, Erreur, Logo, Pastille } from './ui.tsx';
+
+/** Lance une action serveur et expose son état d'envoi et son erreur. */
+function useAction() {
+  const [enCours, setEnCours] = useState(false);
+  const [erreur, setErreur] = useState<string | null>(null);
+  async function agir<T extends object>(emettre: (ack: (r: Ack<T>) => void) => void) {
+    setEnCours(true);
+    setErreur(null);
+    const r = await envoyer(emettre);
+    setEnCours(false);
+    if (!r.ok) setErreur(r.erreur);
+    return r;
+  }
+  return { enCours, erreur, agir };
+}
+
+function parId(vue: Vue) {
+  return new Map(vue.joueurs.map((j) => [j.id, j]));
+}
+
+// ——— Accueil ———
+
+function lire(cle: string) {
+  try {
+    return localStorage.getItem(cle);
+  } catch {
+    return null;
+  }
+}
+
+export function Accueil() {
+  const codeLien = new URLSearchParams(location.search).get('code')?.toUpperCase() ?? '';
+  const [nom, setNom] = useState(() => lire('qui2nous:nom') ?? '');
+  const [avatar, setAvatar] = useState(
+    () => lire('qui2nous:avatar') ?? AVATARS[Math.floor(Math.random() * AVATARS.length)],
+  );
+  const [code, setCode] = useState(codeLien);
+  const { enCours, erreur, agir } = useAction();
+
+  async function entrer(e: FormEvent, mode: 'creer' | 'rejoindre') {
+    e.preventDefault();
+    try {
+      localStorage.setItem('qui2nous:nom', nom);
+      localStorage.setItem('qui2nous:avatar', avatar);
+    } catch {
+      /* sans stockage, on redemandera le pseudo */
+    }
+    const r = await agir<{ code: string; jeton: string }>((ack) =>
+      mode === 'creer' ? socket.emit('creer', { nom, avatar }, ack) : socket.emit('rejoindre', { code, nom, avatar }, ack),
+    );
+    if (r.ok) {
+      memoriserSession(r.code, r.jeton);
+      history.replaceState(null, '', location.pathname);
+    }
+  }
+
+  return (
+    <div className="flex flex-col gap-6">
+      <header className="pt-6 text-center">
+        <Logo grand />
+        <p className="mt-2 text-white/70">Le jeu qui révèle ce que vous pensez vraiment les uns des autres.</p>
+      </header>
+
+      <Carte className="flex flex-col gap-4">
+        <label className="flex flex-col gap-1.5">
+          <span className="text-sm font-medium text-white/70">Ton pseudo</span>
+          <input
+            value={nom}
+            onChange={(e) => setNom(e.target.value)}
+            maxLength={16}
+            autoComplete="nickname"
+            placeholder="Ex. Lucas"
+            className="min-h-12 w-full rounded-xl bg-indigo-950/60 px-4 text-lg ring-1 ring-white/20 outline-none placeholder:text-white/30 focus:ring-2 focus:ring-amber-400"
+          />
+        </label>
+        <fieldset>
+          <legend className="mb-1.5 text-sm font-medium text-white/70">Ton avatar</legend>
+          <div className="grid grid-cols-6 gap-2">
+            {AVATARS.map((a) => (
+              <button
+                key={a}
+                type="button"
+                aria-pressed={a === avatar}
+                onClick={() => setAvatar(a)}
+                className={`aspect-square rounded-xl text-2xl transition sm:text-3xl ${a === avatar ? 'scale-110 bg-amber-400/90 ring-2 ring-white' : 'bg-white/10'}`}
+              >
+                {a}
+              </button>
+            ))}
+          </div>
+        </fieldset>
+      </Carte>
+
+      <Erreur message={erreur} />
+
+      {!codeLien && (
+        <form onSubmit={(e) => entrer(e, 'creer')}>
+          <Bouton type="submit" className="w-full" disabled={enCours || !nom.trim()}>
+            Créer une partie
+          </Bouton>
+        </form>
+      )}
+
+      <form onSubmit={(e) => entrer(e, 'rejoindre')} className="flex flex-col gap-3 sm:flex-row">
+        <input
+          value={code}
+          onChange={(e) => setCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ''))}
+          maxLength={4}
+          inputMode="text"
+          autoCapitalize="characters"
+          placeholder="CODE"
+          aria-label="Code du salon"
+          className="min-h-12 w-full min-w-0 rounded-2xl bg-indigo-950/60 px-4 text-center font-display text-2xl tracking-[0.4em] ring-1 ring-white/20 outline-none placeholder:text-white/30 focus:ring-2 focus:ring-amber-400 sm:flex-1"
+        />
+        <Bouton
+          type="submit"
+          variante={codeLien ? 'principal' : 'secondaire'}
+          disabled={enCours || !nom.trim() || code.length !== 4}
+          className="sm:shrink-0"
+        >
+          Rejoindre
+        </Bouton>
+      </form>
+    </div>
+  );
+}
+
+// ——— Lobby ———
+
+export function Lobby({ vue }: { vue: Vue }) {
+  const [manches, setManches] = useState(6);
+  const [copie, setCopie] = useState(false);
+  const { enCours, erreur, agir } = useAction();
+  const estHote = vue.moi === vue.hoteId;
+  const connectes = vue.joueurs.filter((j) => j.connecte).length;
+  const hote = vue.joueurs.find((j) => j.id === vue.hoteId);
+  const lien = `${location.origin}/?code=${vue.code}`;
+
+  async function partager() {
+    if (navigator.share) {
+      await navigator.share({ title: 'Qui2Nous ?', text: `Rejoins ma partie avec le code ${vue.code}`, url: lien }).catch(() => {});
+    } else {
+      await navigator.clipboard?.writeText(lien);
+      setCopie(true);
+      setTimeout(() => setCopie(false), 2000);
+    }
+  }
+
+  return (
+    <div className="flex flex-col gap-5">
+      <Carte className="text-center">
+        <p className="text-sm font-medium tracking-wide text-white/60 uppercase">Code du salon</p>
+        <p className="font-display text-6xl font-bold tracking-[0.2em] text-amber-400">{vue.code}</p>
+        <Bouton variante="secondaire" className="mt-3 text-base" onClick={partager}>
+          {copie ? 'Lien copié ✓' : 'Inviter des amis'}
+        </Bouton>
+      </Carte>
+
+      <section>
+        <h2 className="mb-2 flex items-baseline justify-between font-display text-xl">
+          Joueurs
+          <span className="text-base text-white/60">
+            {vue.joueurs.length}/{MAX_JOUEURS}
+          </span>
+        </h2>
+        <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+          {vue.joueurs.map((j) => (
+            <li key={j.id} className="flex min-w-0 items-center gap-3 rounded-2xl bg-white/5 px-3 py-2 ring-1 ring-white/10">
+              <Avatar joueur={j} />
+              <span className="min-w-0 flex-1 truncate font-medium">
+                {j.nom}
+                {j.id === vue.moi && <span className="text-white/50"> (toi)</span>}
+              </span>
+              {j.id === vue.hoteId && <span title="Créateur du salon">👑</span>}
+            </li>
+          ))}
+        </ul>
+        {connectes < MIN_JOUEURS && (
+          <p className="mt-3 text-center text-sm text-white/60">
+            Encore {MIN_JOUEURS - connectes} joueur{MIN_JOUEURS - connectes > 1 ? 's' : ''} minimum pour jouer.
+          </p>
+        )}
+      </section>
+
+      {estHote ? (
+        <Carte className="flex flex-col gap-4">
+          <div>
+            <p className="mb-2 text-sm font-medium text-white/70">Nombre de manches</p>
+            <div className="grid grid-cols-3 gap-2">
+              {[4, 6, 8].map((n) => (
+                <button
+                  key={n}
+                  onClick={() => setManches(n)}
+                  aria-pressed={manches === n}
+                  className={`min-h-11 rounded-xl font-display text-lg ${manches === n ? 'bg-amber-400 text-indigo-950' : 'bg-white/10'}`}
+                >
+                  {n}
+                </button>
+              ))}
+            </div>
+            <p className="mt-2 text-xs text-white/50">
+              Les modes « Qui2Nous ? » et « Qui a répondu ? » alternent. La dernière manche est la grande finale : points
+              doublés.
+            </p>
+          </div>
+          <Erreur message={erreur} />
+          <Bouton
+            disabled={enCours || connectes < MIN_JOUEURS}
+            onClick={() => agir((ack) => socket.emit('lancer', { manches }, ack))}
+          >
+            Lancer la partie
+          </Bouton>
+        </Carte>
+      ) : (
+        <p className="text-center text-white/70">
+          En attente du lancement par <strong>{hote?.nom ?? 'le créateur'}</strong>…
+        </p>
+      )}
+    </div>
+  );
+}
+
+// ——— En jeu ———
+
+export function EnTete({ vue, secondes }: { vue: Vue; secondes: number | null }) {
+  const mode = vue.question ? MODES[vue.question.mode].nom : null;
+  return (
+    <div className="flex flex-col gap-2">
+      <div className="flex items-center justify-between gap-3">
+        <span className="shrink-0 text-sm font-medium text-white/70">
+          Manche {vue.manche}/{vue.totalManches}
+        </span>
+        {mode && <span className="min-w-0 truncate text-sm font-semibold text-pink-300">{mode}</span>}
+        {secondes !== null && vue.phase !== 'decompte' && (
+          <span
+            className={`shrink-0 rounded-full px-3 py-1 font-display text-lg tabular-nums ${secondes <= 5 ? 'bg-rose-500 text-white' : 'bg-white/10'}`}
+          >
+            {secondes}s
+          </span>
+        )}
+      </div>
+      {vue.grandeFinale && (
+        <p className="rounded-xl bg-gradient-to-r from-amber-400 to-pink-500 px-3 py-1.5 text-center font-display font-bold text-indigo-950">
+          👑 GRANDE FINALE · points doublés
+        </p>
+      )}
+    </div>
+  );
+}
+
+export function Decompte({ vue, secondes }: { vue: Vue; secondes: number | null }) {
+  const n = Math.min(3, Math.max(1, secondes ?? 3));
+  return (
+    <div className="flex min-h-[60dvh] flex-col items-center justify-center gap-6 text-center">
+      <p className="font-display text-2xl text-white/80">{vue.grandeFinale ? 'Grande finale…' : `Manche ${vue.manche}`}</p>
+      <p key={n} className="animate-pop font-display text-9xl font-bold text-amber-400">
+        {n}
+      </p>
+    </div>
+  );
+}
+
+function CarteQuestion({ vue }: { vue: Vue }) {
+  if (!vue.question) return null;
+  return (
+    <Carte className="animate-entree text-center">
+      <p className="text-sm text-white/60">{vue.question.categorie}</p>
+      <p className="mt-1 font-display text-2xl leading-tight font-semibold sm:text-3xl">{vue.question.texte}</p>
+      <p className="mt-3 text-sm text-white/60">{MODES[vue.question.mode].consigne}</p>
+    </Carte>
+  );
+}
+
+function Progression({ vue, faits, libelle }: { vue: Vue; faits: string[]; libelle: string }) {
+  const joueurs = parId(vue);
+  const attendus = vue.participants.map((id) => joueurs.get(id)).filter((j): j is JoueurVue => !!j);
+  return (
+    <div className="text-center">
+      <p className="mb-2 text-sm text-white/60">
+        {faits.length}/{attendus.length} {libelle}
+      </p>
+      <div className="flex flex-wrap justify-center gap-2">
+        {attendus.map((j) => (
+          <span key={j.id} className={`transition ${faits.includes(j.id) ? '' : 'opacity-30'}`} title={j.nom}>
+            <Avatar joueur={j} taille="sm" />
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+export function EcranReponse({ vue }: { vue: Vue }) {
+  const [texte, setTexte] = useState('');
+  const { enCours, erreur, agir } = useAction();
+  const joueurs = parId(vue);
+  const q = vue.question!;
+  const repondre = (valeur: string) => agir((ack) => socket.emit('repondre', { valeur }, ack));
+
+  if (vue.maReponse !== null) {
+    return (
+      <div className="flex flex-col gap-6">
+        <CarteQuestion vue={vue} />
+        <Carte className="text-center">
+          <p className="text-sm text-white/60">Ta réponse secrète</p>
+          {q.mode === 'qui2nous' ? (
+            <div className="mt-2 flex justify-center">
+              {joueurs.get(vue.maReponse) && <Pastille joueur={joueurs.get(vue.maReponse)!} />}
+            </div>
+          ) : (
+            <p className="mt-1 font-display text-xl break-words">« {vue.maReponse} »</p>
+          )}
+        </Carte>
+        <Progression vue={vue} faits={vue.ontRepondu} libelle="ont répondu" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-5">
+      <CarteQuestion vue={vue} />
+      <Erreur message={erreur} />
+      {q.mode === 'qui2nous' ? (
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+          {vue.participants.map((id) => {
+            const j = joueurs.get(id);
+            if (!j) return null;
+            return (
+              <button
+                key={id}
+                disabled={enCours}
+                onClick={() => repondre(id)}
+                className="flex min-w-0 flex-col items-center gap-1 rounded-2xl bg-white/10 p-3 ring-1 ring-white/15 transition active:scale-95 active:bg-amber-400/30"
+              >
+                <Avatar joueur={j} taille="lg" />
+                <span className="w-full truncate text-center font-medium">{j.id === vue.moi ? `${j.nom} (toi)` : j.nom}</span>
+              </button>
+            );
+          })}
+        </div>
+      ) : (
+        <form
+          className="flex flex-col gap-3"
+          onSubmit={(e) => {
+            e.preventDefault();
+            repondre(texte);
+          }}
+        >
+          <input
+            value={texte}
+            onChange={(e) => setTexte(e.target.value)}
+            maxLength={80}
+            autoFocus
+            placeholder="Ta réponse, en secret…"
+            className="min-h-14 w-full rounded-2xl bg-indigo-950/60 px-4 text-lg ring-1 ring-white/20 outline-none placeholder:text-white/30 focus:ring-2 focus:ring-amber-400"
+          />
+          <Bouton type="submit" disabled={enCours || !texte.trim()}>
+            Envoyer
+          </Bouton>
+        </form>
+      )}
+    </div>
+  );
+}
+
+export function EcranVote({ vue }: { vue: Vue }) {
+  const [choix, setChoix] = useState<Record<string, string>>({});
+  const { enCours, erreur, agir } = useAction();
+  const joueurs = parId(vue);
+  const aVote = vue.ontVote.includes(vue.moi);
+  const aDeviner = vue.reponsesAnonymes.filter((r) => !r.estLaMienne);
+  const candidats = vue.participants.filter((id) => id !== vue.moi).map((id) => joueurs.get(id)).filter((j): j is JoueurVue => !!j);
+  const complet = aDeviner.every((r) => choix[r.id]);
+
+  if (aVote) {
+    return (
+      <div className="flex flex-col gap-6">
+        <CarteQuestion vue={vue} />
+        <p className="text-center font-display text-xl">Vote enregistré 🗳️</p>
+        <Progression vue={vue} faits={vue.ontVote} libelle="ont voté" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-4 pb-24">
+      <div className="text-center">
+        <p className="font-display text-2xl">Qui a écrit quoi ?</p>
+        <p className="text-sm text-white/60">{vue.question?.texte}</p>
+      </div>
+      {vue.reponsesAnonymes.map((r) => (
+        <Carte key={r.id} className={r.estLaMienne ? 'opacity-60' : ''}>
+          <p className="font-display text-xl break-words">« {r.texte} »</p>
+          {r.estLaMienne ? (
+            <p className="mt-2 text-sm text-white/60">C’est ta réponse.</p>
+          ) : (
+            <div className="mt-3 flex flex-wrap gap-2">
+              {candidats.map((j) => {
+                const actif = choix[r.id] === j.id;
+                return (
+                  <button
+                    key={j.id}
+                    onClick={() => setChoix((c) => ({ ...c, [r.id]: j.id }))}
+                    aria-pressed={actif}
+                    className={`flex max-w-full min-w-0 items-center gap-1.5 rounded-full py-1 pr-3 pl-1 text-sm transition ${actif ? 'bg-amber-400 font-semibold text-indigo-950' : 'bg-white/10'}`}
+                  >
+                    <span className="text-xl">{j.avatar}</span>
+                    <span className="truncate">{j.nom}</span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </Carte>
+      ))}
+      <div className="fixed inset-x-0 bottom-0 bg-gradient-to-t from-indigo-950 via-indigo-950/95 to-transparent px-4 pt-6 pb-[max(1rem,env(safe-area-inset-bottom))]">
+        <div className="mx-auto flex max-w-md flex-col gap-2">
+          <Erreur message={erreur} />
+          <Bouton
+            className="w-full"
+            disabled={enCours || !complet}
+            onClick={() => agir((ack) => socket.emit('voter', { attributions: choix }, ack))}
+          >
+            Valider mon vote
+          </Bouton>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function Classement({ vue }: { vue: Vue }) {
+  const tri = [...vue.joueurs].sort((a, b) => b.score - a.score);
+  const medailles = ['🥇', '🥈', '🥉'];
+  return (
+    <ol className="flex flex-col gap-1.5">
+      {tri.map((j) => {
+        // Ex æquo : même rang pour le même score.
+        const rang = tri.findIndex((k) => k.score === j.score);
+        return (
+        <li
+          key={j.id}
+          className={`flex items-center gap-3 rounded-2xl px-3 py-2 ${j.id === vue.moi ? 'bg-amber-400/15 ring-1 ring-amber-400/40' : 'bg-white/5'}`}
+        >
+          <span className="w-7 shrink-0 text-center font-display text-lg">{medailles[rang] ?? rang + 1}</span>
+          <span className="min-w-0 flex-1">
+            <Pastille joueur={j} moi={j.id === vue.moi} />
+          </span>
+          <span className="shrink-0 font-display text-lg tabular-nums">{j.score.toLocaleString('fr-FR')}</span>
+        </li>
+        );
+      })}
+    </ol>
+  );
+}
+
+export function EcranResultat({ vue }: { vue: Vue }) {
+  const { enCours, erreur, agir } = useAction();
+  const joueurs = parId(vue);
+  const r = vue.resultat!;
+  const monGain = r.gains[vue.moi];
+  const hote = joueurs.get(vue.hoteId);
+  const peutPiloter = vue.moi === vue.hoteId || !hote?.connecte;
+  const derniere = vue.manche >= vue.totalManches;
+
+  return (
+    <div className="flex flex-col gap-5">
+      <p className="text-center font-display text-2xl">{vue.question?.texte}</p>
+
+      {r.mode === 'qui2nous' ? (
+        <div className="flex flex-col gap-2">
+          {r.decompte.length === 0 && <p className="text-center text-white/60">Personne n’a répondu à temps.</p>}
+          {r.decompte.map((d, i) => {
+            const j = joueurs.get(d.joueurId);
+            if (!j) return null;
+            return (
+              <Carte key={d.joueurId} className={`animate-entree ${i === 0 ? 'ring-2 ring-amber-400' : ''}`}>
+                <div className="flex items-center justify-between gap-3">
+                  <Pastille joueur={j} moi={j.id === vue.moi} />
+                  <span className="shrink-0 font-display text-xl">
+                    {d.votants.length} vote{d.votants.length > 1 ? 's' : ''}
+                  </span>
+                </div>
+                <p className="mt-2 text-sm break-words text-white/60">
+                  Désigné par {d.votants.map((v) => joueurs.get(v)?.nom ?? '?').join(', ')}
+                </p>
+              </Carte>
+            );
+          })}
+        </div>
+      ) : (
+        <div className="flex flex-col gap-2">
+          {r.reponses.length === 0 && <p className="text-center text-white/60">Pas assez de réponses cette fois.</p>}
+          {r.reponses.map((rep) => {
+            const auteur = joueurs.get(rep.auteurId);
+            return (
+              <Carte key={rep.id} className="animate-entree">
+                <p className="font-display text-lg break-words">« {rep.texte} »</p>
+                <div className="mt-2 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                  {auteur && <Pastille joueur={auteur} moi={auteur.id === vue.moi} />}
+                  <span className="text-sm text-white/60">
+                    {rep.trouvePar.length === 0
+                      ? 'Personne n’a trouvé 🤫'
+                      : `Trouvé par ${rep.trouvePar.map((v) => joueurs.get(v)?.nom ?? '?').join(', ')}`}
+                  </span>
+                </div>
+              </Carte>
+            );
+          })}
+        </div>
+      )}
+
+      <Carte className="text-center">
+        {monGain ? (
+          <>
+            <p className="font-display text-4xl font-bold text-amber-400">+{monGain.points}</p>
+            <p className="text-sm text-white/70">{monGain.raisons.join(' · ')}</p>
+          </>
+        ) : (
+          <p className="text-white/70">Pas de points pour toi cette manche.</p>
+        )}
+      </Carte>
+
+      <section>
+        <h2 className="mb-2 font-display text-xl">Classement</h2>
+        <Classement vue={vue} />
+      </section>
+
+      <Erreur message={erreur} />
+      {peutPiloter ? (
+        <Bouton disabled={enCours} onClick={() => agir((ack) => socket.emit('suivant', ack))}>
+          {derniere ? 'Voir le podium 🏆' : 'Manche suivante'}
+        </Bouton>
+      ) : (
+        <p className="text-center text-sm text-white/60">{hote?.nom ?? 'Le créateur'} lance la suite…</p>
+      )}
+    </div>
+  );
+}
+
+export function Podium({ vue, quitter }: { vue: Vue; quitter: () => void }) {
+  const { enCours, erreur, agir } = useAction();
+  const joueurs = parId(vue);
+  const tri = [...vue.joueurs].sort((a, b) => b.score - a.score);
+  const [premier, deuxieme, troisieme] = tri;
+  const hote = joueurs.get(vue.hoteId);
+  const peutPiloter = vue.moi === vue.hoteId || !hote?.connecte;
+  const marche = (j: JoueurVue | undefined, hauteur: string, place: string) =>
+    j && (
+      <div className="flex min-w-0 flex-1 flex-col items-center gap-1">
+        <Avatar joueur={j} taille="lg" />
+        <span className="w-full truncate text-center text-sm font-medium">{j.nom}</span>
+        <div className={`flex w-full items-start justify-center rounded-t-2xl bg-white/15 pt-2 font-display text-2xl ${hauteur}`}>
+          {place}
+        </div>
+      </div>
+    );
+
+  return (
+    <div className="flex flex-col gap-6">
+      <div className="text-center">
+        <p className="font-display text-3xl font-bold">🏆 Partie terminée</p>
+        {premier && (
+          <p className="mt-1 text-white/70">
+            Victoire de <strong className="text-amber-400">{premier.nom}</strong> avec {premier.score.toLocaleString('fr-FR')} points
+          </p>
+        )}
+      </div>
+
+      <div className="flex items-end gap-2">
+        {marche(deuxieme, 'h-20', '🥈')}
+        {marche(premier, 'h-28', '🥇')}
+        {marche(troisieme, 'h-14', '🥉')}
+      </div>
+
+      {vue.titres.length > 0 && (
+        <section>
+          <h2 className="mb-2 font-display text-xl">Les titres</h2>
+          <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+            {vue.titres.map((t) => {
+              const j = joueurs.get(t.joueurId);
+              return (
+                <li key={t.intitule} className="flex min-w-0 items-center gap-3 rounded-2xl bg-white/5 px-3 py-2">
+                  <span className="text-2xl">{t.emoji}</span>
+                  <span className="min-w-0">
+                    <span className="block text-sm text-white/60">{t.intitule}</span>
+                    <span className="block truncate font-medium">{j?.nom ?? '?'}</span>
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      )}
+
+      <section>
+        <h2 className="mb-2 font-display text-xl">Classement final</h2>
+        <Classement vue={vue} />
+      </section>
+
+      <Erreur message={erreur} />
+      <div className="flex flex-col gap-3 sm:flex-row">
+        {peutPiloter && (
+          <Bouton className="sm:flex-1" disabled={enCours} onClick={() => agir((ack) => socket.emit('rejouer', ack))}>
+            Rejouer
+          </Bouton>
+        )}
+        <Bouton variante="secondaire" className="sm:flex-1" onClick={quitter}>
+          Quitter
+        </Bouton>
+      </div>
+    </div>
+  );
+}
+
+export function EnAttente() {
+  return (
+    <Carte className="mt-10 text-center">
+      <p className="text-4xl">⏳</p>
+      <p className="mt-2 font-display text-xl">Une manche est en cours</p>
+      <p className="mt-1 text-white/70">Tu entres dans la partie à la prochaine manche.</p>
+    </Carte>
+  );
+}
