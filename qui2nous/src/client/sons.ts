@@ -244,3 +244,83 @@ export function debloquerAuPremierToucher() {
   };
   window.addEventListener('pointerdown', debloquer);
 }
+
+export type VariantePet = 'classique' | 'pouet' | 'trompette' | 'mouille';
+
+/**
+ * Un bruit de pet pour la fin du chrono. Une note grave et râpeuse dont le
+ * volume est haché très vite (le « flottement » caractéristique), plus un
+ * souffle filtré. Chaque variante change la durée, la hauteur et le hachage.
+ */
+export function pet(ctx: BaseAudioContext, quand: number, variante: VariantePet = 'classique') {
+  const reglages = {
+    // durée (s), hauteur de départ et d'arrivée (Hz), hachage de départ et d'arrivée (Hz), souffle
+    classique: { duree: 0.75, f0: 105, f1: 70, h0: 28, h1: 18, souffle: 0.25 },
+    pouet: { duree: 0.28, f0: 240, f1: 300, h0: 45, h1: 40, souffle: 0.1 },
+    trompette: { duree: 1.6, f0: 130, f1: 55, h0: 22, h1: 9, souffle: 0.2 },
+    mouille: { duree: 0.9, f0: 80, f1: 60, h0: 34, h1: 14, souffle: 0.9 },
+  }[variante];
+  const { duree, f0, f1, h0, h1, souffle } = reglages;
+  const fin = quand + duree;
+  const sortie = sortieAudio(ctx, 0.7);
+
+  // Enveloppe générale : attaque franche, petite relance, extinction.
+  const enveloppe = ctx.createGain();
+  enveloppe.gain.setValueAtTime(0.0001, quand);
+  enveloppe.gain.exponentialRampToValueAtTime(1, quand + 0.02);
+  enveloppe.gain.setValueAtTime(1, quand + duree * 0.6);
+  enveloppe.gain.exponentialRampToValueAtTime(0.0001, fin);
+  enveloppe.connect(sortie);
+
+  // Le hachage : le volume oscille très vite entre presque rien et plein.
+  const hache = ctx.createGain();
+  hache.gain.value = 0.5;
+  const lfo = ctx.createOscillator();
+  lfo.type = variante === 'mouille' ? 'square' : 'triangle';
+  lfo.frequency.setValueAtTime(h0, quand);
+  lfo.frequency.linearRampToValueAtTime(h1, fin);
+  const ampleurLfo = ctx.createGain();
+  ampleurLfo.gain.value = 0.5;
+  lfo.connect(ampleurLfo).connect(hache.gain);
+  hache.connect(enveloppe);
+
+  // La note grave et râpeuse, adoucie par un filtre.
+  const corps = ctx.createOscillator();
+  corps.type = 'sawtooth';
+  corps.frequency.setValueAtTime(f0, quand);
+  corps.frequency.exponentialRampToValueAtTime(f1, fin);
+  // Petites irrégularités de hauteur, pour que ce soit moins « électronique ».
+  const tremble = ctx.createOscillator();
+  tremble.frequency.value = 7;
+  const ampleurTremble = ctx.createGain();
+  ampleurTremble.gain.value = f0 * 0.08;
+  tremble.connect(ampleurTremble).connect(corps.frequency);
+  const filtre = ctx.createBiquadFilter();
+  filtre.type = 'lowpass';
+  filtre.frequency.value = variante === 'pouet' ? 1400 : 700;
+  filtre.Q.value = 4;
+  const gainCorps = ctx.createGain();
+  gainCorps.gain.value = 0.9;
+  corps.connect(filtre).connect(gainCorps).connect(hache);
+
+  // Le souffle (bruit filtré), plus présent dans la version « mouillée ».
+  const air = bruit(ctx, duree, (p) => 1 - p * 0.5);
+  const filtreAir = ctx.createBiquadFilter();
+  filtreAir.type = 'bandpass';
+  filtreAir.frequency.value = variante === 'mouille' ? 450 : 300;
+  filtreAir.Q.value = 1.5;
+  const gainAir = ctx.createGain();
+  gainAir.gain.value = souffle;
+  air.connect(filtreAir).connect(gainAir).connect(hache);
+
+  for (const o of [lfo, corps, tremble]) {
+    o.start(quand);
+    o.stop(fin + 0.05);
+  }
+  air.start(quand);
+
+  // La trompette se termine par trois petits « pouet ».
+  if (variante === 'trompette') {
+    for (const d of [0.12, 0.3, 0.45]) pet(ctx, fin + d, 'pouet');
+  }
+}
