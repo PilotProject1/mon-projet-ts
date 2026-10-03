@@ -4,7 +4,7 @@ import { Intro } from './Intro.tsx';
 import { Accueil, Decompte, Redaction, EcranReponse, EcranResultat, EcranVote, EnAttente, EnTete, Lobby, Podium } from './ecrans.tsx';
 import { Logo } from './ui.tsx';
 import { DecorPetillant } from './Fond.tsx';
-import { DUREE_STRESS, contexteAudio, debloquerAuPremierToucher, musiqueStress } from './sons.ts';
+import { DUREE_STRESS, chargerPet, contexteAudio, debloquerAuPremierToucher, musiqueStress } from './sons.ts';
 import type { Vue } from '../shared/protocol.ts';
 
 debloquerAuPremierToucher();
@@ -25,6 +25,9 @@ function useMusiqueChrono(vue: Vue | null, decalage: number) {
     if (!active || echeance === null) return;
     if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
     let arreter: (() => void) | null = null;
+    // Le pet de fin est téléchargé dès le début de la phase, bien avant les 10 dernières secondes.
+    const ctxAudio = contexteAudio();
+    if (ctxAudio) chargerPet(ctxAudio);
     const lancer = () => {
       const ctx = contexteAudio();
       if (!ctx || ctx.state !== 'running') return;
