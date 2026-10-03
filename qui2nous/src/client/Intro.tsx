@@ -1,5 +1,5 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
-import { COULEURS_CONFETTIS, DecorPetillant, aleatoire } from './Fond.tsx';
+import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from 'react';
+import { DecorPetillant, Gerbe } from './Fond.tsx';
 import { DUREE_SIFFLEMENT, bandeSonIntro, contexteAudio, vibrer } from './sons.ts';
 
 // Écran d'ouverture : « QUI », « 2 » puis « NOUS » tombent du haut et
@@ -23,53 +23,6 @@ const atterrissage = (i: number) => DEPARTS[i] + DUREE_CHUTE * 0.6;
 export const IMPACTS = DEPARTS.map((_, i) => atterrissage(i));
 /** Apparition de la phrase d'accroche, puis du bouton « Jouer ». */
 const APRES_CHUTE = IMPACTS[IMPACTS.length - 1] + 0.6;
-
-/**
- * Explosion de feu d'artifice quand un mot touche le sol : un éclair de
- * lumière, puis des étincelles lumineuses qui partent en cercle et retombent.
- */
-function Eclats({ delai, graine }: { delai: number; graine: number }) {
-  const eclats = useMemo(() => {
-    const r = aleatoire(graine);
-    const n = 28;
-    return Array.from({ length: n }, (_, i) => {
-      const angle = (i / n) * Math.PI * 2 + r() * 0.3;
-      const distance = 100 + r() * 100;
-      const couleur = COULEURS_CONFETTIS[Math.floor(r() * COULEURS_CONFETTIS.length)];
-      return {
-        dx: `${Math.cos(angle) * distance}px`,
-        // Les étincelles retombent un peu, comme sous l'effet de la pesanteur.
-        dy: `${Math.sin(angle) * distance * 0.75 + 25}px`,
-        couleur,
-        taille: 4 + r() * 6,
-        rond: r() > 0.3,
-      };
-    });
-  }, [graine]);
-  return (
-    <span className="pointer-events-none absolute inset-0 flex items-center justify-center" aria-hidden>
-      <span className="intro-eclair absolute size-40 rounded-full" style={{ animationDelay: `${delai}s` }} />
-      {eclats.map((e, i) => (
-        <span
-          key={i}
-          className="intro-eclat absolute"
-          style={
-            {
-              '--dx': e.dx,
-              '--dy': e.dy,
-              width: e.taille,
-              height: e.rond ? e.taille : e.taille / 2,
-              borderRadius: e.rond ? '9999px' : '2px',
-              backgroundColor: e.couleur,
-              boxShadow: `0 0 ${e.taille * 1.5}px ${e.couleur}`,
-              animationDelay: `${delai}s`,
-            } as CSSProperties
-          }
-        />
-      ))}
-    </span>
-  );
-}
 
 /**
  * Chaque mot part juste au-dessus du bord de l'écran, quelle que soit sa place
@@ -187,7 +140,7 @@ export function Intro({ onFini }: { onFini: () => void }) {
                 >
                   {m.texte}
                 </span>
-                <Eclats delai={atterrissage(i)} graine={i + 7} />
+                <Gerbe delai={atterrissage(i)} graine={i + 7} />
               </span>
             ))}
           </div>

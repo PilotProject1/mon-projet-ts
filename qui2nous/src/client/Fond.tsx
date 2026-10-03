@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, type CSSProperties } from 'react';
 
 // Décor coloré et pétillant partagé par l'intro et l'accueil : taches de
 // couleur floues qui dérivent et étincelles qui scintillent. À placer dans un
@@ -59,5 +59,52 @@ export function DecorPetillant({ etincelles: n = 36 }: { etincelles?: number }) 
         />
       ))}
     </>
+  );
+}
+
+/**
+ * Explosion de feu d'artifice (mots de l'intro, points gagnés, podium) : un éclair de
+ * lumière, puis des étincelles lumineuses qui partent en cercle et retombent.
+ */
+export function Gerbe({ delai = 0, graine = 1 }: { delai?: number; graine?: number }) {
+  const eclats = useMemo(() => {
+    const r = aleatoire(graine);
+    const n = 28;
+    return Array.from({ length: n }, (_, i) => {
+      const angle = (i / n) * Math.PI * 2 + r() * 0.3;
+      const distance = 100 + r() * 100;
+      const couleur = COULEURS_CONFETTIS[Math.floor(r() * COULEURS_CONFETTIS.length)];
+      return {
+        dx: `${Math.cos(angle) * distance}px`,
+        // Les étincelles retombent un peu, comme sous l'effet de la pesanteur.
+        dy: `${Math.sin(angle) * distance * 0.75 + 25}px`,
+        couleur,
+        taille: 4 + r() * 6,
+        rond: r() > 0.3,
+      };
+    });
+  }, [graine]);
+  return (
+    <span className="pointer-events-none absolute inset-0 flex items-center justify-center" aria-hidden>
+      <span className="intro-eclair absolute size-40 rounded-full" style={{ animationDelay: `${delai}s` }} />
+      {eclats.map((e, i) => (
+        <span
+          key={i}
+          className="intro-eclat absolute"
+          style={
+            {
+              '--dx': e.dx,
+              '--dy': e.dy,
+              width: e.taille,
+              height: e.rond ? e.taille : e.taille / 2,
+              borderRadius: e.rond ? '9999px' : '2px',
+              backgroundColor: e.couleur,
+              boxShadow: `0 0 ${e.taille * 1.5}px ${e.couleur}`,
+              animationDelay: `${delai}s`,
+            } as CSSProperties
+          }
+        />
+      ))}
+    </span>
   );
 }

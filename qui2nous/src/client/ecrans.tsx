@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type CSSProperties, type FormEvent } from 'react';
 import {
   AVATARS,
   LONGUEUR_MAX_QUESTION,
@@ -18,7 +18,7 @@ import {
 import { envoyer, memoriserSession, socket } from './connexion.ts';
 import { preparerPhoto } from './photo.ts';
 import { Ardoise } from './ardoise.tsx';
-import { DecorPetillant } from './Fond.tsx';
+import { Gerbe } from './Fond.tsx';
 import { Avatar, Bouton, Carte, Erreur, Pastille } from './ui.tsx';
 
 /** Lance une action serveur et expose son état d'envoi et son erreur. */
@@ -71,12 +71,6 @@ export function Accueil() {
   const [code, setCode] = useState(codeLien);
   const { enCours, erreur, agir } = useAction();
 
-  // Le fond sombre de la page masquerait le fond pétillant : on l'efface le temps de l'accueil.
-  useEffect(() => {
-    document.body.classList.add('fond-vif');
-    return () => document.body.classList.remove('fond-vif');
-  }, []);
-
   async function entrer(e: FormEvent, mode: 'creer' | 'rejoindre') {
     e.preventDefault();
     try {
@@ -96,11 +90,6 @@ export function Accueil() {
 
   return (
     <>
-      {/* Même fond que l'intro, fixé derrière la page */}
-      <div className="intro-fond fixed inset-0 -z-10 overflow-hidden" aria-hidden>
-        <DecorPetillant etincelles={28} />
-      </div>
-
       <div className="flex flex-col gap-5 pt-2">
         <header className="accueil-monte text-center">
           <LogoVif />
@@ -235,6 +224,9 @@ function LogoVif() {
 
 // ——— Lobby ———
 
+/** Décalage d'animation selon le rang de l'élément (voir .anim-rebond). */
+const rang = (i: number) => ({ '--i': i }) as CSSProperties;
+
 const DESCRIPTIONS_MODES: Record<Mode, string> = {
   qui2nous: 'Qui correspond le mieux à la question\u00a0?',
   quiARepondu: 'Retrouver l’auteur de chaque réponse.',
@@ -266,8 +258,14 @@ export function Lobby({ vue }: { vue: Vue }) {
   return (
     <div className="flex flex-col gap-5">
       <Carte className="text-center">
-        <p className="text-sm font-medium tracking-wide text-white/60 uppercase">Code du salon</p>
-        <p className="font-display text-6xl font-bold tracking-[0.2em] text-amber-400">{vue.code}</p>
+        <p className="text-sm font-medium tracking-wide text-white/85 uppercase">Code du salon</p>
+        <p className="flex justify-center gap-1 font-display text-6xl font-bold text-yellow-300 [text-shadow:0_4px_0_#b45309,0_8px_18px_rgba(0,0,0,0.25)]">
+          {[...vue.code].map((c, i) => (
+            <span key={i} className="anim-rebond inline-block" style={rang(i + 1)}>
+              {c}
+            </span>
+          ))}
+        </p>
         <Bouton variante="secondaire" className="mt-3 text-base" onClick={partager}>
           {copie ? 'Lien copié ✓' : 'Inviter des amis'}
         </Bouton>
@@ -276,25 +274,29 @@ export function Lobby({ vue }: { vue: Vue }) {
       <section>
         <h2 className="mb-2 flex items-baseline justify-between font-display text-xl">
           Joueurs
-          <span className="text-base text-white/60">
+          <span className="text-base text-white/85">
             {vue.joueurs.length}/{MAX_JOUEURS}
           </span>
         </h2>
         <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2">
           {vue.joueurs.map((j) => (
-            <li key={j.id} className="flex min-w-0 items-center gap-3 rounded-2xl bg-white/5 px-3 py-2 ring-1 ring-white/10">
+            <li key={j.id} className="anim-rebond flex min-w-0 items-center gap-3 rounded-2xl bg-white/15 px-3 py-2 ring-1 ring-white/40">
               <Avatar joueur={j} />
               <span className="min-w-0 flex-1 truncate font-medium">
                 {j.nom}
-                {j.id === vue.moi && <span className="text-white/50"> (toi)</span>}
+                {j.id === vue.moi && <span className="text-white/75"> (toi)</span>}
               </span>
-              {j.id === vue.hoteId && <span title="Créateur du salon">👑</span>}
+              {j.id === vue.hoteId && (
+                <span title="Créateur du salon" className="anim-flotte inline-block">
+                  👑
+                </span>
+              )}
               {j.robot && estHote && (
                 <button
                   onClick={() => agir((ack) => socket.emit('retirerRobot', { id: j.id }, ack))}
                   aria-label={`Retirer ${j.nom}`}
                   title="Retirer ce robot"
-                  className="flex size-8 shrink-0 items-center justify-center rounded-full text-white/50 hover:bg-white/10 hover:text-white"
+                  className="flex size-8 shrink-0 items-center justify-center rounded-full text-white/75 hover:bg-white/20 hover:text-white"
                 >
                   ✕
                 </button>
@@ -303,7 +305,7 @@ export function Lobby({ vue }: { vue: Vue }) {
           ))}
         </ul>
         {connectes < MIN_JOUEURS && (
-          <p className="mt-3 text-center text-sm text-white/60">
+          <p className="mt-3 text-center text-sm text-white/85">
             Encore {MIN_JOUEURS - connectes} joueur{MIN_JOUEURS - connectes > 1 ? 's' : ''} minimum pour jouer.
           </p>
         )}
@@ -322,26 +324,26 @@ export function Lobby({ vue }: { vue: Vue }) {
       {estHote ? (
         <Carte className="flex flex-col gap-4">
           <div>
-            <p className="mb-2 text-sm font-medium text-white/70">Nombre de manches</p>
+            <p className="mb-2 text-sm font-medium text-white/90">Nombre de manches</p>
             <div className="grid grid-cols-3 gap-2">
               {[4, 6, 8].map((n) => (
                 <button
                   key={n}
                   onClick={() => setManches(n)}
                   aria-pressed={manches === n}
-                  className={`min-h-11 rounded-xl font-display text-lg ${manches === n ? 'bg-amber-400 text-indigo-950' : 'bg-white/10'}`}
+                  className={`min-h-11 rounded-xl font-display text-lg ${manches === n ? 'bg-yellow-300 text-indigo-950' : 'bg-white/20'}`}
                 >
                   {n}
                 </button>
               ))}
             </div>
-            <p className="mt-2 text-xs text-white/50">
+            <p className="mt-2 text-xs text-white/75">
               Les modes choisis s’enchaînent. La dernière manche est la grande finale : question spéciale et points
               doublés.
             </p>
           </div>
           <fieldset>
-            <legend className="mb-2 text-sm font-medium text-white/70">Modes de jeu</legend>
+            <legend className="mb-2 text-sm font-medium text-white/90">Modes de jeu</legend>
             <div className="flex flex-col gap-2">
               {ORDRE_MODES.map((m) => {
                 const actif = modes.includes(m);
@@ -356,13 +358,13 @@ export function Lobby({ vue }: { vue: Vue }) {
                     onClick={() =>
                       setModes((ms) => (actif ? ms.filter((x) => x !== m) : ORDRE_MODES.filter((x) => ms.includes(x) || x === m)))
                     }
-                    className="flex items-center gap-3 rounded-xl bg-white/10 px-3 py-2 text-left"
+                    className="flex items-center gap-3 rounded-xl bg-white/20 px-3 py-2 text-left"
                   >
                     <span className="min-w-0 flex-1">
                       <span className="block font-display text-lg leading-tight">{MODES[m].nom}</span>
-                      <span className="block text-sm text-white/60">{DESCRIPTIONS_MODES[m]}</span>
+                      <span className="block text-sm text-white/85">{DESCRIPTIONS_MODES[m]}</span>
                     </span>
-                    <span className={`relative h-7 w-12 shrink-0 rounded-full transition ${actif ? 'bg-amber-400' : 'bg-white/20'}`}>
+                    <span className={`relative h-7 w-12 shrink-0 rounded-full transition ${actif ? 'bg-yellow-300' : 'bg-white/20'}`}>
                       <span className={`absolute top-1 size-5 rounded-full bg-white transition-all ${actif ? 'left-6' : 'left-1'}`} />
                     </span>
                   </button>
@@ -371,17 +373,17 @@ export function Lobby({ vue }: { vue: Vue }) {
             </div>
           </fieldset>
           <fieldset>
-            <legend className="mb-2 text-sm font-medium text-white/70">Questions</legend>
+            <legend className="mb-2 text-sm font-medium text-white/90">Questions</legend>
             <div className="flex flex-col gap-2">
               {(Object.keys(SOURCES) as SourceQuestions[]).map((s) => (
                 <button
                   key={s}
                   onClick={() => setSource(s)}
                   aria-pressed={source === s}
-                  className={`rounded-xl px-3 py-2 text-left ${source === s ? 'bg-amber-400 text-indigo-950' : 'bg-white/10'}`}
+                  className={`rounded-xl px-3 py-2 text-left ${source === s ? 'bg-yellow-300 text-indigo-950' : 'bg-white/20'}`}
                 >
                   <span className="block font-display text-lg leading-tight">{SOURCES[s].nom}</span>
-                  <span className={`block text-sm ${source === s ? 'text-indigo-950/80' : 'text-white/60'}`}>
+                  <span className={`block text-sm ${source === s ? 'text-indigo-950/80' : 'text-white/85'}`}>
                     {SOURCES[s].description}
                   </span>
                 </button>
@@ -397,7 +399,7 @@ export function Lobby({ vue }: { vue: Vue }) {
           </Bouton>
         </Carte>
       ) : (
-        <p className="text-center text-white/70">
+        <p className="text-center text-white/90">
           En attente du lancement par <strong>{hote?.nom ?? 'le créateur'}</strong>…
         </p>
       )}
@@ -430,7 +432,7 @@ export function Redaction({ vue }: { vue: Vue }) {
       : 'Elles seront mélangées avec celles du jeu, dans un ordre surprise.';
   const progression = (
     <div className="text-center">
-      <p className="mb-2 text-sm text-white/60">
+      <p className="mb-2 text-sm text-white/85">
         {vue.nbQuestionsGroupe} question{vue.nbQuestionsGroupe > 1 ? 's' : ''} écrite{vue.nbQuestionsGroupe > 1 ? 's' : ''} ·{' '}
         {vue.ontFini.length}/{redacteurs.length} {redacteurs.length > 1 ? 'ont terminé' : 'a terminé'}
       </p>
@@ -453,7 +455,7 @@ export function Redaction({ vue }: { vue: Vue }) {
           <p className="mt-2 font-display text-xl">
             {fini ? 'Questions envoyées ✓' : `${createur?.nom ?? 'Le créateur'} prépare les questions…`}
           </p>
-          <p className="mt-1 text-sm text-white/60">{melange}</p>
+          <p className="mt-1 text-sm text-white/85">{melange}</p>
         </Carte>
         {progression}
       </div>
@@ -464,7 +466,7 @@ export function Redaction({ vue }: { vue: Vue }) {
     <div className="flex flex-col gap-5">
       <div className="text-center">
         <p className="font-display text-2xl">Écris tes questions</p>
-        <p className="text-sm text-white/60">
+        <p className="text-sm text-white/85">
           Jusqu’à {MAX_QUESTIONS_PAR_JOUEUR}. {melange}
         </p>
       </div>
@@ -475,13 +477,13 @@ export function Redaction({ vue }: { vue: Vue }) {
               key={m}
               onClick={() => setMode(m)}
               aria-pressed={mode === m}
-              className={`min-h-11 rounded-xl px-2 text-sm font-semibold ${mode === m ? 'bg-amber-400 text-indigo-950' : 'bg-white/10'}`}
+              className={`min-h-11 rounded-xl px-2 text-sm font-semibold ${mode === m ? 'bg-yellow-300 text-indigo-950' : 'bg-white/20'}`}
             >
               {TYPES_QUESTION[m].libelle}
             </button>
           ))}
         </div>
-        <p className="text-xs text-white/50">{MODES[mode].consigne}</p>
+        <p className="text-xs text-white/75">{MODES[mode].consigne}</p>
         <form
           className="flex flex-col gap-2"
           onSubmit={async (e) => {
@@ -497,7 +499,7 @@ export function Redaction({ vue }: { vue: Vue }) {
             rows={2}
             disabled={plein}
             placeholder={`Ex. ${TYPES_QUESTION[mode].exemple}`}
-            className="w-full resize-none rounded-xl bg-indigo-950/60 px-4 py-3 text-lg ring-1 ring-white/20 outline-none placeholder:text-white/30 focus:ring-2 focus:ring-amber-400 disabled:opacity-40"
+            className="w-full resize-none rounded-xl bg-white text-indigo-950 px-4 py-3 text-lg ring-1 ring-white/40 outline-none placeholder:text-indigo-950/35 focus:ring-2 focus:ring-yellow-300 disabled:opacity-40"
           />
           <Bouton type="submit" variante="secondaire" disabled={enCours || plein || texte.trim().length < 8}>
             {plein ? 'Maximum atteint' : 'Ajouter la question'}
@@ -510,22 +512,22 @@ export function Redaction({ vue }: { vue: Vue }) {
         <section>
           <h2 className="mb-2 flex items-baseline justify-between font-display text-xl">
             Mes questions
-            <span className="text-base text-white/60">
+            <span className="text-base text-white/85">
               {vue.mesQuestions.length}/{MAX_QUESTIONS_PAR_JOUEUR}
             </span>
           </h2>
           <ul className="flex flex-col gap-2">
             {vue.mesQuestions.map((q) => (
-              <li key={q.id} className="flex min-w-0 items-start gap-3 rounded-2xl bg-white/5 px-3 py-2 ring-1 ring-white/10">
+              <li key={q.id} className="flex min-w-0 items-start gap-3 rounded-2xl bg-white/15 px-3 py-2 ring-1 ring-white/40">
                 <span className="min-w-0 flex-1">
-                  <span className="block text-xs text-pink-300">{TYPES_QUESTION[q.mode].libelle}</span>
+                  <span className="block text-xs font-semibold text-yellow-300">{TYPES_QUESTION[q.mode].libelle}</span>
                   <span className="block break-words">{q.texte}</span>
                 </span>
                 <button
                   onClick={() => agir((ack) => socket.emit('retirerQuestion', { id: q.id }, ack))}
                   aria-label="Retirer cette question"
                   title="Retirer cette question"
-                  className="flex size-8 shrink-0 items-center justify-center rounded-full text-white/50 hover:bg-white/10 hover:text-white"
+                  className="flex size-8 shrink-0 items-center justify-center rounded-full text-white/75 hover:bg-white/20 hover:text-white"
                 >
                   ✕
                 </button>
@@ -550,20 +552,24 @@ export function EnTete({ vue, secondes }: { vue: Vue; secondes: number | null })
   return (
     <div className="flex flex-col gap-2">
       <div className="flex items-center justify-between gap-3">
-        <span className="shrink-0 text-sm font-medium text-white/70">
+        <span className="shrink-0 text-sm font-medium text-white/90">
           {vue.phase === 'redaction' ? 'Préparation' : `Manche ${vue.manche}/${vue.totalManches}`}
         </span>
-        {mode && <span className="min-w-0 truncate text-sm font-semibold text-pink-300">{mode}</span>}
+        {mode && (
+          <span className="anim-rebond min-w-0 truncate rounded-full bg-white px-3 py-1 font-display text-sm font-bold text-fuchsia-600 shadow-md">
+            {mode}
+          </span>
+        )}
         {secondes !== null && vue.phase !== 'decompte' && (
           <span
-            className={`shrink-0 rounded-full px-3 py-1 font-display text-lg tabular-nums ${secondes <= 5 ? 'bg-rose-500 text-white' : 'bg-white/10'}`}
+            className={`shrink-0 rounded-full px-3 py-1 font-display text-lg tabular-nums ${secondes <= 5 ? 'anim-urgence bg-rose-500 text-white shadow-lg' : 'bg-white/20'}`}
           >
             {secondes}s
           </span>
         )}
       </div>
       {vue.grandeFinale && (
-        <p className="rounded-xl bg-gradient-to-r from-amber-400 to-pink-500 px-3 py-1.5 text-center font-display font-bold text-indigo-950">
+        <p className="anim-flotte rounded-xl bg-gradient-to-r from-yellow-300 to-pink-500 px-3 py-1.5 text-center font-display font-bold text-indigo-950 shadow-lg">
           👑 GRANDE FINALE · points doublés
         </p>
       )}
@@ -575,10 +581,19 @@ export function Decompte({ vue, secondes }: { vue: Vue; secondes: number | null 
   const n = Math.min(3, Math.max(1, secondes ?? 3));
   return (
     <div className="flex min-h-[60dvh] flex-col items-center justify-center gap-6 text-center">
-      <p className="font-display text-2xl text-white/80">{vue.grandeFinale ? 'Grande finale…' : `Manche ${vue.manche}`}</p>
-      <p key={n} className="animate-pop font-display text-9xl font-bold text-amber-400">
-        {n}
-      </p>
+      <p className="anim-rebond font-display text-3xl font-bold">{vue.grandeFinale ? '👑 Grande finale…' : `Manche ${vue.manche}`}</p>
+      <div key={n} className="relative flex size-56 items-center justify-center">
+        <span className="anim-onde absolute inset-0 rounded-full bg-white/40" aria-hidden />
+        <span
+          className="anim-chiffre font-display text-[10rem] leading-none font-bold"
+          style={{
+            color: ['#67e8f9', '#fde047', '#ffffff'][n - 1],
+            textShadow: `0 0.06em 0 ${['#1e3a8a', '#b45309', '#9d174d'][n - 1]}, 0 0.12em 0.4em rgba(0,0,0,0.3)`,
+          }}
+        >
+          {n}
+        </span>
+      </div>
     </div>
   );
 }
@@ -586,10 +601,10 @@ export function Decompte({ vue, secondes }: { vue: Vue; secondes: number | null 
 function CarteQuestion({ vue }: { vue: Vue }) {
   if (!vue.question) return null;
   return (
-    <Carte className="animate-entree text-center">
-      <p className="text-sm text-white/60">{vue.question.categorie}</p>
+    <Carte className="anim-rebond text-center">
+      <p className="text-sm text-white/85">{vue.question.categorie}</p>
       <p className="mt-1 font-display text-2xl leading-tight font-semibold sm:text-3xl">{vue.question.texte}</p>
-      <p className="mt-3 text-sm text-white/60">{MODES[vue.question.mode].consigne}</p>
+      <p className="mt-3 text-sm text-white/85">{MODES[vue.question.mode].consigne}</p>
     </Carte>
   );
 }
@@ -599,7 +614,7 @@ function Progression({ vue, faits, libelle }: { vue: Vue; faits: string[]; libel
   const attendus = vue.participants.map((id) => joueurs.get(id)).filter((j): j is JoueurVue => !!j);
   return (
     <div className="text-center">
-      <p className="mb-2 text-sm text-white/60">
+      <p className="mb-2 text-sm text-white/85">
         {faits.length}/{attendus.length} {libelle}
       </p>
       <div className="flex flex-wrap justify-center gap-2">
@@ -635,7 +650,7 @@ export function EcranReponse({ vue, secondes }: { vue: Vue; secondes: number | n
       <div className="flex flex-col gap-6">
         <CarteQuestion vue={vue} />
         <Carte className="text-center">
-          <p className="text-sm text-white/60">Ta réponse secrète</p>
+          <p className="text-sm text-white/85">Ta réponse secrète</p>
           {q.mode === 'qui2nous' ? (
             <div className="mt-2 flex justify-center">
               {joueurs.get(vue.maReponse) && <Pastille joueur={joueurs.get(vue.maReponse)!} />}
@@ -659,7 +674,7 @@ export function EcranReponse({ vue, secondes }: { vue: Vue; secondes: number | n
       <Erreur message={erreur} />
       {q.mode === 'qui2nous' ? (
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-          {vue.participants.map((id) => {
+          {vue.participants.map((id, i) => {
             const j = joueurs.get(id);
             if (!j) return null;
             return (
@@ -667,7 +682,8 @@ export function EcranReponse({ vue, secondes }: { vue: Vue; secondes: number | n
                 key={id}
                 disabled={enCours}
                 onClick={() => repondre(id)}
-                className="flex min-w-0 flex-col items-center gap-1 rounded-2xl bg-white/10 p-3 ring-1 ring-white/15 transition active:scale-95 active:bg-amber-400/30"
+                style={rang(i + 2)}
+                className="anim-rebond flex min-w-0 flex-col items-center gap-1 rounded-2xl bg-white/20 p-3 shadow-lg ring-1 ring-white/40 backdrop-blur-md transition hover:scale-105 hover:bg-white/30 active:scale-90 active:bg-yellow-300/50"
               >
                 <Avatar joueur={j} taille="lg" />
                 <span className="w-full truncate text-center font-medium">{j.id === vue.moi ? `${j.nom} (toi)` : j.nom}</span>
@@ -693,7 +709,7 @@ export function EcranReponse({ vue, secondes }: { vue: Vue; secondes: number | n
             maxLength={80}
             autoFocus
             placeholder="Ta réponse, en secret…"
-            className="min-h-14 w-full rounded-2xl bg-indigo-950/60 px-4 text-lg ring-1 ring-white/20 outline-none placeholder:text-white/30 focus:ring-2 focus:ring-amber-400"
+            className="min-h-14 w-full rounded-2xl bg-white text-indigo-950 px-4 text-lg ring-1 ring-white/40 outline-none placeholder:text-indigo-950/35 focus:ring-2 focus:ring-yellow-300"
           />
           <Bouton type="submit" disabled={enCours || !texte.trim()}>
             Envoyer
@@ -745,7 +761,7 @@ function ChoixPhoto({
       <Erreur message={erreur} />
       {/* Le sélecteur du téléphone : une seule photo, sans accès à toute la galerie. */}
       <label
-        className={`flex min-h-12 cursor-pointer items-center justify-center rounded-2xl px-5 py-3 text-center font-display text-lg font-semibold ${photo ? 'bg-white/10 ring-1 ring-white/20' : 'bg-amber-400 text-indigo-950 shadow-[0_4px_0_#b45309]'}`}
+        className={`flex min-h-12 cursor-pointer items-center justify-center rounded-2xl px-5 py-3 text-center font-display text-lg font-semibold ${photo ? 'bg-white/20 ring-1 ring-white/40' : 'bg-yellow-300 text-indigo-950 shadow-[0_4px_0_#b45309]'}`}
       >
         {preparation ? 'Préparation…' : photo ? 'Changer de photo' : '📸 Choisir une photo'}
         <input
@@ -764,7 +780,7 @@ function ChoixPhoto({
           Envoyer cette photo
         </Bouton>
       )}
-      <p className="text-center text-xs text-white/50">
+      <p className="text-center text-xs text-white/75">
         Seule la photo choisie est partagée, sans sa localisation. Elle est effacée à la fin de la manche.
       </p>
     </div>
@@ -807,13 +823,13 @@ export function EcranVote({ vue }: { vue: Vue }) {
     <div className="flex flex-col gap-4 pb-24">
       <div className="text-center">
         <p className="font-display text-2xl">{TITRES_VOTE[vue.question?.mode ?? 'quiARepondu']}</p>
-        <p className="text-sm text-white/60">{vue.question?.texte}</p>
+        <p className="text-sm text-white/85">{vue.question?.texte}</p>
       </div>
-      {vue.reponsesAnonymes.map((r) => (
-        <Carte key={r.id} className={r.estLaMienne ? 'opacity-60' : ''}>
+      {vue.reponsesAnonymes.map((r, i) => (
+        <Carte key={r.id} style={rang(i)} className={r.estLaMienne ? 'opacity-60' : 'anim-rebond'}>
           {r.image ? <ImageManche vue={vue} id={r.id} /> : <p className="font-display text-xl break-words">« {r.texte} »</p>}
           {r.estLaMienne ? (
-            <p className="mt-2 text-sm text-white/60">{LA_MIENNE[vue.question?.mode ?? 'quiARepondu']}</p>
+            <p className="mt-2 text-sm text-white/85">{LA_MIENNE[vue.question?.mode ?? 'quiARepondu']}</p>
           ) : (
             <div className="mt-3 flex flex-wrap gap-2">
               {candidats.map((j) => {
@@ -823,7 +839,7 @@ export function EcranVote({ vue }: { vue: Vue }) {
                     key={j.id}
                     onClick={() => setChoix((c) => ({ ...c, [r.id]: j.id }))}
                     aria-pressed={actif}
-                    className={`flex max-w-full min-w-0 items-center gap-1.5 rounded-full py-1 pr-3 pl-1 text-sm transition ${actif ? 'bg-amber-400 font-semibold text-indigo-950' : 'bg-white/10'}`}
+                    className={`flex max-w-full min-w-0 items-center gap-1.5 rounded-full py-1 pr-3 pl-1 text-sm transition ${actif ? 'bg-yellow-300 font-semibold text-indigo-950' : 'bg-white/20'}`}
                   >
                     <span className="text-xl">{j.avatar}</span>
                     <span className="truncate">{j.nom}</span>
@@ -834,7 +850,7 @@ export function EcranVote({ vue }: { vue: Vue }) {
           )}
         </Carte>
       ))}
-      <div className="fixed inset-x-0 bottom-0 bg-gradient-to-t from-indigo-950 via-indigo-950/95 to-transparent px-4 pt-6 pb-[max(1rem,env(safe-area-inset-bottom))]">
+      <div className="fixed inset-x-0 bottom-0 bg-gradient-to-t from-fuchsia-900/70 via-fuchsia-900/40 to-transparent px-4 pt-6 pb-[max(1rem,env(safe-area-inset-bottom))]">
         <div className="mx-auto flex max-w-md flex-col gap-2">
           <Erreur message={erreur} />
           <Bouton
@@ -855,15 +871,16 @@ function Classement({ vue }: { vue: Vue }) {
   const medailles = ['🥇', '🥈', '🥉'];
   return (
     <ol className="flex flex-col gap-1.5">
-      {tri.map((j) => {
-        // Ex æquo : même rang pour le même score.
-        const rang = tri.findIndex((k) => k.score === j.score);
+      {tri.map((j, i) => {
+        // Ex æquo : même place pour le même score.
+        const place = tri.findIndex((k) => k.score === j.score);
         return (
         <li
           key={j.id}
-          className={`flex items-center gap-3 rounded-2xl px-3 py-2 ${j.id === vue.moi ? 'bg-amber-400/15 ring-1 ring-amber-400/40' : 'bg-white/5'}`}
+          style={rang(i)}
+          className={`anim-rebond flex items-center gap-3 rounded-2xl px-3 py-2 ${j.id === vue.moi ? 'bg-yellow-300/15 ring-1 ring-yellow-300/40' : 'bg-white/15'}`}
         >
-          <span className="w-7 shrink-0 text-center font-display text-lg">{medailles[rang] ?? rang + 1}</span>
+          <span className="w-7 shrink-0 text-center font-display text-lg">{medailles[place] ?? place + 1}</span>
           <span className="min-w-0 flex-1">
             <Pastille joueur={j} moi={j.id === vue.moi} />
           </span>
@@ -891,8 +908,10 @@ function useRevelation(total: number, progressive: boolean) {
 
 function Suspense({ texte }: { texte: string }) {
   return (
-    <Carte className="animate-pulse text-center">
-      <p className="font-display text-xl">🥁 {texte}</p>
+    <Carte className="anim-flotte text-center">
+      <p className="font-display text-xl">
+        <span className="anim-urgence inline-block">🥁</span> {texte}
+      </p>
     </Carte>
   );
 }
@@ -915,21 +934,21 @@ export function EcranResultat({ vue }: { vue: Vue }) {
 
       {r.mode === 'qui2nous' ? (
         <div className="flex flex-col gap-2">
-          {r.decompte.length === 0 && <p className="text-center text-white/60">Personne n’a répondu à temps.</p>}
+          {r.decompte.length === 0 && <p className="text-center text-white/85">Personne n’a répondu à temps.</p>}
           {/* En finale, on dévoile du moins désigné au plus désigné. */}
           {!toutRevele && <Suspense texte={total - reveles === 1 ? 'Et le plus désigné est…' : 'Révélation…'} />}
           {r.decompte.map((d, i) => {
             const j = joueurs.get(d.joueurId);
             if (!j || i < total - reveles) return null;
             return (
-              <Carte key={d.joueurId} className={`animate-entree ${i === 0 ? 'ring-2 ring-amber-400' : ''}`}>
+              <Carte key={d.joueurId} style={rang(total - 1 - i)} className={`anim-rebond ${i === 0 ? 'ring-4 ring-yellow-300' : ''}`}>
                 <div className="flex items-center justify-between gap-3">
                   <Pastille joueur={j} moi={j.id === vue.moi} />
                   <span className="shrink-0 font-display text-xl">
                     {d.votants.length} vote{d.votants.length > 1 ? 's' : ''}
                   </span>
                 </div>
-                <p className="mt-2 text-sm break-words text-white/60">
+                <p className="mt-2 text-sm break-words text-white/85">
                   Désigné par {d.votants.map((v) => joueurs.get(v)?.nom ?? '?').join(', ')}
                 </p>
               </Carte>
@@ -938,11 +957,11 @@ export function EcranResultat({ vue }: { vue: Vue }) {
         </div>
       ) : (
         <div className="flex flex-col gap-2">
-          {r.reponses.length === 0 && <p className="text-center text-white/60">Pas assez de réponses cette fois.</p>}
+          {r.reponses.length === 0 && <p className="text-center text-white/85">Pas assez de réponses cette fois.</p>}
           {r.reponses.slice(0, reveles).map((rep) => {
             const auteur = joueurs.get(rep.auteurId);
             return (
-              <Carte key={rep.id} className="animate-entree">
+              <Carte key={rep.id} className="anim-rebond">
                 {rep.image ? (
                   <ImageManche vue={vue} id={rep.id} />
                 ) : (
@@ -950,7 +969,7 @@ export function EcranResultat({ vue }: { vue: Vue }) {
                 )}
                 <div className="mt-2 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
                   {auteur && <Pastille joueur={auteur} moi={auteur.id === vue.moi} />}
-                  <span className="text-sm text-white/60">
+                  <span className="text-sm text-white/85">
                     {rep.trouvePar.length === 0
                       ? 'Personne n’a trouvé 🤫'
                       : `Trouvé par ${rep.trouvePar.map((v) => joueurs.get(v)?.nom ?? '?').join(', ')}`}
@@ -965,14 +984,17 @@ export function EcranResultat({ vue }: { vue: Vue }) {
 
       {toutRevele && (
         <>
-          <Carte className="text-center">
+          <Carte className="relative overflow-visible text-center">
             {monGain ? (
               <>
-                <p className="font-display text-4xl font-bold text-amber-400">+{monGain.points}</p>
-                <p className="text-sm text-white/70">{monGain.raisons.join(' · ')}</p>
+                <Gerbe delai={0.35} graine={vue.manche + 3} />
+                <p className="anim-points font-display text-5xl font-bold text-yellow-300 [text-shadow:0_3px_0_#b45309,0_6px_14px_rgba(0,0,0,0.25)]">
+                  +{monGain.points}
+                </p>
+                <p className="text-sm text-white/90">{monGain.raisons.join(' · ')}</p>
               </>
             ) : (
-              <p className="text-white/70">Pas de points pour toi cette manche.</p>
+              <p className="text-white/90">Pas de points pour toi cette manche.</p>
             )}
           </Carte>
 
@@ -987,7 +1009,7 @@ export function EcranResultat({ vue }: { vue: Vue }) {
               {derniere ? 'Voir le podium 🏆' : 'Manche suivante'}
             </Bouton>
           ) : (
-            <p className="text-center text-sm text-white/60">{hote?.nom ?? 'Le créateur'} lance la suite…</p>
+            <p className="text-center text-sm text-white/85">{hote?.nom ?? 'Le créateur'} lance la suite…</p>
           )}
         </>
       )}
@@ -1011,12 +1033,24 @@ export function Podium({ vue, quitter }: { vue: Vue; quitter: () => void }) {
   const [premier, deuxieme, troisieme] = tri;
   const hote = joueurs.get(vue.hoteId);
   const peutPiloter = vue.moi === vue.hoteId || !hote?.connecte;
-  const marche = (j: JoueurVue | undefined, hauteur: string, place: string) =>
+  // Les marches montent du 3e au 1er ; le gagnant reçoit sa couronne et son feu d'artifice.
+  const marche = (j: JoueurVue | undefined, hauteur: string, place: string, ordre: number, gagnant = false) =>
     j && (
-      <div className="flex min-w-0 flex-1 flex-col items-center gap-1">
-        <Avatar joueur={j} taille="lg" />
+      <div className="relative flex min-w-0 flex-1 flex-col items-center gap-1">
+        {gagnant && <Gerbe delai={1.3} graine={11} />}
+        {gagnant && (
+          <span className="anim-couronne text-4xl" aria-hidden>
+            👑
+          </span>
+        )}
+        <span className="anim-rebond flex flex-col items-center" style={rang(ordre * 3 + 2)}>
+          <Avatar joueur={j} taille="lg" />
+        </span>
         <span className="w-full truncate text-center text-sm font-medium">{j.nom}</span>
-        <div className={`flex w-full items-start justify-center rounded-t-2xl bg-white/15 pt-2 font-display text-2xl ${hauteur}`}>
+        <div
+          style={rang(ordre)}
+          className={`anim-marche flex w-full items-start justify-center rounded-t-2xl bg-white/30 pt-2 font-display text-3xl shadow-xl ring-1 ring-white/50 backdrop-blur-md ${hauteur}`}
+        >
           {place}
         </div>
       </div>
@@ -1025,31 +1059,39 @@ export function Podium({ vue, quitter }: { vue: Vue; quitter: () => void }) {
   return (
     <div className="flex flex-col gap-6">
       <div className="text-center">
-        <p className="font-display text-3xl font-bold">🏆 Partie terminée</p>
+        <p className="anim-rebond font-display text-4xl font-bold [text-shadow:0_3px_0_#9d174d,0_6px_14px_rgba(0,0,0,0.25)]">
+          🏆 Partie terminée
+        </p>
         {premier && (
-          <p className="mt-1 text-white/70">
-            Victoire de <strong className="text-amber-400">{premier.nom}</strong> avec {premier.score.toLocaleString('fr-FR')} points
+          <p className="mt-1 text-white/90">
+            Victoire de <strong className="text-yellow-300">{premier.nom}</strong> avec {premier.score.toLocaleString('fr-FR')} points
           </p>
         )}
       </div>
 
       <div className="flex items-end gap-2">
-        {marche(deuxieme, 'h-20', '🥈')}
-        {marche(premier, 'h-28', '🥇')}
-        {marche(troisieme, 'h-14', '🥉')}
+        {marche(deuxieme, 'h-20', '🥈', 1)}
+        {marche(premier, 'h-28', '🥇', 2, true)}
+        {marche(troisieme, 'h-14', '🥉', 0)}
       </div>
 
       {vue.titres.length > 0 && (
         <section>
           <h2 className="mb-2 font-display text-xl">Les titres</h2>
           <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-            {vue.titres.map((t) => {
+            {vue.titres.map((t, i) => {
               const j = joueurs.get(t.joueurId);
               return (
-                <li key={t.intitule} className="flex min-w-0 items-center gap-3 rounded-2xl bg-white/5 px-3 py-2">
-                  <span className="text-2xl">{t.emoji}</span>
+                <li
+                  key={t.intitule}
+                  style={rang(i + 8)}
+                  className="anim-rebond flex min-w-0 items-center gap-3 rounded-2xl bg-white/20 px-3 py-2 ring-1 ring-white/40"
+                >
+                  <span className="anim-flotte text-3xl" style={{ animationDelay: `${i * 0.3}s` }}>
+                    {t.emoji}
+                  </span>
                   <span className="min-w-0">
-                    <span className="block text-sm text-white/60">{t.intitule}</span>
+                    <span className="block text-sm text-white/85">{t.intitule}</span>
                     <span className="block truncate font-medium">{j?.nom ?? '?'}</span>
                   </span>
                 </li>
@@ -1071,18 +1113,18 @@ export function Podium({ vue, quitter }: { vue: Vue; quitter: () => void }) {
             const st = vue.statistiques[j.id];
             const puces = st
               ? STATS_AFFICHEES.filter(([cle]) => st[cle] > 0).map(([cle, emoji, un, plusieurs]) => (
-                  <span key={cle} className="rounded-full bg-white/10 px-2 py-0.5 text-xs whitespace-nowrap">
+                  <span key={cle} className="rounded-full bg-white/20 px-2 py-0.5 text-xs whitespace-nowrap">
                     {emoji} {st[cle]} {st[cle] > 1 ? plusieurs : un}
                   </span>
                 ))
               : [];
             return (
-              <li key={j.id} className="flex flex-col gap-2 rounded-2xl bg-white/5 px-3 py-2 sm:flex-row sm:items-center">
+              <li key={j.id} className="flex flex-col gap-2 rounded-2xl bg-white/15 px-3 py-2 sm:flex-row sm:items-center">
                 <span className="min-w-0 sm:w-40 sm:shrink-0">
                   <Pastille joueur={j} moi={j.id === vue.moi} />
                 </span>
                 <span className="flex min-w-0 flex-wrap gap-1.5">
-                  {puces.length ? puces : <span className="text-xs text-white/50">Discret toute la partie 🤐</span>}
+                  {puces.length ? puces : <span className="text-xs text-white/75">Discret toute la partie 🤐</span>}
                 </span>
               </li>
             );
@@ -1110,7 +1152,7 @@ export function EnAttente() {
     <Carte className="mt-10 text-center">
       <p className="text-4xl">⏳</p>
       <p className="mt-2 font-display text-xl">Une manche est en cours</p>
-      <p className="mt-1 text-white/70">Tu entres dans la partie à la prochaine manche.</p>
+      <p className="mt-1 text-white/90">Tu entres dans la partie à la prochaine manche.</p>
     </Carte>
   );
 }

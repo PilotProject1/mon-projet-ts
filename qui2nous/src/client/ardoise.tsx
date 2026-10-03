@@ -118,7 +118,7 @@ export function Ardoise({
         onPointerUp={fin}
         onPointerCancel={fin}
         aria-label="Zone de dessin"
-        className="aspect-square w-full touch-none rounded-2xl bg-white shadow-inner ring-1 ring-white/20"
+        className="aspect-square w-full touch-none rounded-2xl bg-white shadow-inner ring-1 ring-white/40"
       />
 
       <div className="flex flex-wrap justify-center gap-2" role="group" aria-label="Couleurs">
@@ -132,7 +132,7 @@ export function Ardoise({
             aria-label={`Couleur ${c}`}
             aria-pressed={!gomme && couleur === c}
             style={{ backgroundColor: c }}
-            className={`size-9 rounded-full ring-2 transition ${!gomme && couleur === c ? 'scale-110 ring-white' : 'ring-white/20'}`}
+            className={`size-9 rounded-full ring-2 transition ${!gomme && couleur === c ? 'scale-110 ring-white' : 'ring-white/40'}`}
           />
         ))}
       </div>
@@ -144,7 +144,7 @@ export function Ardoise({
             onClick={() => setEpaisseur(t)}
             aria-label={`Épaisseur ${t}`}
             aria-pressed={epaisseur === t}
-            className={`flex size-10 items-center justify-center rounded-xl ${epaisseur === t ? 'bg-amber-400' : 'bg-white/10'}`}
+            className={`flex size-10 items-center justify-center rounded-xl ${epaisseur === t ? 'bg-yellow-300' : 'bg-white/20'}`}
           >
             <span className="rounded-full bg-white" style={{ width: t / 1.5 + 2, height: t / 1.5 + 2 }} />
           </button>
@@ -152,14 +152,14 @@ export function Ardoise({
         <button
           onClick={() => setGomme((g) => !g)}
           aria-pressed={gomme}
-          className={`min-h-10 rounded-xl px-3 text-sm font-semibold ${gomme ? 'bg-amber-400 text-indigo-950' : 'bg-white/10'}`}
+          className={`min-h-10 rounded-xl px-3 text-sm font-semibold ${gomme ? 'bg-yellow-300 text-indigo-950' : 'bg-white/20'}`}
         >
           🧽 Gomme
         </button>
         <button
           onClick={annuler}
           disabled={nbEtapes === 0}
-          className="min-h-10 rounded-xl bg-white/10 px-3 text-sm font-semibold disabled:opacity-40"
+          className="min-h-10 rounded-xl bg-white/20 px-3 text-sm font-semibold disabled:opacity-40"
         >
           ↩️ Annuler
         </button>
@@ -168,7 +168,7 @@ export function Ardoise({
             memoriser();
             effacerTout();
           }}
-          className="min-h-10 rounded-xl bg-white/10 px-3 text-sm font-semibold"
+          className="min-h-10 rounded-xl bg-white/20 px-3 text-sm font-semibold"
         >
           🗑️ Effacer
         </button>
@@ -177,7 +177,7 @@ export function Ardoise({
       <Bouton disabled={enCours || !aDessine} onClick={envoyerUneFois}>
         Envoyer mon dessin
       </Bouton>
-      <p className="text-center text-xs text-white/50">Pas de lettres ! Ton dessin est envoyé tout seul à la fin du temps.</p>
+      <p className="text-center text-xs text-white/75">Pas de lettres ! Ton dessin est envoyé tout seul à la fin du temps.</p>
     </div>
   );
 }

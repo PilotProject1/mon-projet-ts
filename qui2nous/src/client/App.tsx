@@ -3,6 +3,7 @@ import { useCompteARebours, useJeu } from './connexion.ts';
 import { Intro } from './Intro.tsx';
 import { Accueil, Decompte, Redaction, EcranReponse, EcranResultat, EcranVote, EnAttente, EnTete, Lobby, Podium } from './ecrans.tsx';
 import { Logo } from './ui.tsx';
+import { DecorPetillant } from './Fond.tsx';
 
 const CLE_INTRO = 'qui2nous:intro';
 
@@ -43,7 +44,7 @@ export function App() {
 
   let ecran;
   if (!vue) {
-    ecran = reprise ? <p className="mt-20 text-center text-white/70">Retour dans la partie…</p> : <Accueil />;
+    ecran = reprise ? <p className="mt-20 text-center text-white/90">Retour dans la partie…</p> : <Accueil />;
   } else if (vue.phase === 'lobby') {
     ecran = <Lobby vue={vue} />;
   } else if (vue.phase === 'podium') {
@@ -66,16 +67,21 @@ export function App() {
   }
 
   return (
+    <>
+    {/* Le fond coloré et pétillant de l'intro, derrière tous les écrans */}
+    <div className="intro-fond fixed inset-0 -z-10 overflow-hidden" aria-hidden>
+      <DecorPetillant etincelles={24} />
+    </div>
     <div className="mx-auto flex min-h-dvh w-full max-w-md flex-col px-4 pt-[max(1rem,env(safe-area-inset-top))] pb-8">
       {vue && (
         <header className="mb-4 flex items-center justify-between gap-3">
           <Logo />
           <div className="flex shrink-0 items-center gap-2">
-            <span className="rounded-full bg-white/10 px-3 py-1 font-display tracking-widest">{vue.code}</span>
+            <span className="rounded-full bg-white/20 px-3 py-1 font-display tracking-widest">{vue.code}</span>
             {vue.phase !== 'podium' && (
               <button
                 onClick={() => confirm('Quitter la partie ?') && quitter()}
-                className="rounded-full px-2 py-1 text-sm text-white/60 hover:text-white"
+                className="rounded-full px-2 py-1 text-sm text-white/85 hover:text-white"
               >
                 Quitter
               </button>
@@ -84,11 +90,12 @@ export function App() {
         </header>
       )}
       {!connecte && (
-        <p role="status" className="mb-4 rounded-xl bg-amber-400/20 px-3 py-2 text-center text-sm text-amber-100">
+        <p role="status" className="anim-secoue mb-4 rounded-2xl bg-white px-3 py-2 text-center text-sm font-medium text-fuchsia-700 shadow-lg">
           Connexion perdue, reconnexion en cours…
         </p>
       )}
       <main className="flex-1">{ecran}</main>
     </div>
+    </>
   );
 }
