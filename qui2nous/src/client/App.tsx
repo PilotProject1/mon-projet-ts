@@ -1,9 +1,44 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useCompteARebours, useJeu } from './connexion.ts';
 import { Intro } from './Intro.tsx';
 import { Accueil, Decompte, Redaction, EcranReponse, EcranResultat, EcranVote, EnAttente, EnTete, Lobby, Podium } from './ecrans.tsx';
 import { Logo } from './ui.tsx';
 import { DecorPetillant } from './Fond.tsx';
+import { DUREE_STRESS, contexteAudio, debloquerAuPremierToucher, musiqueStress } from './sons.ts';
+import type { Vue } from '../shared/protocol.ts';
+
+debloquerAuPremierToucher();
+
+/**
+ * Musique stressante quand il reste 10 secondes pour répondre ou voter.
+ * Elle s'arrête dès que la phase change (tout le monde a répondu).
+ */
+function useMusiqueChrono(vue: Vue | null, decalage: number) {
+  const phase = vue?.phase;
+  const echeance = vue?.echeance ?? null;
+  const active = (phase === 'reponse' || phase === 'vote') && echeance !== null;
+  // Le décalage d'horloge bouge un peu à chaque message : on le lit sans relancer la musique.
+  const decalageRef = useRef(decalage);
+  decalageRef.current = decalage;
+  useEffect(() => {
+    const decalage = decalageRef.current;
+    if (!active || echeance === null) return;
+    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
+    let arreter: (() => void) | null = null;
+    const lancer = () => {
+      const ctx = contexteAudio();
+      if (!ctx || ctx.state !== 'running') return;
+      const restant = (echeance - (Date.now() + decalage)) / 1000;
+      if (restant > 0.3) arreter = musiqueStress(ctx, ctx.currentTime, Math.min(restant, DUREE_STRESS));
+    };
+    const avant = echeance - (Date.now() + decalage) - DUREE_STRESS * 1000;
+    const t = setTimeout(lancer, Math.max(0, avant));
+    return () => {
+      clearTimeout(t);
+      arreter?.();
+    };
+  }, [active, phase, echeance]);
+}
 
 const CLE_INTRO = 'qui2nous:intro';
 
@@ -27,6 +62,7 @@ export function App() {
   const { vue, decalage, connecte, reprise, quitter } = useJeu();
   const secondes = useCompteARebours(vue?.echeance ?? null, decalage);
   const moi = vue?.joueurs.find((j) => j.id === vue.moi);
+  useMusiqueChrono(vue, decalage);
   // L'intro s'affiche à l'ouverture, une fois par visite, mais jamais quand on
   // revient dans une partie en cours (écran rallumé, page rechargée).
   const [intro, setIntro] = useState(() => !reprise && !introDejaVue());

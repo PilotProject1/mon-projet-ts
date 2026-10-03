@@ -150,6 +150,80 @@ export function bandeSonIntro(ctx: BaseAudioContext, t0: number, impacts: number
   impacts.forEach((impact, i) => feuDArtifice(ctx, t0 + impact, 1 + i * 0.3));
 }
 
+/** Durée de la musique de fin de chrono (s). */
+export const DUREE_STRESS = 10;
+
+/** Une note brève (oscillateur + enveloppe percussive) envoyée vers `sortie`. */
+function note(ctx: BaseAudioContext, sortie: AudioNode, quand: number, freq: number, duree: number, type: OscillatorType, volume: number) {
+  const o = ctx.createOscillator();
+  o.type = type;
+  o.frequency.setValueAtTime(freq, quand);
+  const g = ctx.createGain();
+  g.gain.setValueAtTime(0.0001, quand);
+  g.gain.exponentialRampToValueAtTime(volume, quand + 0.005);
+  g.gain.exponentialRampToValueAtTime(0.0001, quand + duree);
+  o.connect(g).connect(sortie);
+  o.start(quand);
+  o.stop(quand + duree + 0.02);
+}
+
+/**
+ * Musique stressante des 10 dernières secondes : un tic-tac d'horloge, une
+ * basse qui pulse et un petit motif aigu qui monte d'un demi-ton chaque
+ * seconde ; le tempo double pendant les 3 dernières secondes, puis un buzzer
+ * annonce la fin. `restant` : secondes avant la fin à partir de `debut`
+ * (la musique démarre en cours de route si on la lance après les 10 s).
+ * Renvoie une fonction qui l'arrête en fondu (tout le monde a répondu).
+ */
+export function musiqueStress(ctx: BaseAudioContext, debut: number, restant: number) {
+  const general = ctx.createGain();
+  general.gain.value = 1;
+  const sortie = sortieAudio(ctx, 0.6);
+  general.connect(sortie);
+  const fin = debut + restant;
+
+  for (let s = Math.ceil(restant) - 1; s >= 0; s--) {
+    // `s` : secondes restantes au début de ce battement (9, 8, … 0).
+    const t = fin - s - 1;
+    if (t < debut - 0.01) continue;
+    const pressant = s < 3;
+    const pas = pressant ? 0.25 : 0.5;
+    const montee = 2 ** ((DUREE_STRESS - 1 - s) / 12); // un demi-ton de plus par seconde
+    for (let k = 0; k < 1 / pas; k++) {
+      const q = t + k * pas;
+      // Tic-tac : clic aigu puis plus grave.
+      note(ctx, general, q, k % 2 ? 1500 : 2100, 0.04, 'square', 0.25);
+      // Basse qui pulse, plus forte à la fin.
+      note(ctx, general, q, 55 * montee, pas * 0.9, 'sawtooth', pressant ? 0.6 : 0.42);
+    }
+    // Petit motif aigu de deux notes, qui monte à chaque seconde.
+    note(ctx, general, t, 440 * montee, 0.18, 'triangle', 0.35);
+    note(ctx, general, t + 0.5, 466 * montee, 0.18, 'triangle', 0.35);
+  }
+
+  // Le buzzer final.
+  const buzzer = ctx.createOscillator();
+  buzzer.type = 'sawtooth';
+  buzzer.frequency.setValueAtTime(180, fin);
+  buzzer.frequency.linearRampToValueAtTime(120, fin + 0.6);
+  const gBuzzer = ctx.createGain();
+  gBuzzer.gain.setValueAtTime(0.0001, fin);
+  gBuzzer.gain.exponentialRampToValueAtTime(0.6, fin + 0.02);
+  gBuzzer.gain.setValueAtTime(0.6, fin + 0.45);
+  gBuzzer.gain.exponentialRampToValueAtTime(0.0001, fin + 0.65);
+  buzzer.connect(gBuzzer).connect(general);
+  buzzer.start(fin);
+  buzzer.stop(fin + 0.7);
+
+  return () => {
+    const now = ctx.currentTime;
+    general.gain.cancelScheduledValues(now);
+    general.gain.setValueAtTime(general.gain.value, now);
+    general.gain.linearRampToValueAtTime(0, now + 0.25);
+    setTimeout(() => general.disconnect(), 400);
+  };
+}
+
 /** Petite vibration du téléphone (Android ; l'iPhone ne le permet pas aux sites web). */
 export function vibrer(motif: number | number[]) {
   try {
@@ -157,4 +231,16 @@ export function vibrer(motif: number | number[]) {
   } catch {
     /* pas de vibreur : tant pis */
   }
+}
+
+/**
+ * Les téléphones n'autorisent le son qu'après un toucher. Si l'intro n'a pas
+ * débloqué l'audio (page rechargée en pleine partie), le premier toucher le fait.
+ */
+export function debloquerAuPremierToucher() {
+  const debloquer = () => {
+    contexteAudio()?.resume().catch(() => {});
+    window.removeEventListener('pointerdown', debloquer);
+  };
+  window.addEventListener('pointerdown', debloquer);
 }
