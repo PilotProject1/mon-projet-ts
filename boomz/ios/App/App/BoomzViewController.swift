@@ -8,6 +8,7 @@ class BoomzViewController: CAPBridgeViewController {
     override open func capacitorDidLoad() {
         bridge?.registerPluginInstance(NearbyPlugin())
         bridge?.registerPluginInstance(HapticsPlugin())
+        bridge?.registerPluginInstance(ReviewPlugin())
     }
 
     /// La musique du menu démarre dès l'ouverture, sans attendre un premier toucher.

@@ -16,6 +16,7 @@ import { Connection, SnapshotBuffer } from './net/connection';
 import { VoiceChat } from './voice/voice';
 import { pickTaunt, VictoryDance } from './render/victory';
 import { Tutorial } from './tutorial';
+import { afterMatch, parseMemory, requestReview } from './review';
 import {
   CHALLENGES,
   isUnlocked,
@@ -886,6 +887,7 @@ function updateVictory(match: MatchState, me: number | null): void {
   }
   celebrated = match;
   const winner = match.matchWinner!;
+  noteMatchForReview(wonBy(match, me, winner));
   const winnerId = lobby ? Object.entries(lobby.seats).find(([, seat]) => seat === winner)?.[0] : undefined;
   const winnerIsBot = !!lobby?.players.find((player) => player.id === winnerId)?.bot;
   const mine = wonBy(match, me, winner);
@@ -907,6 +909,19 @@ function updateVictory(match: MatchState, me: number | null): void {
   victoryActions.classList.remove('shown');
   if (victoryActionsTimer !== null) window.clearTimeout(victoryActionsTimer);
   victoryActionsTimer = window.setTimeout(() => victoryActions.classList.add('shown'), 2200);
+}
+
+// ---- Demande de note sur l'App Store ----
+
+const REVIEW_KEY = 'boomz.review';
+
+/** Fin d'un match joué : après une belle victoire, la fenêtre de note d'Apple (une fois par mois au plus). */
+function noteMatchForReview(won: boolean): void {
+  if (tutorial) return;
+  const { memory, ask } = afterMatch(parseMemory(readStorage(() => localStorage, REVIEW_KEY)), won, Date.now());
+  writeStorage(() => localStorage, REVIEW_KEY, JSON.stringify(memory));
+  // Après la danse de victoire, quand les boutons sont apparus.
+  if (ask) window.setTimeout(requestReview, 3500);
 }
 
 // ---- Revanche : on rejoue avec les mêmes joueurs sans repasser par le salon ----

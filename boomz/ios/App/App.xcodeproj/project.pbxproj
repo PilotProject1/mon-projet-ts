@@ -19,6 +19,7 @@
 		B0A1E0010000000000000001 /* NearbyPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0A1E0010000000000000002 /* NearbyPlugin.swift */; };
 		B0A1E0010000000000000003 /* BoomzViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0A1E0010000000000000004 /* BoomzViewController.swift */; };
 		B0A1E0010000000000000005 /* HapticsPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0A1E0010000000000000006 /* HapticsPlugin.swift */; };
+		B0A1E0010000000000000007 /* ReviewPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0A1E0010000000000000008 /* ReviewPlugin.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -36,6 +37,7 @@
 		B0A1E0010000000000000002 /* NearbyPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NearbyPlugin.swift; sourceTree = "<group>"; };
 		B0A1E0010000000000000004 /* BoomzViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BoomzViewController.swift; sourceTree = "<group>"; };
 		B0A1E0010000000000000006 /* HapticsPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HapticsPlugin.swift; sourceTree = "<group>"; };
+		B0A1E0010000000000000008 /* ReviewPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReviewPlugin.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -76,6 +78,7 @@
 				B0A1E0010000000000000004 /* BoomzViewController.swift */,
 				B0A1E0010000000000000002 /* NearbyPlugin.swift */,
 				B0A1E0010000000000000006 /* HapticsPlugin.swift */,
+				B0A1E0010000000000000008 /* ReviewPlugin.swift */,
 				504EC30B1FED79650016851F /* Main.storyboard */,
 				504EC30E1FED79650016851F /* Assets.xcassets */,
 				504EC3101FED79650016851F /* LaunchScreen.storyboard */,
@@ -172,6 +175,7 @@
 				B0A1E0010000000000000003 /* BoomzViewController.swift in Sources */,
 				B0A1E0010000000000000001 /* NearbyPlugin.swift in Sources */,
 				B0A1E0010000000000000005 /* HapticsPlugin.swift in Sources */,
+				B0A1E0010000000000000007 /* ReviewPlugin.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
