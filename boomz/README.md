@@ -7,8 +7,8 @@ caisses et piéger ses adversaires, le dernier debout gagne la manche.
 joue ensemble en ligne, en simultané, via un code ou un lien d'invitation, ou
 en local entre iPhone proches (Bluetooth et Wi-Fi direct).
 
-**Le jeu se joue uniquement dans l'application iPhone** (TestFlight, puis App
-Store). Le site https://boomz.onrender.com ne sert plus de version jouable :
+**Le jeu se joue uniquement dans l'application iPhone**, publiée sur l'App
+Store : https://apps.apple.com/fr/app/boomz/id6816491158. Le site https://boomz.onrender.com ne sert plus de version jouable :
 il présente le jeu, renvoie vers l'application et affiche le code des liens
 d'invitation. Le serveur Render reste indispensable : c'est lui qui fait
 tourner les parties en ligne de l'application. L'application Android est en
@@ -284,9 +284,9 @@ l'application embarque le jeu compilé et se connecte à
 
 Le site ne sert que `public/invitation.html` (présentation, code du salon
 d'un lien d'invitation, bouton d'installation) et `/confidentialite`. Le
-bouton « Installer Boomz sur iPhone » pointe vers la variable
-**`APP_STORE_URL`** à renseigner chez Render (lien public TestFlight, puis
-lien App Store) ; sans elle, la page affiche « Bientôt sur l'App Store ».
+bouton « Télécharger Boomz sur l'App Store » pointe vers la fiche App Store,
+écrite dans `server/index.ts` (la variable `APP_STORE_URL` chez Render peut
+la remplacer, sans être nécessaire).
 `public/sw.js` désinstalle l'ancienne version installable du site chez ceux
 qui l'avaient ajoutée à leur écran d'accueil.
 

@@ -103,7 +103,7 @@ const server = createServer(async (request, response) => {
     await sendFile(response, 'assistance.html');
     return;
   }
-  if (path === '/sw.js' || path === '/favicon.png' || /^\/icons\/[\w-]+\.png$/.test(path)) {
+  if (path === '/sw.js' || path === '/favicon.png' || path === '/title-boomz.png' || /^\/icons\/[\w-]+\.png$/.test(path)) {
     await sendFile(response, path.slice(1));
     return;
   }
@@ -117,10 +117,13 @@ const server = createServer(async (request, response) => {
     .end(page.replace('__APP_URL__', appUrl()));
 });
 
-/** Adresse d'installation (TestFlight, puis App Store), réglée chez l'hébergeur. */
+/** Fiche de Boomz sur l'App Store (publiée en octobre 2026). */
+const APP_STORE_URL = 'https://apps.apple.com/fr/app/boomz/id6816491158';
+
+/** Adresse d'installation : la fiche App Store, sauf autre adresse réglée chez l'hébergeur. */
 function appUrl(): string {
-  const url = process.env.APP_STORE_URL?.trim() ?? '';
-  return /^https:\/\/[^"<>\s]+$/.test(url) ? url : '';
+  const url = process.env.APP_STORE_URL?.trim() || APP_STORE_URL;
+  return /^https:\/\/[^"<>\s]+$/.test(url) ? url : APP_STORE_URL;
 }
 
 async function sendFile(response: ServerResponse, name: string): Promise<void> {
