@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
 import { io, type Socket } from 'socket.io-client';
+import { SERVEUR } from './plateforme.ts';
 import type { Ack, ClientVersServeur, ServeurVersClient, Vue } from '../shared/protocol.ts';
 
 export type SocketJeu = Socket<ServeurVersClient, ClientVersServeur>;
 
-export const socket: SocketJeu = io({ autoConnect: true });
+export const socket: SocketJeu = SERVEUR ? io(SERVEUR, { autoConnect: true }) : io({ autoConnect: true });
 
 // Le téléphone garde de quoi revenir dans la partie : écran éteint, onglet
 // rechargé, réseau perdu quelques secondes…

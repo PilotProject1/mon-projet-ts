@@ -19,6 +19,7 @@ import { envoyer, memoriserSession, socket } from './connexion.ts';
 import { preparerPhoto } from './photo.ts';
 import { Ardoise } from './ardoise.tsx';
 import { Gerbe } from './Fond.tsx';
+import { lienInvitation, partager, urlServeur } from './plateforme.ts';
 import { Avatar, Bouton, Carte, Erreur, Pastille } from './ui.tsx';
 
 /** Lance une action serveur et expose son état d'envoi et son erreur. */
@@ -40,7 +41,7 @@ function useAction() {
 function ImageManche({ vue, id }: { vue: Vue; id: string }) {
   return (
     <img
-      src={`/image/${vue.code}/${id}`}
+      src={urlServeur(`/image/${vue.code}/${id}`)}
       alt={vue.question?.mode === 'qui2dessine' ? 'Dessin d’un joueur' : 'Photo d’un joueur'}
       loading="lazy"
       className="max-h-64 w-full rounded-2xl bg-black/30 object-contain"
@@ -187,6 +188,18 @@ export function Accueil() {
             Rejoindre
           </button>
         </form>
+
+        <nav
+          className="accueil-monte mt-2 flex flex-wrap justify-center gap-x-5 gap-y-1 text-sm text-white/80"
+          style={{ animationDelay: '0.35s' }}
+        >
+          <a href="/support.html" className="underline-offset-2 hover:text-white hover:underline">
+            Aide et contact
+          </a>
+          <a href="/confidentialite.html" className="underline-offset-2 hover:text-white hover:underline">
+            Confidentialité
+          </a>
+        </nav>
       </div>
     </>
   );
@@ -243,13 +256,10 @@ export function Lobby({ vue }: { vue: Vue }) {
   const estHote = vue.moi === vue.hoteId;
   const connectes = vue.joueurs.filter((j) => j.connecte).length;
   const hote = vue.joueurs.find((j) => j.id === vue.hoteId);
-  const lien = `${location.origin}/?code=${vue.code}`;
+  const lien = lienInvitation(vue.code);
 
-  async function partager() {
-    if (navigator.share) {
-      await navigator.share({ title: 'Qui2Nous ?', text: `Rejoins ma partie avec le code ${vue.code}`, url: lien }).catch(() => {});
-    } else {
-      await navigator.clipboard?.writeText(lien);
+  async function inviter() {
+    if (await partager('Qui2Nous ?', `Rejoins ma partie avec le code ${vue.code}`, lien)) {
       setCopie(true);
       setTimeout(() => setCopie(false), 2000);
     }
@@ -266,7 +276,7 @@ export function Lobby({ vue }: { vue: Vue }) {
             </span>
           ))}
         </p>
-        <Bouton variante="secondaire" className="mt-3 text-base" onClick={partager}>
+        <Bouton variante="secondaire" className="mt-3 text-base" onClick={inviter}>
           {copie ? 'Lien copié ✓' : 'Inviter des amis'}
         </Bouton>
       </Carte>

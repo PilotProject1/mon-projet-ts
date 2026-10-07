@@ -32,7 +32,11 @@ if (existsSync(dist)) {
 const http = createServer(app);
 // Une photo compressée fait quelques centaines de Ko : on relève la limite
 // par message (1 Mo par défaut) juste au-dessus de la taille acceptée.
-const io = new Server<ClientVersServeur, ServeurVersClient>(http, { maxHttpBufferSize: IMAGE_TAILLE_MAX + 10_000 });
+const io = new Server<ClientVersServeur, ServeurVersClient>(http, {
+  maxHttpBufferSize: IMAGE_TAILLE_MAX + 10_000,
+  // L'app iPhone (Capacitor) embarque l'interface : elle se connecte depuis capacitor://localhost.
+  cors: { origin: ['capacitor://localhost', 'ionic://localhost', 'http://localhost', 'https://localhost'] },
+});
 
 const salons = new Map<string, Salon>();
 const abandons = new Map<string, NodeJS.Timeout>();

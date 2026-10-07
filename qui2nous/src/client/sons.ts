@@ -250,14 +250,8 @@ export function musiqueStress(ctx: BaseAudioContext, debut: number, restant: num
   };
 }
 
-/** Petite vibration du téléphone (Android ; l'iPhone ne le permet pas aux sites web). */
-export function vibrer(motif: number | number[]) {
-  try {
-    navigator.vibrate?.(motif);
-  } catch {
-    /* pas de vibreur : tant pis */
-  }
-}
+/** Vibration : moteur haptique dans l'app iPhone, API web sur Android (l'iPhone ne la permet pas aux sites). */
+export { vibrer } from './plateforme.ts';
 
 /**
  * Les téléphones n'autorisent le son qu'après un toucher. Si l'intro n'a pas
