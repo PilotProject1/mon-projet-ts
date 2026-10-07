@@ -15,9 +15,9 @@ captures sont dans [`captures/`](captures/), aux formats exigés.
 
 > Bombes et pièges entre amis
 
-**Texte promotionnel** (App Store, 170 caractères max, modifiable sans nouvelle version — 155) :
+**Texte promotionnel** (App Store, 170 caractères max, modifiable sans nouvelle version — 156) :
 
-> Nouveau : 8 personnages avec chacun son pouvoir, et 12 défis solo à 3 étoiles ! Jouez seul contre des robots, même sans connexion, ou jusqu'à 6 entre amis.
+> Nouveau : parties en équipes, Rouge contre Bleue ! Et des accessoires à débloquer avec les étoiles des défis. Seul, en local ou en ligne, jusqu'à 6 joueurs.
 
 **Description** (les deux stores, 4 000 caractères max) :
 
@@ -52,25 +52,31 @@ captures sont dans [`captures/`](captures/), aux formats exigés.
 > ◆ 8 PERSONNAGES, 8 POUVOIRS
 > Choisissez votre personnage, chacun avec son pouvoir à déclencher au bon moment : Surcharge (Boomer), Mise à feu (Blaster), Gel (Frost), Zone toxique (Toxic), Doppelbombe (Boomette), Copie (Omega), Dash (Rocket) et Carapace (Rocco). Chacun existe en trois apparences.
 >
+> ◆ EN ÉQUIPES : ROUGE CONTRE BLEUE
+> Jouez chacun pour soi ou en équipes. Pas de tir ami : les flammes d'un coéquipier vous épargnent. La dernière équipe debout remporte la manche.
+>
 > ◆ 12 DÉFIS SOLO
 > Des matchs imposés contre des robots, du plus simple au grand final contre cinq adversaires. Jusqu'à 3 étoiles par défi : gagner, gagner sans perdre une manche, gagner vite. Et une pause quand vous voulez, contre les robots.
+>
+> ◆ DES ACCESSOIRES À DÉBLOQUER
+> Lunettes noires, nœud papillon, moustache, casque audio, couronne… Gagnez des étoiles dans les défis pour les débloquer, et reconnaissez-vous d'un coup d'œil en pleine partie.
 >
 > ◆ RESPECT DE LA VIE PRIVÉE
 > Aucun compte, aucune publicité, aucun achat, aucun traceur. Votre pseudo n'est connu que des joueurs de votre partie, et votre voix n'est jamais enregistrée.
 >
 > Une connexion internet est nécessaire pour jouer en ligne avec des amis à distance. Le jeu contre les robots et le jeu en local fonctionnent sans connexion.
 
-**Nouveautés de la version 1.1** (App Store, champ « Nouveautés ») :
+**Nouveautés de la version 1.2** (App Store, champ « Nouveautés de cette version ») :
 
-> • 8 personnages, chacun avec son pouvoir : gel, dash, carapace, leurre, zone toxique…
-> • 12 défis solo à 3 étoiles, du débutant au grand final
-> • Pause dans les parties contre les robots
-> • Nouvelle icône et nouveau style, aux couleurs de la lave
+> • Nouveau mode en équipes : Rouge contre Bleue, sans tir ami
+> • 7 accessoires à débloquer avec les étoiles des défis
+> • Parties en local bien plus fluides pour les invités
+> • Le son revient correctement après être passé par une autre application
 > • Corrections et améliorations
 
-**Mots-clés** (App Store, 100 caractères max, séparés par des virgules — 95) :
+**Mots-clés** (App Store, 100 caractères max, séparés par des virgules — 93) :
 
-> bombe,multijoueur,amis,arcade,labyrinthe,explosion,robot,local,bluetooth,piège,vocal,hors ligne
+> bombe,multijoueur,amis,arcade,labyrinthe,explosion,robot,local,équipes,piège,vocal,hors ligne
 
 ## Google Play (en pause : priorité à l'App Store)
 
@@ -121,7 +127,7 @@ captures sont dans [`captures/`](captures/), aux formats exigés.
 > Aucun compte, aucun achat, aucune publicité. Contact : boomz-service@outlook.com
 
 - **Aperçu vidéo** : `captures/iphone-6.5/boomz-apercu.mov` (29 s, 886 × 1920, 30 i/s, H.264, son du jeu en AAC stéréo 48 kHz ; 1.1 : les 4 arènes avec les pouvoirs ; Apple limite les aperçus à 30 s et exige une vraie piste audio).
-- **Captures** : `captures/iphone-6.5/boomz-0*.png` (1284 × 2778, avec titres ; 1.1 : 8 captures au style braise, personnages et pouvoirs, défis, sans l'ancienne icône) ; anciennes : `captures/iphone-6.9-*.png` (1290 × 2796 et 2796 × 1290,
+- **Captures** : `captures/iphone-6.5/boomz-0*.png` (1284 × 2778, avec titres ; 1.1 : 8 captures au style braise, personnages et pouvoirs, défis, sans l'ancienne icône ; 1.2 : + 09 équipes et 10 accessoires) ; anciennes : `captures/iphone-6.9-*.png` (1290 × 2796 et 2796 × 1290,
   format iPhone 6,9 pouces, accepté pour toutes les tailles d'iPhone).
 
 ## Avant de publier

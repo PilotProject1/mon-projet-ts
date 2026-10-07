@@ -414,7 +414,7 @@ Un défi se débloque en gagnant le précédent ; les étoiles restent sur le
 téléphone (`boomz.challenges`). Joué sur le téléphone, sans connexion. Écran
 de fin : étoiles obtenues, « Défi suivant », « Réessayer ».
 
-**Fait (après la 1.1 soumise) : parties en équipes** — dans le salon, l'hôte
+**Version 1.2 (prête, 1.1 publiée sur l'App Store) : parties en équipes** — dans le salon, l'hôte
 choisit « Chacun pour soi » ou « En équipes : Rouge contre Bleue » ; chaque
 joueur touche la pastille de couleur de sa ligne pour changer d'équipe (l'hôte
 aussi pour les robots), et les arrivants vont dans l'équipe la moins nombreuse.
