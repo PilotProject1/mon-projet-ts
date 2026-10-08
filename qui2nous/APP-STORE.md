@@ -98,7 +98,7 @@ envoyer une photo.
 
 - **URL d'assistance** : `https://qui2nous.onrender.com/support.html`
 - **URL de confidentialité** : `https://qui2nous.onrender.com/confidentialite.html`
-- **Copyright** : 2026 <nom de l'éditeur>
+- **Copyright** : 2026 Loïc Vincent
 
 ## Questionnaires
 
