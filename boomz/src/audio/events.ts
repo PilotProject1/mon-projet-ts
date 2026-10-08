@@ -24,7 +24,7 @@ export type SoundEvent =
   | { kind: 'power'; mine: boolean; power: number }
   | { kind: 'frozen'; mine: boolean }
   /** Mèche qui grésille (intro au lancement). */
-  | { kind: 'fuse' };
+  | { kind: 'fuse'; seconds: number };
 
 /** Au-delà de ce saut entre deux états (en cases), c'est une téléportation. */
 const TELEPORT_JUMP = 1.5;

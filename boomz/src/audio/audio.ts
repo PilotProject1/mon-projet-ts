@@ -385,8 +385,8 @@ export class GameAudio {
         break;
       case 'fuse':
         // Grésillement d'une mèche : souffle aigu et petits crépitements.
-        this.noise(1.7, { filter: 'highpass', from: 3500, to: 5500, volume: 0.12 });
-        for (let i = 0; i < 12; i++) {
+        this.noise(event.seconds, { filter: 'highpass', from: 3500, to: 5500, volume: 0.12 });
+        for (let i = 0; i < event.seconds / 0.14; i++) {
           this.noise(0.03, { filter: 'bandpass', from: 1800 + i * 150, q: 2, volume: 0.3, delay: i * 0.14 + Math.random() * 0.08 });
         }
         break;

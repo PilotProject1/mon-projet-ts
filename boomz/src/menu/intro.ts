@@ -1,12 +1,13 @@
 import { CourseIntro } from './intro-course';
 import { FuseIntro } from './intro-fuse';
 import { MazeIntro } from './intro-maze';
+import { ShatterIntro } from './intro-shatter';
 import type { IntroOptions } from './intro-base';
 
 export type { IntroOptions } from './intro-base';
 
 /** Les intros possibles au lancement (voir chaque scène). */
-const STYLES = { course: CourseIntro, meche: FuseIntro, poursuite: MazeIntro };
+const STYLES = { course: CourseIntro, meche: FuseIntro, poursuite: MazeIntro, eclats: ShatterIntro };
 export type IntroStyle = keyof typeof STYLES;
 
 export function isIntroStyle(value: string | null): value is IntroStyle {

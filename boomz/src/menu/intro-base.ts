@@ -45,6 +45,8 @@ export abstract class IntroScene {
   protected readonly options: IntroOptions;
   protected title!: HTMLImageElement;
   protected clock = 0;
+  /** Fond plein (`false` : l'accueil se voit là où la scène ne dessine rien). */
+  protected opaque = true;
   private readonly canvas = document.createElement('canvas');
   private readonly done: () => void;
   private last = 0;
@@ -168,8 +170,13 @@ export abstract class IntroScene {
       this.canvas.height = Math.round(place.height * ratio);
     }
     ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
-    ctx.fillStyle = BG;
-    ctx.fillRect(0, 0, place.width, place.height);
+    this.canvas.style.background = this.opaque ? BG : 'transparent';
+    if (this.opaque) {
+      ctx.fillStyle = BG;
+      ctx.fillRect(0, 0, place.width, place.height);
+    } else {
+      ctx.clearRect(0, 0, place.width, place.height);
+    }
     if (this.clock < this.shakeUntil) {
       ctx.translate((Math.random() - 0.5) * this.shakePower, (Math.random() - 0.5) * this.shakePower);
     }
@@ -240,4 +247,83 @@ export function drawBomb(ctx: CanvasRenderingContext2D, x: number, ground: numbe
   ctx.beginPath();
   ctx.arc(x + r * 0.72, by - r * 1.3, r * (blink ? 0.4 : 0.3), 0, Math.PI * 2);
   ctx.fill();
+}
+
+/** Courbe lissée (Catmull-Rom) passant par `control`, échantillonnée finement. */
+export function smoothPath(control: Array<{ x: number; y: number }>): Array<{ x: number; y: number }> {
+  const points: Array<{ x: number; y: number }> = [];
+  for (let i = 0; i < control.length - 1; i++) {
+    const p0 = control[Math.max(0, i - 1)];
+    const p1 = control[i];
+    const p2 = control[i + 1];
+    const p3 = control[Math.min(control.length - 1, i + 2)];
+    for (let s = 0; s < 24; s++) {
+      const t = s / 24;
+      const t2 = t * t;
+      const t3 = t2 * t;
+      const at = (a: number, b: number, c: number, d: number) =>
+        0.5 * (2 * b + (-a + c) * t + (2 * a - 5 * b + 4 * c - d) * t2 + (-a + 3 * b - 3 * c + d) * t3);
+      points.push({ x: at(p0.x, p1.x, p2.x, p3.x), y: at(p0.y, p1.y, p2.y, p3.y) });
+    }
+  }
+  points.push(control[control.length - 1]);
+  return points;
+}
+
+/** Mèche le long de `points`, consumée sur la fraction `progress`, avec son étincelle. */
+export function drawFuse(ctx: CanvasRenderingContext2D, points: Array<{ x: number; y: number }>, progress: number): void {
+  const lengths = [0];
+  for (let i = 1; i < points.length; i++) {
+    lengths.push(lengths[i - 1] + Math.hypot(points[i].x - points[i - 1].x, points[i].y - points[i - 1].y));
+  }
+  const burnt = lengths[lengths.length - 1] * progress;
+  let index = lengths.findIndex((length) => length >= burnt);
+  if (index < 1) index = Math.max(1, index === -1 ? points.length - 1 : 1);
+  const a = points[index - 1];
+  const b = points[index];
+  const f = (burnt - lengths[index - 1]) / Math.max(0.001, lengths[index] - lengths[index - 1]);
+  const spark = { x: a.x + (b.x - a.x) * f, y: a.y + (b.y - a.y) * f };
+
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  // Partie consumée : une traînée de cendre rougeoyante qui s'éteint.
+  ctx.strokeStyle = 'rgba(120, 50, 25, 0.35)';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(points[0].x, points[0].y);
+  for (let i = 1; i < index; i++) ctx.lineTo(points[i].x, points[i].y);
+  ctx.lineTo(spark.x, spark.y);
+  ctx.stroke();
+  // Partie restante : la corde, tressée.
+  ctx.strokeStyle = '#6b4a2f';
+  ctx.lineWidth = 5;
+  ctx.beginPath();
+  ctx.moveTo(spark.x, spark.y);
+  for (let i = index; i < points.length; i++) ctx.lineTo(points[i].x, points[i].y);
+  ctx.stroke();
+  ctx.strokeStyle = '#a57a4c';
+  ctx.lineWidth = 2;
+  ctx.setLineDash([3, 5]);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  if (progress >= 1) return;
+  // L'étincelle : halo, cœur blanc et projections.
+  const flicker = 0.8 + Math.random() * 0.4;
+  const halo = ctx.createRadialGradient(spark.x, spark.y, 0, spark.x, spark.y, 46 * flicker);
+  halo.addColorStop(0, 'rgba(255, 250, 220, 1)');
+  halo.addColorStop(0.2, 'rgba(255, 190, 70, 0.9)');
+  halo.addColorStop(1, 'rgba(255, 90, 20, 0)');
+  ctx.globalCompositeOperation = 'lighter';
+  ctx.fillStyle = halo;
+  ctx.beginPath();
+  ctx.arc(spark.x, spark.y, 46 * flicker, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = '#fff6c8';
+  for (let i = 0; i < 9; i++) {
+    const angle = Math.random() * Math.PI * 2;
+    const distance = 6 + Math.random() * 22;
+    ctx.fillRect(spark.x + Math.cos(angle) * distance, spark.y + Math.sin(angle) * distance, 2, 2);
+  }
+  ctx.globalCompositeOperation = 'source-over';
 }
