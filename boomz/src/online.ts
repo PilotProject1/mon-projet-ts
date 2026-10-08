@@ -5,6 +5,7 @@ import { hapticFor, Haptics, nearestNewFlame } from './audio/haptics';
 import { composeFeedback, describeDevice, median, type FeedbackAnswers } from './feedback';
 import { MenuDemo } from './menu/demo';
 import { TaglineChase } from './menu/chase';
+import { playIntro } from './menu/intro';
 import { COUNTDOWN_TICKS, SUDDEN_DEATH_TICKS, TICK_RATE, WINS_TO_TAKE_MATCH } from './game/constants';
 import { ARENA_NAMES } from './game/arena';
 import { SKIN_COUNT, UNTIL_USED } from './game/constants';
@@ -2011,8 +2012,19 @@ document.addEventListener('contextmenu', (event) => {
   if (!isField(event.target)) event.preventDefault();
 });
 
-applyScreenAmbience();
 requestAnimationFrame(frameLoop);
+// Au lancement, l'intro (BOOMZ révélé à coups de bombes) avant la musique de l'accueil.
+// Pas pendant les vérifications automatisées, sauf demande expresse (`?intro`).
+if (screen === 'home' && (!navigator.webdriver || location.search.includes('intro'))) {
+  void playIntro({
+    look: lookFor(myCharacter(), mySkin(), myAccessory()),
+    logo: required<HTMLElement>('.logo-img'),
+    sound: (event) => audio.play(event),
+    haptic: (haptic) => haptics.play(haptic),
+  }).then(applyScreenAmbience);
+} else {
+  applyScreenAmbience();
+}
 
 if (import.meta.env.DEV) {
   // Accès à l'état pour les vérifications automatisées en développement.
