@@ -383,6 +383,13 @@ export class GameAudio {
         this.noise(0.18, { filter: 'highpass', from: 5000, to: 2500, volume: event.mine ? 0.3 : 0.1 });
         this.tone(1900, 0.3, { to: 1200, type: 'sine', volume: event.mine ? 0.14 : 0.05 });
         break;
+      case 'fuse':
+        // Grésillement d'une mèche : souffle aigu et petits crépitements.
+        this.noise(1.7, { filter: 'highpass', from: 3500, to: 5500, volume: 0.12 });
+        for (let i = 0; i < 12; i++) {
+          this.noise(0.03, { filter: 'bandpass', from: 1800 + i * 150, q: 2, volume: 0.3, delay: i * 0.14 + Math.random() * 0.08 });
+        }
+        break;
       case 'vestLost':
         this.noise(0.25, { filter: 'highpass', from: 4000, to: 1500, volume: event.mine ? 0.3 : 0.1 });
         this.tone(880, 0.3, { to: 330, type: 'triangle', volume: event.mine ? 0.2 : 0.08 });

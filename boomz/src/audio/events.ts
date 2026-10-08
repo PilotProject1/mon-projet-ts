@@ -22,7 +22,9 @@ export type SoundEvent =
   | { kind: 'matchLose' }
   /** Pouvoir utilisé ; `power` : personnage dont c'est le pouvoir (celui copié, pour Omega). */
   | { kind: 'power'; mine: boolean; power: number }
-  | { kind: 'frozen'; mine: boolean };
+  | { kind: 'frozen'; mine: boolean }
+  /** Mèche qui grésille (intro au lancement). */
+  | { kind: 'fuse' };
 
 /** Au-delà de ce saut entre deux états (en cases), c'est une téléportation. */
 const TELEPORT_JUMP = 1.5;

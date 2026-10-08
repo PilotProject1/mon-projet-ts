@@ -5,7 +5,7 @@ import { hapticFor, Haptics, nearestNewFlame } from './audio/haptics';
 import { composeFeedback, describeDevice, median, type FeedbackAnswers } from './feedback';
 import { MenuDemo } from './menu/demo';
 import { TaglineChase } from './menu/chase';
-import { playIntro } from './menu/intro';
+import { isIntroStyle, playIntro } from './menu/intro';
 import { COUNTDOWN_TICKS, SUDDEN_DEATH_TICKS, TICK_RATE, WINS_TO_TAKE_MATCH } from './game/constants';
 import { ARENA_NAMES } from './game/arena';
 import { SKIN_COUNT, UNTIL_USED } from './game/constants';
@@ -1960,7 +1960,27 @@ nameInput.value = readStorage(() => localStorage, NAME_KEY) ?? '';
 const invited = new URLSearchParams(location.search).get('salon')?.toUpperCase() ?? '';
 codeInput.value = invited;
 const previous = storedSession();
-if (previous && (!invited || invited === previous.room)) {
+const resuming = previous !== null && (!invited || invited === previous.room);
+// Au lancement, l'intro (BOOMZ révélé à coups de bombes) avant la musique de l'accueil.
+// Pas en reprenant une partie ni par une invitation, ni pendant les vérifications
+// automatisées, sauf demande expresse (`?intro`, `?intro=meche`…).
+const introParam = new URLSearchParams(location.search).get('intro');
+const intro =
+  !resuming && !invited && (!navigator.webdriver || introParam !== null)
+    ? playIntro(
+        {
+          look: lookFor(myCharacter(), mySkin(), myAccessory()),
+          logo: required<HTMLElement>('.logo-img'),
+          sound: (event) => audio.play(event),
+          haptic: (haptic) => haptics.play(haptic),
+        },
+        isIntroStyle(introParam) ? introParam : undefined,
+      )
+    : null;
+// L'intro a posé son propre calque : le cache du chargement peut partir.
+document.querySelector('#launch-cover')?.remove();
+const afterIntro = intro ?? Promise.resolve();
+if (previous && resuming) {
   // Page rechargée en cours de partie : on reprend sa place.
   session = previous;
   resume(previous);
@@ -1968,9 +1988,9 @@ if (previous && (!invited || invited === previous.room)) {
   showInvitation(invited);
 } else if (storedCharacter() === null) {
   // Premier lancement (ou première fois avec les personnages) : choix du personnage, puis tutoriel.
-  openCharacters(true);
+  void afterIntro.then(() => openCharacters(true));
 } else if (!readStorage(() => localStorage, TUTORIAL_KEY)) {
-  welcomeDialog.showModal();
+  void afterIntro.then(() => welcomeDialog.showModal());
 }
 
 /** Arrivée par un lien d'invitation : « Rejoindre » devient l'action principale. */
@@ -2013,18 +2033,8 @@ document.addEventListener('contextmenu', (event) => {
 });
 
 requestAnimationFrame(frameLoop);
-// Au lancement, l'intro (BOOMZ révélé à coups de bombes) avant la musique de l'accueil.
-// Pas pendant les vérifications automatisées, sauf demande expresse (`?intro`).
-if (screen === 'home' && (!navigator.webdriver || location.search.includes('intro'))) {
-  void playIntro({
-    look: lookFor(myCharacter(), mySkin(), myAccessory()),
-    logo: required<HTMLElement>('.logo-img'),
-    sound: (event) => audio.play(event),
-    haptic: (haptic) => haptics.play(haptic),
-  }).then(applyScreenAmbience);
-} else {
-  applyScreenAmbience();
-}
+if (intro) void intro.then(applyScreenAmbience);
+else applyScreenAmbience();
 
 if (import.meta.env.DEV) {
   // Accès à l'état pour les vérifications automatisées en développement.
