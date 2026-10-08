@@ -5,7 +5,7 @@ services:
   - type: web
     name: qui2nous
     runtime: node
-    plan: free
+    plan: starter
     branch: claude/qui2nous
     rootDir: qui2nous
     buildCommand: npm ci --include=dev && npm run build
