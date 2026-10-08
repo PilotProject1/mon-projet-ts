@@ -29,10 +29,10 @@ l'envoi**.
 
 - Rien à configurer : le serveur accepte déjà les connexions venant de l'appli
   (CORS `capacitor://localhost`). Il suffit que cette version soit déployée.
-- **Important** : le service est sur l'offre gratuite, qui s'endort après
-  15 minutes sans visite et met ~1 minute à se réveiller. Si le testeur d'Apple
-  tombe dessus, il verra « Connexion perdue » et risque de refuser l'appli.
-  Passer à l'offre **Starter** (7 $/mois) au moins pendant l'examen.
+- Le service est en offre **Starter** (`plan: starter` dans `render.yaml`) :
+  il reste toujours éveillé, ce qui évite au testeur d'Apple de tomber sur
+  « Connexion perdue ». Ne pas repasser en offre gratuite tant que l'appli
+  est publiée.
 
 ## Construire et envoyer (sur un Mac avec Xcode)
 
