@@ -4,13 +4,15 @@ import { Share } from '@capacitor/share';
 
 // Ce qui change entre le site web et l'app iPhone (Capacitor).
 // Sur le site, l'interface et le serveur de jeu ont la même adresse. Dans
-// l'app, l'interface est embarquée et le serveur est en ligne : son adresse
-// est fixée à la compilation (VITE_URL_SERVEUR, voir APP-STORE.md).
+// l'app, l'interface est embarquée et le serveur est en ligne, à l'adresse de
+// production (remplaçable à la compilation par VITE_URL_SERVEUR, pour tester).
 
 export const estAppli = Capacitor.isNativePlatform();
 
+const SERVEUR_PRODUCTION = 'https://qui2nous.onrender.com';
+
 /** Adresse du serveur de jeu, sans barre finale ; vide sur le site (même adresse). */
-export const SERVEUR = (import.meta.env.VITE_URL_SERVEUR ?? '').replace(/\/$/, '');
+export const SERVEUR = (import.meta.env.VITE_URL_SERVEUR ?? (estAppli ? SERVEUR_PRODUCTION : '')).replace(/\/$/, '');
 
 /** Adresse complète d'une ressource du serveur (images des manches). */
 export const urlServeur = (chemin: string) => `${SERVEUR}${chemin}`;

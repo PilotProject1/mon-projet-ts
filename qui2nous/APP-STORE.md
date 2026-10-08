@@ -18,8 +18,8 @@ emballé (règle 4.2 d'Apple).
 | Écran de lancement | `ios/App/App/Assets.xcassets/Splash.imageset/` |
 | Textes d'autorisation photo / appareil photo | `ios/App/App/Info.plist` |
 | Chiffrement | `ITSAppUsesNonExemptEncryption = NO` (plus de question à chaque envoi) |
-| Politique de confidentialité | `https://<URL Render>/confidentialite.html` |
-| Page d'aide (URL d'assistance) | `https://<URL Render>/support.html` |
+| Politique de confidentialité | `https://qui2nous.onrender.com/confidentialite.html` |
+| Page d'aide (URL d'assistance) | `https://qui2nous.onrender.com/support.html` |
 
 Les deux pages sont aussi accessibles depuis l'accueil du jeu. Les champs
 surlignés en jaune (éditeur, e-mail de contact) **doivent être remplis avant
@@ -40,13 +40,14 @@ l'envoi**.
 git clone … && cd mon-projet-ts/qui2nous
 git checkout claude/qui2nous-ios
 npm ci
-VITE_URL_SERVEUR=https://<URL Render> npm run build
+npm run build
 npx cap sync ios
 open ios/App/App.xcodeproj
 ```
 
-`VITE_URL_SERVEUR` est indispensable : sans lui, l'appli ne sait pas où se
-trouve le serveur de jeu.
+L'appli se connecte d'office au serveur `https://qui2nous.onrender.com`. Pour
+la brancher sur un autre serveur (tests), construire avec
+`VITE_URL_SERVEUR=https://autre-adresse npm run build`.
 
 Dans Xcode :
 
@@ -95,8 +96,8 @@ envoyer une photo.
   > Parfait pour l'apéro, les soirées, les anniversaires et les week-ends entre
   > amis !
 
-- **URL d'assistance** : `https://<URL Render>/support.html`
-- **URL de confidentialité** : `https://<URL Render>/confidentialite.html`
+- **URL d'assistance** : `https://qui2nous.onrender.com/support.html`
+- **URL de confidentialité** : `https://qui2nous.onrender.com/confidentialite.html`
 - **Copyright** : 2026 <nom de l'éditeur>
 
 ## Questionnaires
