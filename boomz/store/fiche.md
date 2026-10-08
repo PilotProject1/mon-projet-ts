@@ -66,6 +66,11 @@ captures sont dans [`captures/`](captures/), aux formats exigés.
 >
 > Une connexion internet est nécessaire pour jouer en ligne avec des amis à distance. Le jeu contre les robots et le jeu en local fonctionnent sans connexion.
 
+**Nouveautés de la version 1.3** (App Store, champ « Nouveautés de cette version ») :
+
+> • Vous aimez Boomz ? Notez-le directement depuis le jeu, après une victoire
+> • Corrections et améliorations
+
 **Nouveautés de la version 1.2** (App Store, champ « Nouveautés de cette version ») :
 
 > • Nouveau mode en équipes : Rouge contre Bleue, sans tir ami
